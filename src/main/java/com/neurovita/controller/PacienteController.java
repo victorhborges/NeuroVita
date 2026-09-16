@@ -1,16 +1,15 @@
 package com.neurovita.controller;
 
-import com.neurovita.model.Paciente;
+import com.neurovita.dto.PacienteRequest;
+import com.neurovita.dto.PacienteResponse;
 import com.neurovita.service.PacienteService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
-@RequestMapping("/pacientes")
+@RequestMapping("/api/pacientes")
 public class PacienteController {
 
     private final PacienteService pacienteService;
@@ -20,12 +19,56 @@ public class PacienteController {
     }
 
     @PostMapping
-    public Paciente salvar(@RequestBody Paciente paciente) {
-        return pacienteService.salvar(paciente);
+    public ResponseEntity<PacienteResponse> salvar(
+            @RequestBody PacienteRequest request) {
+
+        PacienteResponse response = pacienteService.salvar(request);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public List<Paciente> listarTodos() {
-        return pacienteService.listarTodos();
+    public ResponseEntity<List<PacienteResponse>> listarTodos() {
+
+        return ResponseEntity.ok(
+                pacienteService.listarTodos()
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PacienteResponse> buscarPorId(
+            @PathVariable String id) {
+
+        PacienteResponse response = pacienteService.buscarPorId(id);
+
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PacienteResponse> atualizar(
+            @PathVariable String id,
+            @RequestBody PacienteRequest request) {
+
+        PacienteResponse response =
+                pacienteService.atualizar(id, request);
+
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(
+            @PathVariable String id) {
+
+        pacienteService.deletar(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

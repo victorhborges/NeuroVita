@@ -1,13 +1,17 @@
-# 🧠 NeuroVita — Backend
+# 🧠 NeuroVita - Backend
 
 Backend da plataforma **NeuroVita**, desenvolvida para auxiliar no gerenciamento de atendimentos psicológicos, pacientes, profissionais, consultas, agendas e informações relacionadas ao atendimento clínico.
 
 O projeto está sendo desenvolvido como parte das atividades acadêmicas da faculdade, com foco na aplicação prática de conceitos de **Programação Orientada a Objetos, desenvolvimento de APIs REST, arquitetura de software, banco de dados, segurança e boas práticas de desenvolvimento**.
 
 > 🚧 **Status:** Em desenvolvimento
+
 > ☕ **Linguagem:** Java 21
+
 > 🌱 **Framework:** Spring Boot 4.0.8
+
 > 🗄️ **Banco:** MongoDB
+
 > ☁️ **Hospedagem planejada:** Render
 
 ---
@@ -16,7 +20,7 @@ O projeto está sendo desenvolvido como parte das atividades acadêmicas da facu
 
 O NeuroVita é uma plataforma voltada para instituições e profissionais da área de psicologia, com o objetivo de centralizar e organizar informações relacionadas aos atendimentos.
 
-O backend será responsável por disponibilizar uma **API REST**, permitindo a comunicação entre o frontend e os serviços da aplicação.
+O backend é responsável por disponibilizar uma **API REST**, permitindo a comunicação entre o frontend e os serviços da aplicação.
 
 Entre os principais módulos previstos estão:
 
@@ -86,13 +90,21 @@ O backend utiliza uma arquitetura organizada em camadas, separando as responsabi
 
 ```text
 Cliente / Frontend / Postman
+
             ↓
+
        Controller
+
             ↓
+
          Service
+
             ↓
+
        Repository
+
             ↓
+
          MongoDB
 ```
 
@@ -103,10 +115,10 @@ Responsável por receber as requisições HTTP e retornar as respostas da API.
 Exemplos:
 
 ```text
-GET    /pacientes
-POST   /pacientes
-PUT    /pacientes/{id}
-DELETE /pacientes/{id}
+GET    /api/pacientes
+POST   /api/pacientes
+PUT    /api/pacientes/{id}
+DELETE /api/pacientes/{id}
 ```
 
 ### Service
@@ -128,8 +140,11 @@ O Spring Data fornece métodos de acesso ao banco, como:
 
 ```text
 save()
+
 findAll()
+
 findById()
+
 deleteById()
 ```
 
@@ -146,12 +161,26 @@ Exemplos:
 * Disponibilidade
 * Administrador
 
+### DTO
+
+Os DTOs (**Data Transfer Objects**) são utilizados para separar os dados recebidos e enviados pela API dos documentos utilizados internamente pela aplicação.
+
+No módulo de Paciente:
+
+```text
+PacienteRequest
+PacienteResponse
+```
+
+Essa separação facilita a organização da API e permite que o modelo de persistência evolua de forma independente do contrato da API.
+
 ---
 
 ## 📁 Estrutura atual
 
 ```text
 neurovita/
+
 │
 ├── src/
 │   ├── main/
@@ -162,6 +191,10 @@ neurovita/
 │   │   │           ├── controller/
 │   │   │           │   ├── TesteController.java
 │   │   │           │   └── PacienteController.java
+│   │   │           │
+│   │   │           ├── dto/
+│   │   │           │   ├── PacienteRequest.java
+│   │   │           │   └── PacienteResponse.java
 │   │   │           │
 │   │   │           ├── service/
 │   │   │           │   └── PacienteService.java
@@ -190,25 +223,41 @@ A estrutura será ampliada conforme novos módulos forem implementados.
 
 ## 👤 Paciente
 
-O módulo de pacientes é o primeiro módulo em desenvolvimento.
+O módulo de pacientes foi implementado seguindo a arquitetura em camadas do backend.
 
 ### Funcionalidades
 
-* 🟡 Cadastrar paciente
-* 🟡 Listar pacientes
-* ⚪ Buscar paciente por ID
-* ⚪ Atualizar paciente
-* ⚪ Remover paciente
+* 🟢 Cadastrar paciente
+* 🟢 Listar pacientes
+* 🟢 Buscar paciente por ID
+* 🟢 Atualizar paciente
+* 🟢 Remover paciente
 
 ### Endpoints
 
 ```text
-POST   /pacientes
-GET    /pacientes
-GET    /pacientes/{id}
-PUT    /pacientes/{id}
-DELETE /pacientes/{id}
+POST   /api/pacientes
+GET    /api/pacientes
+GET    /api/pacientes/{id}
+PUT    /api/pacientes/{id}
+DELETE /api/pacientes/{id}
 ```
+
+### Estrutura do módulo
+
+```text
+Paciente
+├── Model
+├── Request DTO
+├── Response DTO
+├── Repository
+├── Service
+└── Controller
+```
+
+O módulo utiliza DTOs para separar os dados recebidos pela API dos documentos persistidos no MongoDB.
+
+A implementação do CRUD está concluída no código. A validação da persistência dependerá da disponibilidade e configuração do banco MongoDB no ambiente de desenvolvimento.
 
 ---
 
@@ -243,13 +292,14 @@ Módulo responsável pelo agendamento e gerenciamento das consultas.
 ### Status previstos
 
 ```text
-AGENDADO
-CONFIRMADO
-EM_ATENDIMENTO
-REALIZADO
+AGENDADA
+CONFIRMADA
+CANCELADA
+REALIZADA
 FALTA
-CANCELADO
 ```
+
+Os status poderão ser ajustados conforme as regras definitivas do sistema e a integração com o frontend.
 
 ---
 
@@ -332,6 +382,8 @@ Ferramentas previstas:
 * Postman
 * Swagger / OpenAPI
 
+Atualmente, o projeto possui testes automatizados básicos para validação do contexto da aplicação.
+
 ---
 
 ## 🗄️ Banco de dados
@@ -349,7 +401,9 @@ Os documentos previstos incluem informações relacionadas a:
 * Registros clínicos;
 * Outros módulos definidos durante o desenvolvimento.
 
-A configuração definitiva da conexão com o banco dependerá do ambiente disponibilizado pela equipe responsável pelo banco de dados.
+A configuração da conexão com o banco será definida de acordo com o ambiente disponibilizado pela equipe responsável pelo banco de dados.
+
+As credenciais de acesso deverão ser configuradas por meio de variáveis de ambiente ou mecanismos seguros de configuração.
 
 > ⚠️ Dados reais de acesso ao banco nunca devem ser enviados para o GitHub.
 
@@ -389,7 +443,7 @@ O objetivo não é simplesmente traduzir o código JavaScript para Java, mas **r
 * Java JDK 21 ou superior;
 * Maven;
 * Git;
-* MongoDB disponível no ambiente de desenvolvimento.
+* Acesso ao MongoDB configurado no ambiente de desenvolvimento.
 
 Verificar Java:
 
@@ -430,7 +484,13 @@ http://localhost:8080
 Endpoint de teste:
 
 ```text
-GET http://localhost:8080/teste
+GET /teste
+```
+
+URL:
+
+```text
+http://localhost:8080/teste
 ```
 
 Resposta esperada:
@@ -447,7 +507,23 @@ API NeuroVita funcionando!
 
 O backend será consumido pelo frontend através de requisições HTTP utilizando a API REST.
 
-A estrutura da API será desenvolvida considerando a integração futura com o frontend do NeuroVita.
+A estrutura da API está sendo desenvolvida considerando a integração com o frontend do NeuroVita.
+
+Os endpoints utilizam JSON para comunicação entre as aplicações.
+
+Exemplo:
+
+```text
+Frontend Angular
+       ↓
+HTTP / JSON
+       ↓
+NeuroVita API
+       ↓
+Spring Boot
+       ↓
+MongoDB
+```
 
 ---
 
@@ -461,18 +537,20 @@ A estrutura da API será desenvolvida considerando a integração futura com o f
 | Spring Data MongoDB      | 🟢 Concluído          |
 | Endpoint de teste        | 🟢 Concluído          |
 | Model Paciente           | 🟢 Concluído          |
+| DTOs Paciente            | 🟢 Concluído          |
 | Repository Paciente      | 🟢 Concluído          |
 | Service Paciente         | 🟢 Concluído          |
-| Controller Paciente      | 🟡 Em desenvolvimento |
-| CRUD Paciente            | 🟡 Em desenvolvimento |
+| Controller Paciente      | 🟢 Concluído          |
+| CRUD Paciente            | 🟢 Concluído          |
 | Profissionais            | ⚪ Planejado           |
 | Consultas                | ⚪ Planejado           |
 | Agenda                   | ⚪ Planejado           |
 | Disponibilidades         | ⚪ Planejado           |
 | Administradores          | ⚪ Planejado           |
+| Registros clínicos       | ⚪ Planejado           |
 | Autenticação             | ⚪ Planejado           |
 | Autorização              | ⚪ Planejado           |
-| Testes                   | ⚪ Planejado           |
+| Testes                   | 🟡 Em desenvolvimento |
 | Swagger/OpenAPI          | ⚪ Planejado           |
 | Integração com frontend  | ⚪ Planejado           |
 | Deploy no Render         | 🔵 Meta               |
@@ -503,7 +581,8 @@ A estrutura da API será desenvolvida considerando a integração futura com o f
 * [x] Criar Repository Paciente
 * [x] Criar Service Paciente
 * [x] Criar Controller Paciente
-* [ ] Finalizar CRUD de Paciente
+* [x] Criar DTOs de Paciente
+* [x] Finalizar CRUD de Paciente
 * [ ] Implementar Profissional
 * [ ] Implementar Disponibilidade
 * [ ] Implementar Consulta
@@ -570,9 +649,13 @@ git push origin feature/nome-da-feature
 
 ```text
 feat: nova funcionalidade
+
 fix: correção de problema
+
 docs: alteração na documentação
+
 test: adição ou alteração de testes
+
 refactor: melhoria na estrutura do código
 ```
 
@@ -600,7 +683,9 @@ Durante o desenvolvimento serão priorizados:
 ## 🎓 Projeto acadêmico
 
 **Projeto:** NeuroVita
+
 **Contexto:** Projeto acadêmico desenvolvido na faculdade
+
 **Área:** Tecnologia / Desenvolvimento de Software
 
 O projeto possui finalidade acadêmica e prática, buscando aplicar conhecimentos de:

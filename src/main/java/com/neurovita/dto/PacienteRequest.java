@@ -1,15 +1,8 @@
-package com.neurovita.model;
+package com.neurovita.dto;
 
 import java.time.LocalDate;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
-@Document(collection = "pacientes")
-public class Paciente {
-
-    @Id
-    private String id;
+public class PacienteRequest {
 
     private String nome;
     private LocalDate dataNascimento;
@@ -25,15 +18,7 @@ public class Paciente {
     private String numeroCarteirinha;
     private LocalDate validadePlano;
 
-    public Paciente() {
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
+    public PacienteRequest() {
     }
 
     public String getNome() {
