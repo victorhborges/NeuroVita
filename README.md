@@ -1,21 +1,19 @@
 # 🧠 NeuroVita - Backend
 
-Backend do aplicativo **NeuroVita**, desenvolvido para auxiliar no gerenciamento de atendimentos psicológicos, pacientes, profissionais, consultas, agendas e informações relacionadas ao atendimento clínico.
+Backend da plataforma **NeuroVita**, desenvolvida para auxiliar no gerenciamento de atendimentos psicológicos, pacientes, profissionais, consultas, agendas e informações relacionadas ao atendimento clínico.
 
-O projeto está sendo desenvolvido como parte das atividades acadêmicas da **Faculdade Brasília**, no curso de Análise e Desenvolvimento de Sistemas (ADS), com foco na aplicação prática de Programação Orientada a Objetos, desenvolvimento de APIs REST, arquitetura de software, banco de dados, segurança e boas práticas de desenvolvimento.
+O projeto está sendo desenvolvido como parte das atividades acadêmicas da faculdade, com foco na aplicação prática de conceitos de **Programação Orientada a Objetos, desenvolvimento de APIs REST, arquitetura de software, banco de dados, segurança e boas práticas de desenvolvimento**.
 
 > 🚧 **Status:** Em desenvolvimento
->
+
 > ☕ **Linguagem:** Java 21
->
+
 > 🌱 **Framework:** Spring Boot 4.0.8
->
+
 > 🗄️ **Banco:** MongoDB
->
-> 🔐 **Segurança:** Spring Security + JWT + BCrypt
->
-> 📖 **Documentação:** Swagger / OpenAPI
->
+
+> 🐳 **Containerização:** Docker
+
 > ☁️ **Hospedagem planejada:** Render
 
 ---
@@ -26,21 +24,21 @@ O NeuroVita é uma plataforma voltada para instituições e profissionais da ár
 
 O backend é responsável por disponibilizar uma **API REST**, permitindo a comunicação entre o frontend e os serviços da aplicação.
 
-Atualmente, os principais módulos implementados são:
+Entre os principais módulos estão:
 
 * 👤 Pacientes
 * 🧑‍⚕️ Profissionais
-* ⏰ Disponibilidades
 * 📅 Consultas
-* 🗓️ Agenda
+* 🗓️ Agendas
+* ⏰ Disponibilidades
 * 📋 Prontuários
-* 🩺 Diagnósticos
-* 📝 Tratamentos
+* 🧠 Diagnósticos
+* 💊 Tratamentos
 * 🧪 Exames
 * 👨‍💼 Administradores
-* 🔐 Autenticação
+* 🔐 Autenticação e segurança
 
-O módulo de **Receitas** ainda depende da definição dos campos e requisitos da interface do sistema.
+O módulo de **Receitas** ainda aguarda a definição dos campos e regras no Figma.
 
 ---
 
@@ -49,17 +47,15 @@ O módulo de **Receitas** ainda depende da definição dos campos e requisitos d
 O backend tem como principais objetivos:
 
 * Disponibilizar uma API REST para o NeuroVita;
-* Gerenciar pacientes e profissionais;
-* Gerenciar consultas e disponibilidades;
-* Organizar a agenda dos atendimentos;
-* Gerenciar informações clínicas;
-* Gerenciar administradores;
-* Implementar autenticação;
-* Implementar autorização;
+* Gerenciar pacientes, profissionais e consultas;
+* Controlar agendas e disponibilidades;
+* Implementar regras de negócio;
+* Implementar autenticação e autorização;
 * Proteger informações sensíveis;
 * Permitir integração com o frontend;
 * Aplicar boas práticas de desenvolvimento;
-* Preparar a aplicação para execução em ambiente de produção.
+* Preparar a aplicação para execução em ambiente de produção;
+* Disponibilizar a aplicação em ambiente de hospedagem através de containers.
 
 ---
 
@@ -79,17 +75,21 @@ O backend tem como principais objetivos:
 * 🔑 JWT
 * 🔒 BCrypt
 
-### Testes e documentação
+### Documentação e testes
 
+* 📖 Swagger / OpenAPI
 * 🧪 JUnit
 * 📬 Postman
-* 📖 Swagger / OpenAPI
 
-### Versionamento e hospedagem
+### Containerização e hospedagem
+
+* 🐳 Docker
+* ☁️ Render
+
+### Versionamento
 
 * 🔀 Git
 * 🐙 GitHub
-* ☁️ Render
 
 ### Banco de dados
 
@@ -102,22 +102,30 @@ O backend tem como principais objetivos:
 O backend utiliza uma arquitetura organizada em camadas, separando as responsabilidades da aplicação.
 
 ```text
-Cliente / Frontend / Postman / Swagger
-                ↓
-           Controller
-                ↓
-             Service
-                ↓
-           Repository
-                ↓
-             MongoDB
+Cliente / Frontend / Postman
+
+            ↓
+
+       Controller
+
+            ↓
+
+         Service
+
+            ↓
+
+       Repository
+
+            ↓
+
+         MongoDB
 ```
 
 ### Controller
 
 Responsável por receber as requisições HTTP e retornar as respostas da API.
 
-Exemplo:
+Exemplos:
 
 ```text
 GET    /api/pacientes
@@ -130,7 +138,12 @@ DELETE /api/pacientes/{id}
 
 Responsável pela lógica e pelas regras de negócio da aplicação.
 
-É nessa camada que ficam as operações realizadas antes ou depois do acesso ao banco de dados.
+Exemplos:
+
+* validação de dados;
+* regras de agendamento;
+* verificação de conflitos de horários;
+* controle das operações do sistema.
 
 ### Repository
 
@@ -140,30 +153,29 @@ O Spring Data fornece métodos de acesso ao banco, como:
 
 ```text
 save()
+
 findAll()
+
 findById()
+
 deleteById()
 ```
 
-Também são utilizados métodos derivados para consultas específicas, como buscas por paciente, profissional ou período.
-
 ### Model
 
-Representa os documentos persistidos no MongoDB.
+Representa os objetos utilizados pela aplicação e os documentos armazenados no MongoDB.
 
 Exemplos:
 
 * Paciente
 * Profissional
-* Disponibilidade
 * Consulta
+* Disponibilidade
 * Prontuário
 * Diagnóstico
 * Tratamento
 * Exame
 * Administrador
-
-A **Agenda não possui um documento próprio**. Ela utiliza as informações das consultas para realizar consultas por data, profissional ou paciente.
 
 ### DTO
 
@@ -180,116 +192,12 @@ Essa separação facilita a organização da API e permite que o modelo de persi
 
 ---
 
-## 🔐 Autenticação e segurança
-
-O backend possui autenticação utilizando **Spring Security e JWT**.
-
-O fluxo de autenticação funciona da seguinte forma:
-
-```text
-Login
-  ↓
-Validação do e-mail
-  ↓
-Validação da senha com BCrypt
-  ↓
-Geração do JWT
-  ↓
-Token enviado ao cliente
-  ↓
-Token utilizado nas requisições protegidas
-```
-
-As senhas dos administradores são armazenadas utilizando **BCrypt**, evitando o armazenamento da senha em texto puro.
-
-As requisições protegidas utilizam o cabeçalho:
-
-```text
-Authorization: Bearer <token>
-```
-
-O backend possui um filtro responsável por identificar e validar o JWT antes do acesso aos endpoints protegidos.
-
-### Rotas públicas
-
-Algumas rotas são disponibilizadas sem autenticação, como:
-
-```text
-POST /api/auth/login
-GET  /teste
-```
-
-A documentação Swagger/OpenAPI também permanece disponível para facilitar o desenvolvimento e os testes da API.
-
-### Variáveis de ambiente
-
-A chave utilizada para geração dos tokens JWT não fica armazenada diretamente no código.
-
-É utilizada a variável:
-
-```text
-JWT_SECRET
-```
-
-A conexão com o banco de dados também deverá utilizar uma variável de ambiente:
-
-```text
-MONGODB_URI
-```
-
-Dados sensíveis não devem ser enviados para o GitHub.
-
----
-
-## 👥 Administrador
-
-O módulo de administradores permite o gerenciamento dos usuários administrativos do sistema.
-
-### Funcionalidades
-
-* 🟢 Cadastrar administrador
-* 🟢 Listar administradores
-* 🟢 Buscar administrador por ID
-* 🟢 Atualizar administrador
-* 🟢 Remover administrador
-* 🟢 Realizar login
-* 🟢 Gerar JWT
-* 🟢 Armazenar senha utilizando BCrypt
-
-### Endpoints
-
-```text
-POST   /api/administradores
-GET    /api/administradores
-GET    /api/administradores/{id}
-PUT    /api/administradores/{id}
-DELETE /api/administradores/{id}
-```
-
-### Autenticação
-
-```text
-POST /api/auth/login
-```
-
-Exemplo de requisição:
-
-```json
-{
-  "email": "admin@neurovita.com",
-  "senha": "123456"
-}
-```
-
-A resposta contém informações do administrador autenticado e o JWT utilizado para acessar os endpoints protegidos.
-
----
-
 ## 📁 Estrutura atual
 
 ```text
 neurovita/
 
+│
 ├── src/
 │   ├── main/
 │   │   ├── java/
@@ -297,76 +205,70 @@ neurovita/
 │   │   │       └── neurovita/
 │   │   │           │
 │   │   │           ├── config/
-│   │   │           │   ├── OpenApiConfig.java
-│   │   │           │   └── SecurityConfig.java
+│   │   │           │   └── OpenApiConfig.java
 │   │   │           │
 │   │   │           ├── controller/
-│   │   │           │   ├── AgendaController.java
+│   │   │           │   ├── TesteController.java
 │   │   │           │   ├── AuthController.java
-│   │   │           │   ├── ConsultaController.java
-│   │   │           │   ├── DiagnosticoController.java
-│   │   │           │   ├── DisponibilidadeController.java
-│   │   │           │   ├── ExameController.java
+│   │   │           │   ├── AdministradorController.java
 │   │   │           │   ├── PacienteController.java
 │   │   │           │   ├── ProfissionalController.java
+│   │   │           │   ├── DisponibilidadeController.java
+│   │   │           │   ├── ConsultaController.java
+│   │   │           │   ├── AgendaController.java
 │   │   │           │   ├── ProntuarioController.java
+│   │   │           │   ├── DiagnosticoController.java
 │   │   │           │   ├── TratamentoController.java
-│   │   │           │   ├── AdministradorController.java
-│   │   │           │   └── TesteController.java
+│   │   │           │   └── ExameController.java
 │   │   │           │
 │   │   │           ├── dto/
 │   │   │           │   ├── LoginRequest.java
 │   │   │           │   ├── LoginResponse.java
 │   │   │           │   ├── AdministradorRequest.java
 │   │   │           │   ├── AdministradorResponse.java
-│   │   │           │   ├── Agenda/
-│   │   │           │   ├── Consulta/
-│   │   │           │   ├── Diagnostico/
-│   │   │           │   ├── Disponibilidade/
-│   │   │           │   ├── Exame/
-│   │   │           │   ├── Paciente/
-│   │   │           │   ├── Profissional/
-│   │   │           │   ├── Prontuario/
-│   │   │           │   └── Tratamento/
+│   │   │           │   ├── PacienteRequest.java
+│   │   │           │   ├── PacienteResponse.java
+│   │   │           │   └── ...
 │   │   │           │
 │   │   │           ├── model/
 │   │   │           │   ├── Administrador.java
-│   │   │           │   ├── Consulta.java
-│   │   │           │   ├── Diagnostico.java
-│   │   │           │   ├── Disponibilidade.java
-│   │   │           │   ├── Exame.java
 │   │   │           │   ├── Paciente.java
 │   │   │           │   ├── Profissional.java
+│   │   │           │   ├── Disponibilidade.java
+│   │   │           │   ├── Consulta.java
 │   │   │           │   ├── Prontuario.java
-│   │   │           │   └── Tratamento.java
+│   │   │           │   ├── Diagnostico.java
+│   │   │           │   ├── Tratamento.java
+│   │   │           │   └── Exame.java
 │   │   │           │
 │   │   │           ├── repository/
 │   │   │           │   ├── AdministradorRepository.java
-│   │   │           │   ├── ConsultaRepository.java
-│   │   │           │   ├── DiagnosticoRepository.java
-│   │   │           │   ├── DisponibilidadeRepository.java
-│   │   │           │   ├── ExameRepository.java
 │   │   │           │   ├── PacienteRepository.java
 │   │   │           │   ├── ProfissionalRepository.java
+│   │   │           │   ├── DisponibilidadeRepository.java
+│   │   │           │   ├── ConsultaRepository.java
 │   │   │           │   ├── ProntuarioRepository.java
-│   │   │           │   └── TratamentoRepository.java
+│   │   │           │   ├── DiagnosticoRepository.java
+│   │   │           │   ├── TratamentoRepository.java
+│   │   │           │   └── ExameRepository.java
 │   │   │           │
 │   │   │           ├── security/
-│   │   │           │   └── JwtAuthenticationFilter.java
+│   │   │           │   ├── JwtService.java
+│   │   │           │   ├── JwtAuthenticationFilter.java
+│   │   │           │   └── SecurityConfig.java
 │   │   │           │
 │   │   │           ├── service/
-│   │   │           │   ├── AdministradorService.java
-│   │   │           │   ├── AgendaService.java
 │   │   │           │   ├── AuthService.java
-│   │   │           │   ├── ConsultaService.java
-│   │   │           │   ├── DiagnosticoService.java
-│   │   │           │   ├── DisponibilidadeService.java
-│   │   │           │   ├── ExameService.java
-│   │   │           │   ├── JwtService.java
+│   │   │           │   ├── AdministradorService.java
 │   │   │           │   ├── PacienteService.java
 │   │   │           │   ├── ProfissionalService.java
+│   │   │           │   ├── DisponibilidadeService.java
+│   │   │           │   ├── ConsultaService.java
+│   │   │           │   ├── AgendaService.java
 │   │   │           │   ├── ProntuarioService.java
-│   │   │           │   └── TratamentoService.java
+│   │   │           │   ├── DiagnosticoService.java
+│   │   │           │   ├── TratamentoService.java
+│   │   │           │   └── ExameService.java
 │   │   │           │
 │   │   │           └── NeurovitaApplication.java
 │   │   │
@@ -376,17 +278,20 @@ neurovita/
 │   └── test/
 │
 ├── .gitignore
+├── Dockerfile
+├── mvnw
+├── mvnw.cmd
 ├── pom.xml
 └── README.md
 ```
 
-A estrutura será ampliada conforme novos módulos forem implementados.
+A estrutura será ampliada conforme novos módulos e funcionalidades forem implementados.
 
 ---
 
 # 👤 Paciente
 
-Módulo responsável pelo gerenciamento dos pacientes.
+O módulo de pacientes foi implementado seguindo a arquitetura em camadas do backend.
 
 ### Funcionalidades
 
@@ -406,7 +311,7 @@ PUT    /api/pacientes/{id}
 DELETE /api/pacientes/{id}
 ```
 
-O módulo utiliza:
+### Estrutura do módulo
 
 ```text
 Paciente
@@ -418,6 +323,8 @@ Paciente
 └── Controller
 ```
 
+O módulo utiliza DTOs para separar os dados recebidos pela API dos documentos persistidos no MongoDB.
+
 ---
 
 # 🧑‍⚕️ Profissional
@@ -426,14 +333,14 @@ Módulo responsável pelo gerenciamento dos profissionais que realizam os atendi
 
 ### Funcionalidades
 
-* 🟢 Cadastrar profissional
-* 🟢 Listar profissionais
-* 🟢 Buscar profissional por ID
-* 🟢 Atualizar profissional
-* 🟢 Remover profissional
-* 🟢 Vincular disponibilidade
-* 🟢 Listar disponibilidades do profissional
-* 🟢 Remover disponibilidade vinculada
+* Cadastrar profissional
+* Listar profissionais
+* Buscar profissional
+* Atualizar profissional
+* Remover profissional
+* Vincular disponibilidades
+* Consultar disponibilidades
+* Remover disponibilidade vinculada
 
 ### Endpoints
 
@@ -449,32 +356,25 @@ DELETE /api/profissionais/{id}
 
 ```text
 POST   /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
+
 GET    /api/profissionais/{profissionalId}/disponibilidades
+
 DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 ```
-
-O relacionamento é realizado através dos IDs das disponibilidades armazenados no documento do profissional.
 
 ---
 
 # ⏰ Disponibilidade
 
-Módulo responsável pelos horários em que cada profissional está disponível para atendimento.
-
-### Dados principais
-
-* Dia da semana
-* Hora inicial
-* Hora final
-* Ativo
+Responsável pelos horários em que cada profissional está disponível para atendimento.
 
 ### Funcionalidades
 
-* 🟢 Cadastrar disponibilidade
-* 🟢 Listar disponibilidades
-* 🟢 Buscar disponibilidade por ID
-* 🟢 Atualizar disponibilidade
-* 🟢 Remover disponibilidade
+* Cadastrar disponibilidade
+* Consultar disponibilidades
+* Buscar disponibilidade por ID
+* Atualizar disponibilidade
+* Remover disponibilidade
 
 ### Endpoints
 
@@ -490,27 +390,17 @@ DELETE /api/disponibilidades/{id}
 
 # 📅 Consulta
 
-Módulo responsável pelo gerenciamento dos atendimentos agendados.
-
-### Dados principais
-
-* Paciente
-* Profissional
-* Data e hora
-* Tipo de atendimento
-* Local
-* Modalidade
-* Duração
+Módulo responsável pelo agendamento e gerenciamento das consultas.
 
 ### Funcionalidades
 
-* 🟢 Criar consulta
-* 🟢 Listar consultas
-* 🟢 Buscar consulta por ID
-* 🟢 Atualizar consulta
-* 🟢 Remover consulta
-* 🟢 Listar consultas de um paciente
-* 🟢 Listar consultas de um profissional
+* Agendar consulta
+* Listar consultas
+* Buscar consulta
+* Atualizar consulta
+* Remover consulta
+* Consultar consultas de um paciente
+* Consultar consultas de um profissional
 
 ### Endpoints
 
@@ -520,46 +410,75 @@ GET    /api/consultas
 GET    /api/consultas/{id}
 PUT    /api/consultas/{id}
 DELETE /api/consultas/{id}
-GET    /api/consultas/paciente/{pacienteId}
-GET    /api/consultas/profissional/{profissionalId}
 ```
 
-> ℹ️ O controle de status da consulta e regras mais avançadas de conflito de horários poderão ser implementados conforme as regras definitivas do sistema.
+### Consultas por paciente
+
+```text
+GET /api/consultas/paciente/{pacienteId}
+```
+
+### Consultas por profissional
+
+```text
+GET /api/consultas/profissional/{profissionalId}
+```
+
+A consulta possui informações relacionadas a:
+
+```text
+Paciente
+Profissional
+Data e horário
+Tipo de atendimento
+Local
+Modalidade
+Duração
+```
 
 ---
 
 # 🗓️ Agenda
 
-A Agenda utiliza as informações armazenadas nas consultas para disponibilizar consultas por diferentes critérios.
+A agenda é construída a partir das consultas cadastradas.
 
-Não existe um documento `Agenda` separado no MongoDB.
+Não existe um documento separado de `Agenda` no MongoDB.
 
-### Funcionalidades
-
-* 🟢 Listar agenda
-* 🟢 Consultar agenda por dia
-* 🟢 Consultar agenda de um profissional por dia
-* 🟢 Consultar agenda de um paciente
+O módulo consulta as informações de `Consulta` para organizar os atendimentos por data, profissional ou paciente.
 
 ### Endpoints
 
 ```text
 GET /api/agenda
-
-GET /api/agenda/dia?data=2026-09-20
-
-GET /api/agenda/profissional/{profissionalId}?data=2026-09-20
-
-GET /api/agenda/paciente/{pacienteId}
 ```
+
+Consultar agenda de um dia:
+
+```text
+GET /api/agenda/dia?data=2026-09-20
+```
+
+Consultar agenda de um profissional:
+
+```text
+GET /api/agenda/profissional/{id}?data=2026-09-20
+```
+
+Consultar agenda de um paciente:
+
+```text
+GET /api/agenda/paciente/{id}
+```
+
+Essa abordagem evita duplicação de informações no banco de dados.
 
 ---
 
 # 📋 Prontuário
 
-Módulo responsável pelo armazenamento das informações clínicas relacionadas ao paciente.
+Módulo responsável pelo armazenamento das informações relacionadas ao acompanhamento clínico do paciente.
 
-### Dados principais
+### Informações
 
 * Paciente
 * Profissional
@@ -569,45 +488,26 @@ Módulo responsável pelo armazenamento das informações clínicas relacionadas
 * Plano de tratamento
 * Prescrição
 
-### Funcionalidades
-
-* 🟢 Criar prontuário
-* 🟢 Buscar prontuário por ID
-* 🟢 Atualizar prontuário
-* 🟢 Buscar prontuário por paciente
-
 ### Endpoints
 
 ```text
 POST /api/prontuarios
-
 GET  /api/prontuarios/{id}
-
 PUT  /api/prontuarios/{id}
-
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
 ---
 
-# 🩺 Diagnóstico
+# 🧠 Diagnóstico
 
-Módulo responsável pelo gerenciamento dos diagnósticos associados aos pacientes.
+Módulo responsável pelo gerenciamento dos diagnósticos relacionados aos pacientes.
 
-### Dados principais
+### Informações
 
 * Paciente
 * Profissional
 * Descrição
-
-### Funcionalidades
-
-* 🟢 Criar diagnóstico
-* 🟢 Listar diagnósticos
-* 🟢 Buscar diagnóstico por ID
-* 🟢 Atualizar diagnóstico
-* 🟢 Remover diagnóstico
-* 🟢 Listar diagnósticos por paciente
 
 ### Endpoints
 
@@ -622,11 +522,11 @@ GET    /api/diagnosticos/paciente/{pacienteId}
 
 ---
 
-# 📝 Tratamento
+# 💊 Tratamento
 
 Módulo responsável pelo gerenciamento dos tratamentos definidos para os pacientes.
 
-### Dados principais
+### Informações
 
 * Paciente
 * Profissional
@@ -635,15 +535,6 @@ Módulo responsável pelo gerenciamento dos tratamentos definidos para os pacien
 * Frequência
 * Duração
 * Observações
-
-### Funcionalidades
-
-* 🟢 Criar tratamento
-* 🟢 Listar tratamentos
-* 🟢 Buscar tratamento por ID
-* 🟢 Atualizar tratamento
-* 🟢 Remover tratamento
-* 🟢 Listar tratamentos por paciente
 
 ### Endpoints
 
@@ -656,13 +547,15 @@ DELETE /api/tratamentos/{id}
 GET    /api/tratamentos/paciente/{pacienteId}
 ```
 
+Os campos de frequência e duração são representados atualmente como texto, podendo ser ajustados posteriormente conforme as regras definitivas do sistema.
+
 ---
 
 # 🧪 Exame
 
 Módulo responsável pelo gerenciamento dos exames relacionados aos pacientes.
 
-### Dados principais
+### Informações
 
 * Paciente
 * Profissional
@@ -671,15 +564,6 @@ Módulo responsável pelo gerenciamento dos exames relacionados aos pacientes.
 * Data de realização
 * Resultado
 * Observações
-
-### Funcionalidades
-
-* 🟢 Criar exame
-* 🟢 Listar exames
-* 🟢 Buscar exame por ID
-* 🟢 Atualizar exame
-* 🟢 Remover exame
-* 🟢 Listar exames por paciente
 
 ### Endpoints
 
@@ -694,57 +578,200 @@ GET    /api/exames/paciente/{pacienteId}
 
 ---
 
-# 📄 Receita
+# 💊 Receita
 
-O módulo de receitas ainda não foi implementado.
+O módulo de receitas ainda **não foi implementado**.
 
-Os campos definitivos dependem da definição da interface e dos requisitos do sistema.
+A implementação está aguardando a definição dos campos e regras no Figma.
 
-> ⏳ **Status:** Aguardando definição dos campos no Figma/requisitos do projeto.
+Dessa forma, os campos finais não foram definidos antecipadamente para evitar uma implementação diferente do requisito visual e funcional do projeto.
 
-A implementação será realizada após a definição do contrato de dados.
+---
+
+# 👨‍💼 Administrador
+
+Módulo responsável pelo gerenciamento dos administradores do sistema.
+
+### Funcionalidades
+
+* Cadastrar administrador
+* Listar administradores
+* Buscar administrador
+* Atualizar administrador
+* Remover administrador
+* Realizar login
+
+### Endpoints
+
+```text
+POST   /api/administradores
+GET    /api/administradores
+GET    /api/administradores/{id}
+PUT    /api/administradores/{id}
+DELETE /api/administradores/{id}
+```
+
+As senhas dos administradores não são retornadas pelos DTOs de resposta.
+
+---
+
+# 🔐 Autenticação e Segurança
+
+O NeuroVita utiliza **Spring Security** para proteger os endpoints da API.
+
+A autenticação utiliza **JWT (JSON Web Token)**.
+
+O fluxo básico é:
+
+```text
+Login
+  ↓
+Validação do e-mail
+  ↓
+Validação da senha com BCrypt
+  ↓
+Geração do JWT
+  ↓
+Cliente recebe o token
+  ↓
+Token enviado nas próximas requisições
+  ↓
+JwtAuthenticationFilter
+  ↓
+Validação do token
+  ↓
+Acesso ao endpoint protegido
+```
+
+### Login
+
+Endpoint público:
+
+```text
+POST /api/auth/login
+```
+
+Exemplo de requisição:
+
+```json
+{
+  "email": "admin@email.com",
+  "senha": "123456"
+}
+```
+
+Após a autenticação, a API retorna um token JWT.
+
+Nas requisições protegidas, o token deve ser enviado no cabeçalho:
+
+```text
+Authorization: Bearer <token>
+```
+
+### Rotas públicas
+
+Atualmente, as principais rotas públicas incluem:
+
+```text
+POST /api/auth/login
+
+GET /teste
+```
+
+As demais rotas da API são protegidas pela configuração de segurança.
+
+---
+
+# 🔑 JWT
+
+O JWT é utilizado para manter a autenticação do usuário entre as requisições.
+
+O projeto possui:
+
+* Serviço de geração de tokens;
+* Filtro de autenticação JWT;
+* Validação do token;
+* Integração com Spring Security;
+* Chave secreta configurada por variável de ambiente.
+
+A chave utilizada para assinar os tokens não deve ser armazenada diretamente no código-fonte.
+
+---
+
+# 🔒 BCrypt
+
+As senhas dos administradores são armazenadas utilizando **BCrypt**.
+
+O BCrypt realiza o hash da senha antes da persistência.
+
+Dessa forma, a senha original não precisa ser armazenada diretamente no banco de dados.
+
+---
+
+# ⚙️ Variáveis de ambiente
+
+Informações sensíveis devem ser configuradas através de variáveis de ambiente.
+
+Exemplo:
+
+```text
+JWT_SECRET
+MONGODB_URI
+```
+
+### JWT_SECRET
+
+Utilizada para a assinatura dos tokens JWT.
+
+### MONGODB_URI
+
+Utilizada para definir a conexão com o MongoDB.
+
+As credenciais e informações de acesso ao banco nunca devem ser enviadas para o GitHub.
 
 ---
 
 # 📖 Swagger / OpenAPI
 
-A API possui documentação interativa utilizando **Swagger / OpenAPI**.
+A API possui documentação utilizando **Swagger / OpenAPI**.
 
-Com a aplicação executando localmente, a interface pode ser acessada em:
+Com a aplicação executando localmente:
+
+### Swagger UI
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
-Também é possível acessar a especificação OpenAPI através de:
+Também pode ser acessado através de:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+### OpenAPI
 
 ```text
 http://localhost:8080/v3/api-docs
 ```
 
-O Swagger permite visualizar os endpoints disponíveis e realizar requisições diretamente pela interface durante o desenvolvimento.
+O Swagger permite visualizar e testar os endpoints da API diretamente pelo navegador.
 
 ---
 
-# 🧪 Testes
+# 🐳 Docker
 
-Durante o desenvolvimento são utilizados diferentes níveis de validação:
+O projeto possui um `Dockerfile` para facilitar a execução e o deploy da aplicação em ambientes que utilizam containers.
 
-* Testes automatizados
-* Testes dos endpoints
-* Validação das regras de negócio
-* Validação da persistência
-* Testes de integração
-* Testes através do Swagger
-* Testes através do Postman
+A imagem utiliza **Java 21** e realiza o build da aplicação através do Maven Wrapper.
 
-A implementação dos testes automatizados é realizada conforme a organização definida pela equipe responsável pelo projeto.
+O container disponibiliza a aplicação na porta:
 
-Para executar os testes:
-
-```bash
-mvn test
+```text
+8080
 ```
+
+O Dockerfile também permite que a aplicação seja preparada para serviços de hospedagem compatíveis com containers, como o Render.
 
 ---
 
@@ -752,29 +779,58 @@ mvn test
 
 O backend utiliza **MongoDB** como banco de dados.
 
-Os documentos implementados atualmente incluem informações relacionadas a:
+Os documentos utilizados pela aplicação incluem informações relacionadas a:
 
-* Pacientes
-* Profissionais
-* Disponibilidades
-* Consultas
-* Prontuários
-* Diagnósticos
-* Tratamentos
-* Exames
-* Administradores
+* Administradores;
+* Profissionais;
+* Pacientes;
+* Consultas;
+* Disponibilidades;
+* Prontuários;
+* Diagnósticos;
+* Tratamentos;
+* Exames;
+* Outros módulos definidos durante o desenvolvimento.
 
-A conexão com o banco depende da configuração disponibilizada pela equipe responsável pelo banco de dados.
-
-A aplicação utiliza a variável de ambiente:
+A conexão com o banco é configurada através da variável de ambiente:
 
 ```text
 MONGODB_URI
 ```
 
-As credenciais de acesso devem ser configuradas por meio de variáveis de ambiente ou mecanismos seguros de configuração.
+Durante o desenvolvimento local, a disponibilidade do MongoDB depende da configuração do ambiente utilizado.
 
 > ⚠️ Dados reais de acesso ao banco nunca devem ser enviados para o GitHub.
+
+---
+
+# 🧪 Testes
+
+Os testes automatizados fazem parte do projeto e são executados através do Maven.
+
+Para executar os testes:
+
+```bash
+mvn test
+```
+
+Ou utilizando o Maven Wrapper:
+
+### Windows
+
+```bash
+mvnw.cmd test
+```
+
+### Linux / macOS
+
+```bash
+./mvnw test
+```
+
+Atualmente, o projeto possui testes básicos para validação do contexto da aplicação.
+
+A implementação de testes mais abrangentes será desenvolvida conforme a evolução do projeto e a organização da equipe responsável por testes.
 
 ---
 
@@ -811,10 +867,11 @@ O objetivo não é simplesmente traduzir o código JavaScript para Java, mas **r
 
 ## Pré-requisitos
 
-* Java JDK 21 ou superior
-* Maven
-* Git
-* MongoDB configurado no ambiente de desenvolvimento
+* Java JDK 21 ou superior;
+* Maven;
+* Git;
+* MongoDB configurado no ambiente, quando forem utilizadas funcionalidades que dependem da persistência;
+* Acesso ao GitHub, caso seja necessário clonar o projeto.
 
 Verificar Java:
 
@@ -828,6 +885,8 @@ Verificar Maven:
 mvn -version
 ```
 
+---
+
 ## Clonar o projeto
 
 ```bash
@@ -840,14 +899,7 @@ Entrar na pasta:
 cd NeuroVita
 ```
 
-## Variáveis de ambiente
-
-Antes de executar a aplicação, configure as variáveis necessárias:
-
-```text
-JWT_SECRET
-MONGODB_URI
-```
+---
 
 ## Executar a aplicação
 
@@ -857,10 +909,16 @@ Utilizando Maven:
 mvn spring-boot:run
 ```
 
-Ou, no Windows, utilizando o Maven Wrapper:
+Ou utilizando o Maven Wrapper no Windows:
 
 ```bash
 mvnw.cmd spring-boot:run
+```
+
+No Linux/macOS:
+
+```bash
+./mvnw spring-boot:run
 ```
 
 Por padrão, a aplicação utiliza:
@@ -869,13 +927,17 @@ Por padrão, a aplicação utiliza:
 http://localhost:8080
 ```
 
-## Endpoint de teste
+---
+
+# 🧪 Endpoint de teste
+
+Endpoint:
 
 ```text
 GET /teste
 ```
 
-URL:
+URL local:
 
 ```text
 http://localhost:8080/teste
@@ -887,13 +949,7 @@ Resposta esperada:
 API NeuroVita funcionando!
 ```
 
-## Swagger
-
-```text
-http://localhost:8080/swagger-ui/index.html
-```
-
-> ℹ️ Os endpoints que dependem do MongoDB precisam de uma conexão válida com o banco.
+Esse endpoint é utilizado para verificar rapidamente se a aplicação está em execução.
 
 ---
 
@@ -903,19 +959,21 @@ O backend será consumido pelo frontend através de requisições HTTP utilizand
 
 Os endpoints utilizam JSON para comunicação entre as aplicações.
 
-Fluxo previsto:
+Exemplo:
 
 ```text
-Frontend Angular
-       ↓
+Frontend
+   ↓
 HTTP / JSON
-       ↓
+   ↓
 NeuroVita API
-       ↓
+   ↓
 Spring Boot
-       ↓
+   ↓
 MongoDB
 ```
+
+A estrutura da API está sendo desenvolvida considerando a integração com o frontend do NeuroVita.
 
 ---
 
@@ -928,39 +986,46 @@ MongoDB
 | Spring Web MVC           | 🟢 Concluído               |
 | Spring Data MongoDB      | 🟢 Concluído               |
 | Endpoint de teste        | 🟢 Concluído               |
-| Paciente                 | 🟢 Concluído               |
-| Profissional             | 🟢 Concluído               |
-| Disponibilidade          | 🟢 Concluído               |
-| Consulta                 | 🟢 Concluído               |
+| Model Paciente           | 🟢 Concluído               |
+| DTOs Paciente            | 🟢 Concluído               |
+| Repository Paciente      | 🟢 Concluído               |
+| Service Paciente         | 🟢 Concluído               |
+| Controller Paciente      | 🟢 Concluído               |
+| CRUD Paciente            | 🟢 Concluído               |
+| Profissionais            | 🟢 Concluído               |
+| Disponibilidades         | 🟢 Concluído               |
+| Consultas                | 🟢 Concluído               |
 | Agenda                   | 🟢 Concluído               |
-| Prontuário               | 🟢 Concluído               |
-| Diagnóstico              | 🟢 Concluído               |
-| Tratamento               | 🟢 Concluído               |
-| Exame                    | 🟢 Concluído               |
-| Administrador            | 🟢 Concluído               |
-| Login                    | 🟢 Concluído               |
+| Prontuários              | 🟢 Concluído               |
+| Diagnósticos             | 🟢 Concluído               |
+| Tratamentos              | 🟢 Concluído               |
+| Exames                   | 🟢 Concluído               |
+| Administradores          | 🟢 Concluído               |
+| Autenticação             | 🟢 Concluído               |
+| JWT                      | 🟢 Concluído               |
 | BCrypt                   | 🟢 Concluído               |
 | Spring Security          | 🟢 Concluído               |
-| JWT                      | 🟢 Concluído               |
-| Swagger / OpenAPI        | 🟢 Concluído               |
-| Receita                  | 🟡 Aguardando definição    |
-| MongoDB externo          | 🟡 Aguardando configuração |
-| Testes de integração     | 🟡 Em desenvolvimento      |
+| Swagger/OpenAPI          | 🟢 Concluído               |
+| Dockerfile               | 🟢 Concluído               |
+| Testes básicos           | 🟢 Concluído               |
+| Receita                  | ⚪ Aguardando requisitos    |
+| Testes completos         | 🟡 Em desenvolvimento      |
 | Integração com frontend  | ⚪ Planejado                |
-| Deploy no Render         | 🔵 Meta                    |
+| Deploy no Render         | 🔵 Em preparação           |
+| Banco de produção        | ⚪ Pendente de configuração |
 
 ### Legenda
 
 * 🟢 Concluído
-* 🟡 Em desenvolvimento / aguardando definição
-* 🔵 Meta
-* ⚪ Planejado
+* 🟡 Em desenvolvimento
+* 🔵 Em preparação
+* ⚪ Planejado / pendente
 
 ---
 
 # 🗺️ Roadmap
 
-## Etapa 1 - Estrutura
+## Etapa 1 — Estrutura
 
 * [x] Criar projeto Spring Boot
 * [x] Configurar Maven
@@ -969,9 +1034,14 @@ MongoDB
 * [x] Criar estrutura de pacotes
 * [x] Criar primeiro endpoint
 
-## Etapa 2 - API
+## Etapa 2 — API
 
-* [x] Implementar Paciente
+* [x] Criar Model Paciente
+* [x] Criar Repository Paciente
+* [x] Criar Service Paciente
+* [x] Criar Controller Paciente
+* [x] Criar DTOs de Paciente
+* [x] Finalizar CRUD de Paciente
 * [x] Implementar Profissional
 * [x] Implementar Disponibilidade
 * [x] Implementar Consulta
@@ -980,32 +1050,33 @@ MongoDB
 * [x] Implementar Diagnóstico
 * [x] Implementar Tratamento
 * [x] Implementar Exame
-* [ ] Definir e implementar Receita
-
-## Etapa 3 - Administrador e autenticação
-
 * [x] Implementar Administrador
-* [x] Implementar cadastro de administrador
-* [x] Implementar login
-* [x] Implementar BCrypt
-* [x] Implementar Spring Security
-* [x] Implementar JWT
-* [x] Implementar filtro JWT
-* [x] Proteger endpoints
+* [ ] Implementar Receita após definição dos requisitos
+
+## Etapa 3 — Segurança
+
+* [x] Spring Security
+* [x] JWT
+* [x] BCrypt
+* [x] Proteção dos endpoints
+* [x] Autenticação
 * [ ] Refinar regras de autorização por perfil
 
-## Etapa 4 - Documentação e integração
+## Etapa 4 — Testes e documentação
 
-* [x] Configurar Swagger / OpenAPI
-* [ ] Validar endpoints com MongoDB externo
-* [ ] Testar integração com frontend
-* [ ] Refinar documentação da API
+* [x] Testes básicos
+* [x] Swagger / OpenAPI
+* [ ] Testes unitários completos
+* [ ] Testes da API
+* [ ] Testes de integração
+* [ ] Integração com frontend
 
-## Etapa 5 - Deploy
+## Etapa 5 — Deploy
 
-* [ ] Preparar aplicação para produção
+* [x] Criar Dockerfile
+* [ ] Ajustar configuração para produção
 * [ ] Configurar variáveis de ambiente
-* [ ] Configurar banco de produção
+* [ ] Configurar MongoDB de produção
 * [ ] Criar serviço no Render
 * [ ] Realizar deploy
 * [ ] Testar API em produção
@@ -1016,7 +1087,7 @@ MongoDB
 
 O projeto utiliza Git para controle de versão e GitHub para armazenamento e colaboração.
 
-### Exemplo de branch
+Criar uma nova branch:
 
 ```bash
 git checkout -b feature/nome-da-feature
@@ -1031,7 +1102,7 @@ git add .
 Criar commit:
 
 ```bash
-git commit -m "feat: implementa nova funcionalidade"
+git commit -m "feat: implementa cadastro de pacientes"
 ```
 
 Enviar para o GitHub:
@@ -1052,6 +1123,8 @@ docs: alteração na documentação
 test: adição ou alteração de testes
 
 refactor: melhoria na estrutura do código
+
+chore: configuração ou manutenção do projeto
 ```
 
 ---
@@ -1060,19 +1133,20 @@ refactor: melhoria na estrutura do código
 
 Durante o desenvolvimento são priorizados:
 
-* Programação Orientada a Objetos
-* Separação de responsabilidades
-* Princípios SOLID
-* Código legível
-* Validação de dados
-* Tratamento de exceções
-* Uso de DTOs
-* Padronização dos endpoints
-* Segurança das informações
-* Testes
-* Documentação
-* Commits organizados
-* Uso de variáveis de ambiente para informações sensíveis
+* Programação Orientada a Objetos;
+* Separação de responsabilidades;
+* Princípios SOLID;
+* Código legível;
+* Validação de dados;
+* Tratamento de exceções;
+* Uso de DTOs;
+* Padronização dos endpoints;
+* Segurança das informações;
+* Testes;
+* Documentação;
+* Commits organizados;
+* Uso de variáveis de ambiente para informações sensíveis;
+* Separação entre configuração de desenvolvimento e produção.
 
 ---
 
@@ -1088,14 +1162,14 @@ Durante o desenvolvimento são priorizados:
 
 O projeto possui finalidade acadêmica e prática, buscando aplicar conhecimentos de:
 
-* Programação
-* Desenvolvimento de APIs
-* Banco de dados
-* Arquitetura de software
-* Programação Orientada a Objetos
-* Segurança
-* Desenvolvimento web
-* Boas práticas de desenvolvimento
+* Programação;
+* Desenvolvimento de APIs;
+* Banco de dados;
+* Arquitetura de software;
+* Programação Orientada a Objetos;
+* Segurança;
+* Desenvolvimento backend;
+* Boas práticas de desenvolvimento.
 
 ---
 
