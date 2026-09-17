@@ -1,0 +1,89 @@
+package com.neurovita.model;
+
+import java.time.LocalDate;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "exames")
+public class Exame {
+
+    @Id
+    private String id;
+
+    private String pacienteId;
+    private String profissionalId;
+
+    private String nome;
+    private String tipo;
+    private LocalDate dataRealizacao;
+    private String resultado;
+    private String observacoes;
+
+    public Exame() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getPacienteId() {
+        return pacienteId;
+    }
+
+    public void setPacienteId(String pacienteId) {
+        this.pacienteId = pacienteId;
+    }
+
+    public String getProfissionalId() {
+        return profissionalId;
+    }
+
+    public void setProfissionalId(String profissionalId) {
+        this.profissionalId = profissionalId;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public LocalDate getDataRealizacao() {
+        return dataRealizacao;
+    }
+
+    public void setDataRealizacao(LocalDate dataRealizacao) {
+        this.dataRealizacao = dataRealizacao;
+    }
+
+    public String getResultado() {
+        return resultado;
+    }
+
+    public void setResultado(String resultado) {
+        this.resultado = resultado;
+    }
+
+    public String getObservacoes() {
+        return observacoes;
+    }
+
+    public void setObservacoes(String observacoes) {
+        this.observacoes = observacoes;
+    }
+}
