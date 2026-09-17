@@ -1,14 +1,21 @@
 # 🧠 NeuroVita - Backend
 
-Backend da plataforma **NeuroVita**, desenvolvida para auxiliar no gerenciamento de atendimentos psicológicos, pacientes, profissionais, consultas, agendas e informações relacionadas ao atendimento clínico.
+Backend do aplicativo **NeuroVita**, desenvolvido para auxiliar no gerenciamento de atendimentos psicológicos, pacientes, profissionais, consultas, agendas e informações relacionadas ao atendimento clínico.
 
-O projeto está sendo desenvolvido como parte das atividades acadêmicas da faculdade, com foco na aplicação prática de **Programação Orientada a Objetos, desenvolvimento de APIs REST, arquitetura de software, banco de dados, segurança e boas práticas de desenvolvimento**.
+O projeto está sendo desenvolvido como parte das atividades acadêmicas da **Faculdade Brasília**, no curso de Análise e Desenvolvimento de Sistemas (ADS), com foco na aplicação prática de Programação Orientada a Objetos, desenvolvimento de APIs REST, arquitetura de software, banco de dados, segurança e boas práticas de desenvolvimento.
 
 > 🚧 **Status:** Em desenvolvimento
+>
 > ☕ **Linguagem:** Java 21
+>
 > 🌱 **Framework:** Spring Boot 4.0.8
+>
 > 🗄️ **Banco:** MongoDB
+>
+> 🔐 **Segurança:** Spring Security + JWT + BCrypt
+>
 > 📖 **Documentação:** Swagger / OpenAPI
+>
 > ☁️ **Hospedagem planejada:** Render
 
 ---
@@ -30,8 +37,10 @@ Atualmente, os principais módulos implementados são:
 * 🩺 Diagnósticos
 * 📝 Tratamentos
 * 🧪 Exames
+* 👨‍💼 Administradores
+* 🔐 Autenticação
 
-Outros módulos, como autenticação, administradores e receitas, serão implementados conforme as definições do projeto.
+O módulo de **Receitas** ainda depende da definição dos campos e requisitos da interface do sistema.
 
 ---
 
@@ -44,8 +53,9 @@ O backend tem como principais objetivos:
 * Gerenciar consultas e disponibilidades;
 * Organizar a agenda dos atendimentos;
 * Gerenciar informações clínicas;
-* Implementar regras de negócio;
-* Implementar autenticação e autorização;
+* Gerenciar administradores;
+* Implementar autenticação;
+* Implementar autorização;
 * Proteger informações sensíveis;
 * Permitir integração com o frontend;
 * Aplicar boas práticas de desenvolvimento;
@@ -63,10 +73,11 @@ O backend tem como principais objetivos:
 * 🗄️ Spring Data MongoDB
 * 📦 Maven
 
-### Segurança — planejado
+### Segurança
 
 * 🔐 Spring Security
 * 🔑 JWT
+* 🔒 BCrypt
 
 ### Testes e documentação
 
@@ -92,14 +103,14 @@ O backend utiliza uma arquitetura organizada em camadas, separando as responsabi
 
 ```text
 Cliente / Frontend / Postman / Swagger
-                  ↓
-             Controller
-                  ↓
-               Service
-                  ↓
-             Repository
-                  ↓
-              MongoDB
+                ↓
+           Controller
+                ↓
+             Service
+                ↓
+           Repository
+                ↓
+             MongoDB
 ```
 
 ### Controller
@@ -134,7 +145,7 @@ findById()
 deleteById()
 ```
 
-Também são utilizados métodos derivados para consultas específicas, como buscas de consultas por paciente, profissional ou período.
+Também são utilizados métodos derivados para consultas específicas, como buscas por paciente, profissional ou período.
 
 ### Model
 
@@ -150,6 +161,7 @@ Exemplos:
 * Diagnóstico
 * Tratamento
 * Exame
+* Administrador
 
 A **Agenda não possui um documento próprio**. Ela utiliza as informações das consultas para realizar consultas por data, profissional ou paciente.
 
@@ -168,19 +180,129 @@ Essa separação facilita a organização da API e permite que o modelo de persi
 
 ---
 
+## 🔐 Autenticação e segurança
+
+O backend possui autenticação utilizando **Spring Security e JWT**.
+
+O fluxo de autenticação funciona da seguinte forma:
+
+```text
+Login
+  ↓
+Validação do e-mail
+  ↓
+Validação da senha com BCrypt
+  ↓
+Geração do JWT
+  ↓
+Token enviado ao cliente
+  ↓
+Token utilizado nas requisições protegidas
+```
+
+As senhas dos administradores são armazenadas utilizando **BCrypt**, evitando o armazenamento da senha em texto puro.
+
+As requisições protegidas utilizam o cabeçalho:
+
+```text
+Authorization: Bearer <token>
+```
+
+O backend possui um filtro responsável por identificar e validar o JWT antes do acesso aos endpoints protegidos.
+
+### Rotas públicas
+
+Algumas rotas são disponibilizadas sem autenticação, como:
+
+```text
+POST /api/auth/login
+GET  /teste
+```
+
+A documentação Swagger/OpenAPI também permanece disponível para facilitar o desenvolvimento e os testes da API.
+
+### Variáveis de ambiente
+
+A chave utilizada para geração dos tokens JWT não fica armazenada diretamente no código.
+
+É utilizada a variável:
+
+```text
+JWT_SECRET
+```
+
+A conexão com o banco de dados também deverá utilizar uma variável de ambiente:
+
+```text
+MONGODB_URI
+```
+
+Dados sensíveis não devem ser enviados para o GitHub.
+
+---
+
+## 👥 Administrador
+
+O módulo de administradores permite o gerenciamento dos usuários administrativos do sistema.
+
+### Funcionalidades
+
+* 🟢 Cadastrar administrador
+* 🟢 Listar administradores
+* 🟢 Buscar administrador por ID
+* 🟢 Atualizar administrador
+* 🟢 Remover administrador
+* 🟢 Realizar login
+* 🟢 Gerar JWT
+* 🟢 Armazenar senha utilizando BCrypt
+
+### Endpoints
+
+```text
+POST   /api/administradores
+GET    /api/administradores
+GET    /api/administradores/{id}
+PUT    /api/administradores/{id}
+DELETE /api/administradores/{id}
+```
+
+### Autenticação
+
+```text
+POST /api/auth/login
+```
+
+Exemplo de requisição:
+
+```json
+{
+  "email": "admin@neurovita.com",
+  "senha": "123456"
+}
+```
+
+A resposta contém informações do administrador autenticado e o JWT utilizado para acessar os endpoints protegidos.
+
+---
+
 ## 📁 Estrutura atual
 
 ```text
 neurovita/
-│
+
 ├── src/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── com/
 │   │   │       └── neurovita/
 │   │   │           │
+│   │   │           ├── config/
+│   │   │           │   ├── OpenApiConfig.java
+│   │   │           │   └── SecurityConfig.java
+│   │   │           │
 │   │   │           ├── controller/
 │   │   │           │   ├── AgendaController.java
+│   │   │           │   ├── AuthController.java
 │   │   │           │   ├── ConsultaController.java
 │   │   │           │   ├── DiagnosticoController.java
 │   │   │           │   ├── DisponibilidadeController.java
@@ -189,9 +311,14 @@ neurovita/
 │   │   │           │   ├── ProfissionalController.java
 │   │   │           │   ├── ProntuarioController.java
 │   │   │           │   ├── TratamentoController.java
+│   │   │           │   ├── AdministradorController.java
 │   │   │           │   └── TesteController.java
 │   │   │           │
 │   │   │           ├── dto/
+│   │   │           │   ├── LoginRequest.java
+│   │   │           │   ├── LoginResponse.java
+│   │   │           │   ├── AdministradorRequest.java
+│   │   │           │   ├── AdministradorResponse.java
 │   │   │           │   ├── Agenda/
 │   │   │           │   ├── Consulta/
 │   │   │           │   ├── Diagnostico/
@@ -203,6 +330,7 @@ neurovita/
 │   │   │           │   └── Tratamento/
 │   │   │           │
 │   │   │           ├── model/
+│   │   │           │   ├── Administrador.java
 │   │   │           │   ├── Consulta.java
 │   │   │           │   ├── Diagnostico.java
 │   │   │           │   ├── Disponibilidade.java
@@ -213,6 +341,7 @@ neurovita/
 │   │   │           │   └── Tratamento.java
 │   │   │           │
 │   │   │           ├── repository/
+│   │   │           │   ├── AdministradorRepository.java
 │   │   │           │   ├── ConsultaRepository.java
 │   │   │           │   ├── DiagnosticoRepository.java
 │   │   │           │   ├── DisponibilidadeRepository.java
@@ -222,12 +351,18 @@ neurovita/
 │   │   │           │   ├── ProntuarioRepository.java
 │   │   │           │   └── TratamentoRepository.java
 │   │   │           │
+│   │   │           ├── security/
+│   │   │           │   └── JwtAuthenticationFilter.java
+│   │   │           │
 │   │   │           ├── service/
+│   │   │           │   ├── AdministradorService.java
 │   │   │           │   ├── AgendaService.java
+│   │   │           │   ├── AuthService.java
 │   │   │           │   ├── ConsultaService.java
 │   │   │           │   ├── DiagnosticoService.java
 │   │   │           │   ├── DisponibilidadeService.java
 │   │   │           │   ├── ExameService.java
+│   │   │           │   ├── JwtService.java
 │   │   │           │   ├── PacienteService.java
 │   │   │           │   ├── ProfissionalService.java
 │   │   │           │   ├── ProntuarioService.java
@@ -314,9 +449,7 @@ DELETE /api/profissionais/{id}
 
 ```text
 POST   /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
-
 GET    /api/profissionais/{profissionalId}/disponibilidades
-
 DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 ```
 
@@ -387,7 +520,6 @@ GET    /api/consultas
 GET    /api/consultas/{id}
 PUT    /api/consultas/{id}
 DELETE /api/consultas/{id}
-
 GET    /api/consultas/paciente/{pacienteId}
 GET    /api/consultas/profissional/{profissionalId}
 ```
@@ -485,7 +617,6 @@ GET    /api/diagnosticos
 GET    /api/diagnosticos/{id}
 PUT    /api/diagnosticos/{id}
 DELETE /api/diagnosticos/{id}
-
 GET    /api/diagnosticos/paciente/{pacienteId}
 ```
 
@@ -522,7 +653,6 @@ GET    /api/tratamentos
 GET    /api/tratamentos/{id}
 PUT    /api/tratamentos/{id}
 DELETE /api/tratamentos/{id}
-
 GET    /api/tratamentos/paciente/{pacienteId}
 ```
 
@@ -559,7 +689,6 @@ GET    /api/exames
 GET    /api/exames/{id}
 PUT    /api/exames/{id}
 DELETE /api/exames/{id}
-
 GET    /api/exames/paciente/{pacienteId}
 ```
 
@@ -574,37 +703,6 @@ Os campos definitivos dependem da definição da interface e dos requisitos do s
 > ⏳ **Status:** Aguardando definição dos campos no Figma/requisitos do projeto.
 
 A implementação será realizada após a definição do contrato de dados.
-
----
-
-# 🔐 Segurança
-
-Como o NeuroVita poderá trabalhar com informações sensíveis, segurança será uma das prioridades do backend.
-
-### Recursos planejados
-
-* 🔐 Spring Security
-* 🔑 JWT
-* Controle de acesso por função
-* Hash de senhas
-* Proteção dos endpoints
-* Controle de permissões
-* Aplicação de princípios relacionados à LGPD
-
-> ⚠️ Os recursos de segurança serão implementados gradualmente durante o desenvolvimento.
-
----
-
-# 👥 Perfis previstos
-
-Os perfis previstos para o sistema incluem:
-
-* ADMINISTRADOR
-* PROFISSIONAL
-* SECRETÁRIO
-* PACIENTE
-
-Cada perfil deverá possuir permissões específicas dentro da aplicação.
 
 ---
 
@@ -632,19 +730,17 @@ O Swagger permite visualizar os endpoints disponíveis e realizar requisições 
 
 Durante o desenvolvimento são utilizados diferentes níveis de validação:
 
-* Testes automatizados;
-* Testes dos endpoints;
-* Validação das regras de negócio;
-* Validação da persistência;
-* Testes de integração;
-* Testes através do Swagger;
-* Testes através do Postman.
+* Testes automatizados
+* Testes dos endpoints
+* Validação das regras de negócio
+* Validação da persistência
+* Testes de integração
+* Testes através do Swagger
+* Testes através do Postman
 
 A implementação dos testes automatizados é realizada conforme a organização definida pela equipe responsável pelo projeto.
 
-Atualmente, o projeto possui a estrutura necessária para execução dos testes através do Maven.
-
-Para executar:
+Para executar os testes:
 
 ```bash
 mvn test
@@ -658,16 +754,23 @@ O backend utiliza **MongoDB** como banco de dados.
 
 Os documentos implementados atualmente incluem informações relacionadas a:
 
-* Pacientes;
-* Profissionais;
-* Disponibilidades;
-* Consultas;
-* Prontuários;
-* Diagnósticos;
-* Tratamentos;
-* Exames.
+* Pacientes
+* Profissionais
+* Disponibilidades
+* Consultas
+* Prontuários
+* Diagnósticos
+* Tratamentos
+* Exames
+* Administradores
 
 A conexão com o banco depende da configuração disponibilizada pela equipe responsável pelo banco de dados.
+
+A aplicação utiliza a variável de ambiente:
+
+```text
+MONGODB_URI
+```
 
 As credenciais de acesso devem ser configuradas por meio de variáveis de ambiente ou mecanismos seguros de configuração.
 
@@ -694,6 +797,8 @@ Spring Boot
 Spring Web MVC
 Spring Data MongoDB
 MongoDB
+Spring Security
+JWT
 ```
 
 A implementação utiliza a documentação e o backend anterior como referência.
@@ -706,10 +811,10 @@ O objetivo não é simplesmente traduzir o código JavaScript para Java, mas **r
 
 ## Pré-requisitos
 
-* Java JDK 21 ou superior;
-* Maven;
-* Git;
-* MongoDB configurado no ambiente de desenvolvimento.
+* Java JDK 21 ou superior
+* Maven
+* Git
+* MongoDB configurado no ambiente de desenvolvimento
 
 Verificar Java:
 
@@ -735,10 +840,27 @@ Entrar na pasta:
 cd NeuroVita
 ```
 
+## Variáveis de ambiente
+
+Antes de executar a aplicação, configure as variáveis necessárias:
+
+```text
+JWT_SECRET
+MONGODB_URI
+```
+
 ## Executar a aplicação
+
+Utilizando Maven:
 
 ```bash
 mvn spring-boot:run
+```
+
+Ou, no Windows, utilizando o Maven Wrapper:
+
+```bash
+mvnw.cmd spring-boot:run
 ```
 
 Por padrão, a aplicação utiliza:
@@ -747,7 +869,7 @@ Por padrão, a aplicação utiliza:
 http://localhost:8080
 ```
 
-### Endpoint de teste
+## Endpoint de teste
 
 ```text
 GET /teste
@@ -765,13 +887,13 @@ Resposta esperada:
 API NeuroVita funcionando!
 ```
 
-### Swagger
+## Swagger
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
-> ℹ️ A conexão com o MongoDB depende da disponibilidade e configuração do banco no ambiente utilizado.
+> ℹ️ Os endpoints que dependem do MongoDB precisam de uma conexão válida com o banco.
 
 ---
 
@@ -815,20 +937,22 @@ MongoDB
 | Diagnóstico              | 🟢 Concluído               |
 | Tratamento               | 🟢 Concluído               |
 | Exame                    | 🟢 Concluído               |
-| Receita                  | 🟡 Aguardando definição    |
+| Administrador            | 🟢 Concluído               |
+| Login                    | 🟢 Concluído               |
+| BCrypt                   | 🟢 Concluído               |
+| Spring Security          | 🟢 Concluído               |
+| JWT                      | 🟢 Concluído               |
 | Swagger / OpenAPI        | 🟢 Concluído               |
+| Receita                  | 🟡 Aguardando definição    |
 | MongoDB externo          | 🟡 Aguardando configuração |
-| Administrador            | ⚪ Planejado                |
-| Autenticação             | ⚪ Planejado                |
-| Autorização              | ⚪ Planejado                |
-| Spring Security / JWT    | ⚪ Planejado                |
+| Testes de integração     | 🟡 Em desenvolvimento      |
 | Integração com frontend  | ⚪ Planejado                |
 | Deploy no Render         | 🔵 Meta                    |
 
 ### Legenda
 
 * 🟢 Concluído
-* 🟡 Em andamento / aguardando definição
+* 🟡 Em desenvolvimento / aguardando definição
 * 🔵 Meta
 * ⚪ Planejado
 
@@ -836,7 +960,7 @@ MongoDB
 
 # 🗺️ Roadmap
 
-## Etapa 1 — Estrutura
+## Etapa 1 - Estrutura
 
 * [x] Criar projeto Spring Boot
 * [x] Configurar Maven
@@ -845,7 +969,7 @@ MongoDB
 * [x] Criar estrutura de pacotes
 * [x] Criar primeiro endpoint
 
-## Etapa 2 — API
+## Etapa 2 - API
 
 * [x] Implementar Paciente
 * [x] Implementar Profissional
@@ -857,25 +981,27 @@ MongoDB
 * [x] Implementar Tratamento
 * [x] Implementar Exame
 * [ ] Definir e implementar Receita
-* [ ] Implementar Administrador
 
-## Etapa 3 — Documentação e integração
+## Etapa 3 - Administrador e autenticação
+
+* [x] Implementar Administrador
+* [x] Implementar cadastro de administrador
+* [x] Implementar login
+* [x] Implementar BCrypt
+* [x] Implementar Spring Security
+* [x] Implementar JWT
+* [x] Implementar filtro JWT
+* [x] Proteger endpoints
+* [ ] Refinar regras de autorização por perfil
+
+## Etapa 4 - Documentação e integração
 
 * [x] Configurar Swagger / OpenAPI
 * [ ] Validar endpoints com MongoDB externo
 * [ ] Testar integração com frontend
 * [ ] Refinar documentação da API
 
-## Etapa 4 — Segurança
-
-* [ ] Spring Security
-* [ ] JWT
-* [ ] Perfis de acesso
-* [ ] Hash de senhas
-* [ ] Proteção dos endpoints
-* [ ] Regras de autorização
-
-## Etapa 5 — Deploy
+## Etapa 5 - Deploy
 
 * [ ] Preparar aplicação para produção
 * [ ] Configurar variáveis de ambiente
@@ -905,7 +1031,7 @@ git add .
 Criar commit:
 
 ```bash
-git commit -m "feat: implementa cadastro de pacientes"
+git commit -m "feat: implementa nova funcionalidade"
 ```
 
 Enviar para o GitHub:
@@ -932,20 +1058,21 @@ refactor: melhoria na estrutura do código
 
 # 📌 Boas práticas
 
-Durante o desenvolvimento serão priorizados:
+Durante o desenvolvimento são priorizados:
 
-* Programação Orientada a Objetos;
-* Separação de responsabilidades;
-* Princípios SOLID;
-* Código legível;
-* Validação de dados;
-* Tratamento de exceções;
-* Uso de DTOs;
-* Padronização dos endpoints;
-* Segurança das informações;
-* Testes;
-* Documentação;
-* Commits organizados.
+* Programação Orientada a Objetos
+* Separação de responsabilidades
+* Princípios SOLID
+* Código legível
+* Validação de dados
+* Tratamento de exceções
+* Uso de DTOs
+* Padronização dos endpoints
+* Segurança das informações
+* Testes
+* Documentação
+* Commits organizados
+* Uso de variáveis de ambiente para informações sensíveis
 
 ---
 
@@ -953,19 +1080,22 @@ Durante o desenvolvimento serão priorizados:
 
 **Projeto:** NeuroVita
 
-**Contexto:** Projeto acadêmico desenvolvido na faculdade
+**Contexto:** Projeto acadêmico desenvolvido na Faculdade Brasília
+
+**Curso:** Análise e Desenvolvimento de Sistemas
 
 **Área:** Tecnologia / Desenvolvimento de Software
 
 O projeto possui finalidade acadêmica e prática, buscando aplicar conhecimentos de:
 
-* Programação;
-* Desenvolvimento de APIs;
-* Banco de dados;
-* Arquitetura de software;
-* Programação Orientada a Objetos;
-* Segurança;
-* Boas práticas de desenvolvimento.
+* Programação
+* Desenvolvimento de APIs
+* Banco de dados
+* Arquitetura de software
+* Programação Orientada a Objetos
+* Segurança
+* Desenvolvimento web
+* Boas práticas de desenvolvimento
 
 ---
 
