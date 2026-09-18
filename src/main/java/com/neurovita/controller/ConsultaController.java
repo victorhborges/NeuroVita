@@ -27,47 +27,29 @@ public class ConsultaController {
     }
 
     @PostMapping
-    public ResponseEntity<ConsultaResponse> salvar(
-            @RequestBody ConsultaRequest request) {
-
-        ConsultaResponse response =
-                consultaService.salvar(request);
-
+    public ResponseEntity<ConsultaResponse> salvar(@RequestBody ConsultaRequest request) {
+        ConsultaResponse response = consultaService.salvar(request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<List<ConsultaResponse>> listarTodos() {
-
-        return ResponseEntity.ok(
-                consultaService.listarTodos()
-        );
+        return ResponseEntity.ok(consultaService.listarTodos());
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(
-            @PathVariable String pacienteId) {
-
-        return ResponseEntity.ok(
-                consultaService.listarPorPaciente(pacienteId)
-        );
+    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(@PathVariable String pacienteId) {
+        return ResponseEntity.ok(consultaService.listarPorPaciente(pacienteId));
     }
 
     @GetMapping("/profissional/{profissionalId}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(
-            @PathVariable String profissionalId) {
-
-        return ResponseEntity.ok(
-                consultaService.listarPorProfissional(profissionalId)
-        );
+    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(@PathVariable String profissionalId) {
+        return ResponseEntity.ok(consultaService.listarPorProfissional(profissionalId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ConsultaResponse> buscarPorId(
-            @PathVariable String id) {
-
-        ConsultaResponse response =
-                consultaService.buscarPorId(id);
+    public ResponseEntity<ConsultaResponse> buscarPorId(@PathVariable String id) {
+        ConsultaResponse response = consultaService.buscarPorId(id);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -77,12 +59,8 @@ public class ConsultaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ConsultaResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody ConsultaRequest request) {
-
-        ConsultaResponse response =
-                consultaService.atualizar(id, request);
+    public ResponseEntity<ConsultaResponse> atualizar(@PathVariable String id, @RequestBody ConsultaRequest request) {
+        ConsultaResponse response = consultaService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -92,9 +70,7 @@ public class ConsultaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id) {
-
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
         consultaService.deletar(id);
 
         return ResponseEntity.noContent().build();

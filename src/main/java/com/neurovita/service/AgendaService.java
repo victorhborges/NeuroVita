@@ -11,63 +11,32 @@ import com.neurovita.repository.ConsultaRepository;
 
 @Service
 public class AgendaService {
+        private final ConsultaRepository consultaRepository;
 
-private final ConsultaRepository consultaRepository;
+        public AgendaService(ConsultaRepository consultaRepository) {
+                this.consultaRepository = consultaRepository;
+        }
 
-public AgendaService(ConsultaRepository consultaRepository) {
-        this.consultaRepository = consultaRepository;
-}
+        public List<ConsultaResponse> listarAgenda() {
+                return consultaRepository.findAll().stream().map(ConsultaResponse::new).toList();
+        }
 
-public List<ConsultaResponse> listarAgenda() {
+        public List<ConsultaResponse> listarPorDia(LocalDate data) {
+                LocalDateTime inicio = data.atStartOfDay();
+                LocalDateTime fim = data.plusDays(1).atStartOfDay();
 
-return consultaRepository.findAll()
-        .stream()
-        .map(ConsultaResponse::new)
-        .toList();
-}
+        return consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim).stream().map(ConsultaResponse::new).toList();
+        }
 
-public List<ConsultaResponse> listarPorDia(LocalDate data) {
+        public List<ConsultaResponse> listarPorProfissional(String profissionalId, LocalDate data) {
+                LocalDateTime inicio = data.atStartOfDay();
+                LocalDateTime fim = data.plusDays(1).atStartOfDay();
 
-        LocalDateTime inicio = data.atStartOfDay();
+        return consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(profissionalId, inicio, fim)
+                .stream().map(ConsultaResponse::new).toList();
+        }
 
-        LocalDateTime fim = data.plusDays(1).atStartOfDay();
-
-        return consultaRepository
-                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(
-                        inicio,
-                        fim
-                )
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
-}
-
-public List<ConsultaResponse> listarPorProfissional(
-        String profissionalId,
-        LocalDate data) {
-
-        LocalDateTime inicio = data.atStartOfDay();
-
-        LocalDateTime fim = data.plusDays(1).atStartOfDay();
-
-        return consultaRepository
-                .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                        profissionalId,
-                        inicio,
-                        fim
-                )
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
-}
-
-public List<ConsultaResponse> listarPorPaciente(
-        String pacienteId) {
-
-        return consultaRepository
-                .findByPacienteId(pacienteId)
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
-}
+        public List<ConsultaResponse> listarPorPaciente(String pacienteId) {
+                return consultaRepository.findByPacienteId(pacienteId).stream().map(ConsultaResponse::new).toList();
+        }
 }

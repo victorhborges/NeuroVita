@@ -22,36 +22,27 @@ public class TratamentoController {
 
     private final TratamentoService tratamentoService;
 
-    public TratamentoController(
-            TratamentoService tratamentoService) {
-
+    public TratamentoController(TratamentoService tratamentoService) {
         this.tratamentoService = tratamentoService;
     }
 
     @PostMapping
-    public ResponseEntity<TratamentoResponse> salvar(
-            @RequestBody TratamentoRequest request) {
-
-        TratamentoResponse response =
-                tratamentoService.salvar(request);
+    public ResponseEntity<TratamentoResponse> salvar(@RequestBody TratamentoRequest request) {
+        TratamentoResponse response = tratamentoService.salvar(request);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<List<TratamentoResponse>> listarTodos() {
-
-        return ResponseEntity.ok(
-                tratamentoService.listarTodos()
+        return ResponseEntity.ok(tratamentoService.listarTodos()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TratamentoResponse> buscarPorId(
-            @PathVariable String id) {
+    public ResponseEntity<TratamentoResponse> buscarPorId(@PathVariable String id) {
 
-        TratamentoResponse response =
-                tratamentoService.buscarPorId(id);
+        TratamentoResponse response = tratamentoService.buscarPorId(id);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -61,12 +52,8 @@ public class TratamentoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TratamentoResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody TratamentoRequest request) {
-
-        TratamentoResponse response =
-                tratamentoService.atualizar(id, request);
+    public ResponseEntity<TratamentoResponse> atualizar(@PathVariable String id, @RequestBody TratamentoRequest request) {
+        TratamentoResponse response = tratamentoService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -76,20 +63,14 @@ public class TratamentoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id) {
-
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
         tratamentoService.deletar(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<TratamentoResponse>> listarPorPaciente(
-            @PathVariable String pacienteId) {
-
-        return ResponseEntity.ok(
-                tratamentoService.listarPorPaciente(pacienteId)
-        );
+    public ResponseEntity<List<TratamentoResponse>> listarPorPaciente(@PathVariable String pacienteId) {
+        return ResponseEntity.ok(tratamentoService.listarPorPaciente(pacienteId));
     }
 }

@@ -27,11 +27,8 @@ public class ExameController {
     }
 
     @PostMapping
-    public ResponseEntity<ExameResponse> salvar(
-            @RequestBody ExameRequest request) {
-
-        ExameResponse response =
-                exameService.salvar(request);
+    public ResponseEntity<ExameResponse> salvar(@RequestBody ExameRequest request) {
+        ExameResponse response = exameService.salvar(request);
 
         return ResponseEntity.ok(response);
     }
@@ -39,32 +36,25 @@ public class ExameController {
     @GetMapping
     public ResponseEntity<List<ExameResponse>> listarTodos() {
 
-        return ResponseEntity.ok(
-                exameService.listarTodos()
+        return ResponseEntity.ok(exameService.listarTodos()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExameResponse> buscarPorId(
-            @PathVariable String id) {
+    public ResponseEntity<ExameResponse> buscarPorId(@PathVariable String id) {
 
-        ExameResponse response =
-                exameService.buscarPorId(id);
+        ExameResponse response = exameService.buscarPorId(id);
 
         if (response == null) {
-            return ResponseEntity.notFound().build();
+        return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ExameResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody ExameRequest request) {
-
-        ExameResponse response =
-                exameService.atualizar(id, request);
+    public ResponseEntity<ExameResponse> atualizar(@PathVariable String id, @RequestBody ExameRequest request) {
+        ExameResponse response = exameService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -74,20 +64,14 @@ public class ExameController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id) {
-
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
         exameService.deletar(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<ExameResponse>> listarPorPaciente(
-            @PathVariable String pacienteId) {
-
-        return ResponseEntity.ok(
-                exameService.listarPorPaciente(pacienteId)
-        );
+    public ResponseEntity<List<ExameResponse>> listarPorPaciente(@PathVariable String pacienteId) {
+        return ResponseEntity.ok(exameService.listarPorPaciente(pacienteId));
     }
 }

@@ -15,39 +15,37 @@ import com.neurovita.security.JwtAuthenticationFilter;
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+@Bean
+public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
+}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
+@Bean
+public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         JwtAuthenticationFilter jwtAuthenticationFilter)
         throws Exception {
 
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session ->
-                    session.sessionCreationPolicy(
-                            SessionCreationPolicy.STATELESS
-                    )
-            )
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/api/auth/**",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html",
-                            "/v3/api-docs/**",
-                            "/teste"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-            )
-            .addFilterBefore(
-                    jwtAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class
-            );
+        .csrf(AbstractHttpConfigurer::disable)
+
+        .sessionManagement(session ->session.sessionCreationPolicy(
+SessionCreationPolicy.STATELESS))
+
+        .authorizeHttpRequests(auth -> auth.requestMatchers(
+                "/",
+                "/api/auth/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**",
+                "/teste"
+                ).permitAll()
+
+                .anyRequest().authenticated()
+        )
+
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-        }
+}
 }

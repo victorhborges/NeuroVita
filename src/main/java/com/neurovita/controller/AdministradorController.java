@@ -27,9 +27,7 @@ public class AdministradorController {
     }
 
     @PostMapping
-    public ResponseEntity<AdministradorResponse> criar(
-            @RequestBody AdministradorRequest request) {
-
+    public ResponseEntity<AdministradorResponse> criar(@RequestBody AdministradorRequest request) {
         return ResponseEntity.ok(administradorService.criar(request));
     }
 
@@ -40,9 +38,7 @@ public class AdministradorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AdministradorResponse> buscarPorId(
-            @PathVariable String id) {
-
+    public ResponseEntity<AdministradorResponse> buscarPorId(@PathVariable String id) {
         return ResponseEntity.ok(administradorService.buscarPorId(id));
     }
 
@@ -51,14 +47,11 @@ public class AdministradorController {
             @PathVariable String id,
             @RequestBody AdministradorRequest request) {
 
-        return ResponseEntity.ok(
-                administradorService.atualizar(id, request)
-        );
+        return ResponseEntity.ok(administradorService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
-
         administradorService.deletar(id);
 
         return ResponseEntity.noContent().build();

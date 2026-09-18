@@ -22,18 +22,13 @@ public class ProfissionalController {
 
     private final ProfissionalService profissionalService;
 
-    public ProfissionalController(
-            ProfissionalService profissionalService) {
-
+    public ProfissionalController(ProfissionalService profissionalService) {
         this.profissionalService = profissionalService;
     }
 
     @PostMapping
-    public ResponseEntity<ProfissionalResponse> salvar(
-            @RequestBody ProfissionalRequest request) {
-
-        ProfissionalResponse response =
-                profissionalService.salvar(request);
+    public ResponseEntity<ProfissionalResponse> salvar(@RequestBody ProfissionalRequest request) {
+        ProfissionalResponse response = profissionalService.salvar(request);
 
         return ResponseEntity.ok(response);
     }
@@ -41,17 +36,13 @@ public class ProfissionalController {
     @GetMapping
     public ResponseEntity<List<ProfissionalResponse>> listarTodos() {
 
-        return ResponseEntity.ok(
-                profissionalService.listarTodos()
-        );
+        return ResponseEntity.ok(profissionalService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProfissionalResponse> buscarPorId(
-            @PathVariable String id) {
+    public ResponseEntity<ProfissionalResponse> buscarPorId(@PathVariable String id) {
 
-        ProfissionalResponse response =
-                profissionalService.buscarPorId(id);
+        ProfissionalResponse response = profissionalService.buscarPorId(id);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -61,12 +52,8 @@ public class ProfissionalController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProfissionalResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody ProfissionalRequest request) {
-
-        ProfissionalResponse response =
-                profissionalService.atualizar(id, request);
+    public ResponseEntity<ProfissionalResponse> atualizar(@PathVariable String id, @RequestBody ProfissionalRequest request) {
+        ProfissionalResponse response = profissionalService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -76,24 +63,16 @@ public class ProfissionalController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id) {
-
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
         profissionalService.deletar(id);
 
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")
-public ResponseEntity<ProfissionalResponse> adicionarDisponibilidade(
-        @PathVariable String profissionalId,
-        @PathVariable String disponibilidadeId) {
+public ResponseEntity<ProfissionalResponse> adicionarDisponibilidade(@PathVariable String profissionalId, @PathVariable String disponibilidadeId) {
 
-    ProfissionalResponse response =
-            profissionalService.adicionarDisponibilidade(
-                    profissionalId,
-                    disponibilidadeId
-            );
+    ProfissionalResponse response = profissionalService.adicionarDisponibilidade(profissionalId, disponibilidadeId);
 
     if (response == null) {
         return ResponseEntity.notFound().build();
@@ -103,15 +82,8 @@ public ResponseEntity<ProfissionalResponse> adicionarDisponibilidade(
 }
 
     @DeleteMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")
-public ResponseEntity<Void> removerDisponibilidade(
-        @PathVariable String profissionalId,
-        @PathVariable String disponibilidadeId) {
-
-    boolean removido =
-            profissionalService.removerDisponibilidade(
-                    profissionalId,
-                    disponibilidadeId
-            );
+public ResponseEntity<Void> removerDisponibilidade(@PathVariable String profissionalId, @PathVariable String disponibilidadeId) {
+    boolean removido = profissionalService.removerDisponibilidade(profissionalId, disponibilidadeId);
 
     if (!removido) {
         return ResponseEntity.notFound().build();
@@ -119,6 +91,5 @@ public ResponseEntity<Void> removerDisponibilidade(
 
     return ResponseEntity.noContent().build();
 }
-
 
 }

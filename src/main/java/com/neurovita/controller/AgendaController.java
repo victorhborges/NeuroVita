@@ -27,35 +27,22 @@ public class AgendaController {
     public ResponseEntity<List<ConsultaResponse>> listarAgenda() {
 
         return ResponseEntity.ok(
-                agendaService.listarAgenda()
-        );
+            agendaService.listarAgenda());
     }
 
     @GetMapping("/dia")
-    public ResponseEntity<List<ConsultaResponse>> listarPorDia(
-            @RequestParam LocalDate data) {
-
-        return ResponseEntity.ok(
-                agendaService.listarPorDia(data)
-        );
+    public ResponseEntity<List<ConsultaResponse>> listarPorDia(@RequestParam LocalDate data) {
+        return ResponseEntity.ok(agendaService.listarPorDia(data));
     }
 
     @GetMapping("/profissional/{id}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(
-            @PathVariable String id,
-            @RequestParam LocalDate data) {
-
-        return ResponseEntity.ok(
-                agendaService.listarPorProfissional(id, data)
-        );
+    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(@PathVariable String id,@RequestParam LocalDate data) {
+        return ResponseEntity.ok(agendaService.listarPorProfissional(id, data));
     }
 
     @GetMapping("/paciente/{id}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(
-            @PathVariable String id) {
-
-        return ResponseEntity.ok(
-                agendaService.listarPorPaciente(id)
+    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(@PathVariable String id) {
+        return ResponseEntity.ok(agendaService.listarPorPaciente(id)
         );
     }
 }

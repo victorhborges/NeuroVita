@@ -22,18 +22,13 @@ public class DisponibilidadeController {
 
     private final DisponibilidadeService disponibilidadeService;
 
-    public DisponibilidadeController(
-            DisponibilidadeService disponibilidadeService) {
-
+    public DisponibilidadeController(DisponibilidadeService disponibilidadeService) {
         this.disponibilidadeService = disponibilidadeService;
     }
 
     @PostMapping
-    public ResponseEntity<DisponibilidadeResponse> salvar(
-            @RequestBody DisponibilidadeRequest request) {
-
-        DisponibilidadeResponse response =
-                disponibilidadeService.salvar(request);
+    public ResponseEntity<DisponibilidadeResponse> salvar(@RequestBody DisponibilidadeRequest request) {
+        DisponibilidadeResponse response = disponibilidadeService.salvar(request);
 
         return ResponseEntity.ok(response);
     }
@@ -41,17 +36,13 @@ public class DisponibilidadeController {
     @GetMapping
     public ResponseEntity<List<DisponibilidadeResponse>> listarTodos() {
 
-        return ResponseEntity.ok(
-                disponibilidadeService.listarTodos()
+        return ResponseEntity.ok(disponibilidadeService.listarTodos()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DisponibilidadeResponse> buscarPorId(
-            @PathVariable String id) {
-
-        DisponibilidadeResponse response =
-                disponibilidadeService.buscarPorId(id);
+    public ResponseEntity<DisponibilidadeResponse> buscarPorId(@PathVariable String id) {
+        DisponibilidadeResponse response =disponibilidadeService.buscarPorId(id);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -61,12 +52,8 @@ public class DisponibilidadeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DisponibilidadeResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody DisponibilidadeRequest request) {
-
-        DisponibilidadeResponse response =
-                disponibilidadeService.atualizar(id, request);
+    public ResponseEntity<DisponibilidadeResponse> atualizar(@PathVariable String id,@RequestBody DisponibilidadeRequest request) {
+        DisponibilidadeResponse response = disponibilidadeService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -76,9 +63,7 @@ public class DisponibilidadeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id) {
-
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
         disponibilidadeService.deletar(id);
 
         return ResponseEntity.noContent().build();

@@ -6,93 +6,64 @@ import org.springframework.stereotype.Service;
 
 import com.neurovita.dto.TratamentoRequest;
 import com.neurovita.dto.TratamentoResponse;
+import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Tratamento;
 import com.neurovita.repository.TratamentoRepository;
 
 @Service
 public class TratamentoService {
-
     private final TratamentoRepository tratamentoRepository;
 
-    public TratamentoService(
-            TratamentoRepository tratamentoRepository) {
-
+    public TratamentoService(TratamentoRepository tratamentoRepository) {
         this.tratamentoRepository = tratamentoRepository;
     }
 
-    public TratamentoResponse salvar(
-            TratamentoRequest request) {
-
+    public TratamentoResponse salvar(TratamentoRequest request) {
         Tratamento tratamento = new Tratamento();
-
         tratamento.setPacienteId(request.getPacienteId());
         tratamento.setProfissionalId(request.getProfissionalId());
-
         tratamento.setDescricao(request.getDescricao());
         tratamento.setObjetivo(request.getObjetivo());
         tratamento.setFrequencia(request.getFrequencia());
         tratamento.setDuracao(request.getDuracao());
         tratamento.setObservacoes(request.getObservacoes());
-
-        Tratamento salvo =
-                tratamentoRepository.save(tratamento);
-
+        Tratamento salvo = tratamentoRepository.save(tratamento);
         return new TratamentoResponse(salvo);
     }
 
     public List<TratamentoResponse> listarTodos() {
-
-        return tratamentoRepository.findAll()
-                .stream()
-                .map(TratamentoResponse::new)
-                .toList();
+        return tratamentoRepository.findAll().stream().map(TratamentoResponse::new).toList();
     }
 
     public TratamentoResponse buscarPorId(String id) {
-
-        return tratamentoRepository.findById(id)
-                .map(TratamentoResponse::new)
-                .orElse(null);
+        return tratamentoRepository.findById(id).map(TratamentoResponse::new)
+                .orElseThrow(() -> new ResourceNotFoundException("Tratamento não encontrado"));
     }
 
-    public TratamentoResponse atualizar(
-            String id,
-            TratamentoRequest request) {
-
-        Tratamento tratamento =
-                tratamentoRepository.findById(id)
-                        .orElse(null);
-
-        if (tratamento == null) {
-            return null;
-        }
+    public TratamentoResponse atualizar(String id, TratamentoRequest request) {
+        Tratamento tratamento = tratamentoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tratamento não encontrado"));
 
         tratamento.setPacienteId(request.getPacienteId());
         tratamento.setProfissionalId(request.getProfissionalId());
-
         tratamento.setDescricao(request.getDescricao());
         tratamento.setObjetivo(request.getObjetivo());
         tratamento.setFrequencia(request.getFrequencia());
         tratamento.setDuracao(request.getDuracao());
         tratamento.setObservacoes(request.getObservacoes());
 
-        Tratamento atualizado =
-                tratamentoRepository.save(tratamento);
-
+        Tratamento atualizado = tratamentoRepository.save(tratamento);
         return new TratamentoResponse(atualizado);
     }
 
     public void deletar(String id) {
+        if (!tratamentoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Tratamento não encontrado");
+        }
         tratamentoRepository.deleteById(id);
     }
 
-    public List<TratamentoResponse> listarPorPaciente(
-            String pacienteId) {
-
-        return tratamentoRepository
-                .findByPacienteId(pacienteId)
-                .stream()
-                .map(TratamentoResponse::new)
-                .toList();
+    public List<TratamentoResponse> listarPorPaciente(String pacienteId) {
+        return tratamentoRepository.findByPacienteId(pacienteId).stream().map(TratamentoResponse::new).toList();
     }
 }

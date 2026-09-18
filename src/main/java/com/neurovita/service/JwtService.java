@@ -13,41 +13,22 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    private final String chaveSecreta =
-        System.getenv("JWT_SECRET");
+        private final String chaveSecreta = System.getenv("JWT_SECRET");
+        private final long expiracao = 1000 * 60 * 60;
+        
+        public String gerarToken(String email) {
 
-    private final long expiracao = 1000 * 60 * 60;
-
-    public String gerarToken(String email) {
-
-        SecretKey key = Keys.hmacShaKeyFor(
-                chaveSecreta.getBytes(StandardCharsets.UTF_8)
-        );
+        SecretKey key = Keys.hmacShaKeyFor(chaveSecreta.getBytes(StandardCharsets.UTF_8));
 
         Date agora = new Date();
-        Date expiracaoData = new Date(
-                agora.getTime() + expiracao
-        );
+        Date expiracaoData = new Date(agora.getTime() + expiracao);
 
-        return Jwts.builder()
-                .subject(email)
-                .issuedAt(agora)
-                .expiration(expiracaoData)
-                .signWith(key)
-                .compact();
-    }
+        return Jwts.builder().subject(email).issuedAt(agora).expiration(expiracaoData).signWith(key).compact();
+        }
 
-    public String extrairEmail(String token) {
+        public String extrairEmail(String token) {
+                SecretKey key = Keys.hmacShaKeyFor(chaveSecreta.getBytes(StandardCharsets.UTF_8));
 
-    SecretKey key = Keys.hmacShaKeyFor(
-            chaveSecreta.getBytes(StandardCharsets.UTF_8)
-    );
-
-    return Jwts.parser()
-            .verifyWith(key)
-            .build()
-            .parseSignedClaims(token)
-            .getPayload()
-            .getSubject();
-    }
+                return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().getSubject();
+        }
 }

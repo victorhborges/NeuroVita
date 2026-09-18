@@ -19,28 +19,20 @@ public class ProntuarioController {
 
     private final ProntuarioService prontuarioService;
 
-    public ProntuarioController(
-            ProntuarioService prontuarioService) {
-
+    public ProntuarioController(ProntuarioService prontuarioService) {
         this.prontuarioService = prontuarioService;
     }
 
     @PostMapping
-    public ResponseEntity<ProntuarioResponse> salvar(
-            @RequestBody ProntuarioRequest request) {
-
-        ProntuarioResponse response =
-                prontuarioService.salvar(request);
+    public ResponseEntity<ProntuarioResponse> salvar(@RequestBody ProntuarioRequest request) {
+        ProntuarioResponse response = prontuarioService.salvar(request);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProntuarioResponse> buscarPorId(
-            @PathVariable String id) {
-
-        ProntuarioResponse response =
-                prontuarioService.buscarPorId(id);
+    public ResponseEntity<ProntuarioResponse> buscarPorId(@PathVariable String id) {
+        ProntuarioResponse response = prontuarioService.buscarPorId(id);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -50,12 +42,8 @@ public class ProntuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProntuarioResponse> atualizar(
-            @PathVariable String id,
-            @RequestBody ProntuarioRequest request) {
-
-        ProntuarioResponse response =
-                prontuarioService.atualizar(id, request);
+    public ResponseEntity<ProntuarioResponse> atualizar(@PathVariable String id, @RequestBody ProntuarioRequest request) {
+        ProntuarioResponse response = prontuarioService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -65,11 +53,8 @@ public class ProntuarioController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<ProntuarioResponse> buscarPorPaciente(
-            @PathVariable String pacienteId) {
-
-        ProntuarioResponse response =
-                prontuarioService.buscarPorPaciente(pacienteId);
+    public ResponseEntity<ProntuarioResponse> buscarPorPaciente(@PathVariable String pacienteId) {
+        ProntuarioResponse response = prontuarioService.buscarPorPaciente(pacienteId);
 
         if (response == null) {
             return ResponseEntity.notFound().build();

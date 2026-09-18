@@ -4,7 +4,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.neurovita.model.Disponibilidade;
 
-public interface DisponibilidadeRepository
-        extends MongoRepository<Disponibilidade, String> {
-
+public interface DisponibilidadeRepository extends MongoRepository<Disponibilidade, String> {
+        
 }

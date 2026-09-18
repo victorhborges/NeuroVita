@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.neurovita.dto.ConsultaRequest;
 import com.neurovita.dto.ConsultaResponse;
+import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Consulta;
 import com.neurovita.repository.ConsultaRepository;
 
@@ -33,38 +34,23 @@ public class ConsultaService {
 
         consulta.setDuracao(request.getDuracao());
 
-        Consulta consultaSalva =
-                consultaRepository.save(consulta);
+        Consulta consultaSalva = consultaRepository.save(consulta);
 
         return new ConsultaResponse(consultaSalva);
     }
 
     public List<ConsultaResponse> listarTodos() {
-
-        return consultaRepository.findAll()
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
+        return consultaRepository.findAll().stream().map(ConsultaResponse::new).toList();
     }
 
     public ConsultaResponse buscarPorId(String id) {
-
-        return consultaRepository.findById(id)
-                .map(ConsultaResponse::new)
-                .orElse(null);
+        return consultaRepository.findById(id).map(ConsultaResponse::new)
+                .orElseThrow(() -> new ResourceNotFoundException("Consulta não encontrada"));
     }
 
-    public ConsultaResponse atualizar(
-            String id,
-            ConsultaRequest request) {
-
-        Consulta consulta =
-                consultaRepository.findById(id)
-                        .orElse(null);
-
-        if (consulta == null) {
-            return null;
-        }
+    public ConsultaResponse atualizar(String id, ConsultaRequest request) {
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Consulta não encontrada"));
 
         consulta.setPacienteId(request.getPacienteId());
         consulta.setProfissionalId(request.getProfissionalId());
@@ -77,31 +63,26 @@ public class ConsultaService {
 
         consulta.setDuracao(request.getDuracao());
 
-        Consulta consultaAtualizada =
-                consultaRepository.save(consulta);
+        Consulta consultaAtualizada = consultaRepository.save(consulta);
 
         return new ConsultaResponse(consultaAtualizada);
     }
 
     public void deletar(String id) {
+        if (!consultaRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Consulta não encontrada");
+        }
+
         consultaRepository.deleteById(id);
     }
 
-    public List<ConsultaResponse> listarPorPaciente(
-            String pacienteId) {
-
-        return consultaRepository.findByPacienteId(pacienteId)
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
+    public List<ConsultaResponse> listarPorPaciente(String pacienteId) {
+        return consultaRepository.findByPacienteId(pacienteId).stream()
+                .map(ConsultaResponse::new).toList();
     }
 
-    public List<ConsultaResponse> listarPorProfissional(
-            String profissionalId) {
-
-        return consultaRepository.findByProfissionalId(profissionalId)
-                .stream()
-                .map(ConsultaResponse::new)
-                .toList();
+    public List<ConsultaResponse> listarPorProfissional(String profissionalId) {
+        return consultaRepository.findByProfissionalId(profissionalId).stream()
+                .map(ConsultaResponse::new).toList();
     }
 }
