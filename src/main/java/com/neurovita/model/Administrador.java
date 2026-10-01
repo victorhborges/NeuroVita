@@ -12,6 +12,7 @@ public class Administrador {
     private String nome;
     private String email;
     private String senha;
+    private String perfil;
 
     public Administrador() {
     }
@@ -47,4 +48,13 @@ public class Administrador {
     public void setSenha(String senha) {
         this.senha = senha;
     }
+
+    public String getPerfil() {
+        return perfil;
+    }
+
+    public void setPerfil(String perfil) {
+        this.perfil = perfil;
+    }
 }
+

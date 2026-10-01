@@ -1,6 +1,6 @@
 # 🧠 NeuroVita - Backend
 
-Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília — Análise e Desenvolvimento de Sistemas**.
+Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília - Análise e Desenvolvimento de Sistemas**.
 
 A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
 
@@ -43,13 +43,21 @@ O projeto utiliza uma arquitetura em camadas:
 
 ```text
 Cliente / Frontend / Postman
+
             ↓
+
        Controller
+
             ↓
+
          Service
+
             ↓
+
        Repository
+
             ↓
+
          MongoDB
 ```
 
@@ -79,6 +87,7 @@ Utilizado para separar os dados recebidos e enviados pela API dos modelos de per
 
 ```text
 neurovita/
+
 ├── src/
 │   ├── main/
 │   │   ├── java/com/neurovita/
@@ -101,6 +110,7 @@ neurovita/
 │   │   └── resources/
 │   │       └── application.properties
 │   └── test/
+│
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -117,9 +127,13 @@ CRUD completo de pacientes.
 
 ```text
 POST   /api/pacientes
+
 GET    /api/pacientes
+
 GET    /api/pacientes/{id}
+
 PUT    /api/pacientes/{id}
+
 DELETE /api/pacientes/{id}
 ```
 
@@ -131,17 +145,23 @@ Gerenciamento de profissionais e suas disponibilidades.
 
 ```text
 POST   /api/profissionais
+
 GET    /api/profissionais
+
 GET    /api/profissionais/{id}
+
 PUT    /api/profissionais/{id}
+
 DELETE /api/profissionais/{id}
 ```
 
-Disponibilidades vinculadas:
+### Disponibilidades vinculadas
 
 ```text
 POST   /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
+
 GET    /api/profissionais/{profissionalId}/disponibilidades
+
 DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 ```
 
@@ -151,9 +171,13 @@ DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 
 ```text
 POST   /api/disponibilidades
+
 GET    /api/disponibilidades
+
 GET    /api/disponibilidades/{id}
+
 PUT    /api/disponibilidades/{id}
+
 DELETE /api/disponibilidades/{id}
 ```
 
@@ -165,16 +189,21 @@ Gerenciamento e consulta dos atendimentos.
 
 ```text
 POST   /api/consultas
+
 GET    /api/consultas
+
 GET    /api/consultas/{id}
+
 PUT    /api/consultas/{id}
+
 DELETE /api/consultas/{id}
 ```
 
-Consultas específicas:
+### Consultas específicas
 
 ```text
 GET /api/consultas/paciente/{pacienteId}
+
 GET /api/consultas/profissional/{profissionalId}
 ```
 
@@ -186,8 +215,11 @@ A agenda é construída a partir das consultas cadastradas e **não possui um do
 
 ```text
 GET /api/agenda
+
 GET /api/agenda/dia?data=2026-09-20
+
 GET /api/agenda/profissional/{id}?data=2026-09-20
+
 GET /api/agenda/paciente/{id}
 ```
 
@@ -199,8 +231,11 @@ Armazena informações relacionadas ao acompanhamento clínico.
 
 ```text
 POST /api/prontuarios
+
 GET  /api/prontuarios/{id}
+
 PUT  /api/prontuarios/{id}
+
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
@@ -210,10 +245,15 @@ GET  /api/prontuarios/paciente/{pacienteId}
 
 ```text
 POST   /api/diagnosticos
+
 GET    /api/diagnosticos
+
 GET    /api/diagnosticos/{id}
+
 PUT    /api/diagnosticos/{id}
+
 DELETE /api/diagnosticos/{id}
+
 GET    /api/diagnosticos/paciente/{pacienteId}
 ```
 
@@ -223,10 +263,15 @@ GET    /api/diagnosticos/paciente/{pacienteId}
 
 ```text
 POST   /api/tratamentos
+
 GET    /api/tratamentos
+
 GET    /api/tratamentos/{id}
+
 PUT    /api/tratamentos/{id}
+
 DELETE /api/tratamentos/{id}
+
 GET    /api/tratamentos/paciente/{pacienteId}
 ```
 
@@ -236,10 +281,15 @@ GET    /api/tratamentos/paciente/{pacienteId}
 
 ```text
 POST   /api/exames
+
 GET    /api/exames
+
 GET    /api/exames/{id}
+
 PUT    /api/exames/{id}
+
 DELETE /api/exames/{id}
+
 GET    /api/exames/paciente/{pacienteId}
 ```
 
@@ -251,13 +301,19 @@ Gerenciamento de administradores.
 
 ```text
 POST   /api/administradores
+
 GET    /api/administradores
+
 GET    /api/administradores/{id}
+
 PUT    /api/administradores/{id}
+
 DELETE /api/administradores/{id}
 ```
 
 As senhas não são retornadas pelos DTOs de resposta e são armazenadas utilizando **BCrypt**.
+
+Os administradores também possuem um **perfil de acesso**, utilizado no controle de autorização da API.
 
 ---
 
@@ -270,6 +326,7 @@ O projeto utiliza:
 * BCrypt
 * Filtro de autenticação
 * Controle de acesso aos endpoints
+* Controle de acesso por perfil
 * Tratamento global de exceções
 
 ### Login
@@ -295,11 +352,43 @@ Nas requisições protegidas:
 Authorization: Bearer <token>
 ```
 
+### Perfis
+
+Os administradores possuem um perfil de acesso, utilizado para determinar suas permissões dentro da API.
+
+O perfil atualmente utilizado para controle de autorização é:
+
+```text
+ADMINISTRADOR
+```
+
+A autoridade correspondente é criada a partir do perfil do usuário autenticado:
+
+```text
+ADMINISTRADOR
+      ↓
+ROLE_ADMINISTRADOR
+```
+
+### Autorização
+
+Os endpoints de gerenciamento de administradores possuem acesso restrito ao perfil `ADMINISTRADOR`.
+
+```text
+/api/administradores/**
+```
+
+Os demais endpoints protegidos exigem autenticação através de um token JWT.
+
+As regras de autorização dos demais perfis serão refinadas conforme as permissões definidas para o sistema.
+
 ### Tratamento de erros
 
 Recursos inexistentes retornam `404`.
 
 Credenciais inválidas retornam `401`, sem diferenciar e-mail inexistente de senha incorreta.
+
+Tokens inválidos ou expirados não autenticam a requisição.
 
 ---
 
@@ -307,13 +396,13 @@ Credenciais inválidas retornam `401`, sem diferenciar e-mail inexistente de sen
 
 A API possui documentação através do Swagger.
 
-Localmente:
+### Localmente
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
-Documentação OpenAPI:
+### Documentação OpenAPI
 
 ```text
 http://localhost:8080/v3/api-docs
@@ -339,26 +428,27 @@ O Dockerfile é utilizado para preparar a aplicação para hospedagem em serviç
 
 O backend está configurado para hospedagem no **Render** utilizando Docker.
 
-URL atual:
+### URL
 
 ```text
 https://neurovita.onrender.com
 ```
 
-Endpoints públicos disponíveis para verificação:
+### Endpoints públicos disponíveis para verificação
 
 ```text
 GET /teste
+
 GET /
 ```
 
-Swagger:
+### Swagger
 
 ```text
 https://neurovita.onrender.com/swagger-ui/index.html
 ```
 
-> ⚠️ O banco de produção ainda depende da configuração do MongoDB e da variável `MONGODB_URI`.
+> ⚠️ A aplicação utiliza a variável de ambiente `MONGODB_URI` para conexão com o MongoDB. O ambiente de produção ainda depende da configuração dessa variável no Render e da liberação de acesso ao banco.
 
 ---
 
@@ -391,13 +481,13 @@ Informações sensíveis não devem ser armazenadas no código-fonte ou enviadas
 * Git
 * MongoDB, quando forem utilizadas funcionalidades que dependem de persistência
 
-Verificar Java:
+### Verificar Java
 
 ```bash
 java -version
 ```
 
-Verificar Maven:
+### Verificar Maven
 
 ```bash
 mvn -version
@@ -407,18 +497,19 @@ mvn -version
 
 ```bash
 git clone https://github.com/victorhborges/NeuroVita.git
+
 cd NeuroVita
 ```
 
 ### Executar
 
-Windows:
+#### Windows
 
 ```bash
 mvnw.cmd spring-boot:run
 ```
 
-Linux/macOS:
+#### Linux/macOS
 
 ```bash
 ./mvnw spring-boot:run
@@ -452,19 +543,21 @@ Os testes são executados através do Maven:
 mvn test
 ```
 
-Windows:
+### Windows
 
 ```bash
 mvnw.cmd test
 ```
 
-Linux/macOS:
+### Linux/macOS
 
 ```bash
 ./mvnw test
 ```
 
-O projeto possui testes básicos de contexto. Testes mais abrangentes serão desenvolvidos conforme a evolução do projeto e a organização da equipe responsável.
+O projeto possui testes básicos de contexto.
+
+Testes mais abrangentes serão desenvolvidos conforme a evolução do projeto e a organização da equipe responsável.
 
 ---
 
@@ -474,8 +567,11 @@ O backend anterior foi desenvolvido utilizando:
 
 ```text
 Node.js
+
 JavaScript
+
 Express.js
+
 MySQL
 ```
 
@@ -483,11 +579,17 @@ O novo backend está sendo desenvolvido utilizando:
 
 ```text
 Java
+
 Spring Boot
+
 Spring Web MVC
+
 Spring Data MongoDB
+
 MongoDB
+
 Spring Security
+
 JWT
 ```
 
@@ -517,6 +619,8 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 | JWT                     | 🟢 Concluído            |
 | BCrypt                  | 🟢 Concluído            |
 | Spring Security         | 🟢 Concluído            |
+| Perfil de acesso        | 🟢 Concluído            |
+| Autorização por perfil  | 🟡 Em desenvolvimento   |
 | Swagger/OpenAPI         | 🟢 Concluído            |
 | Tratamento de exceções  | 🟢 Concluído            |
 | Docker                  | 🟢 Concluído            |
@@ -532,7 +636,7 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 * [ ] Revisar Controllers
 * [ ] Refinar validações da API
-* [ ] Refinar regras de autorização
+* [ ] Definir regras de autorização dos demais perfis
 * [ ] Implementar Receita após definição do Figma
 * [ ] Ampliar testes
 * [ ] Integrar com frontend
@@ -547,7 +651,9 @@ O projeto utiliza Git e GitHub para controle de versão.
 
 ```bash
 git add .
+
 git commit -m "feat: mensagem"
+
 git push origin main
 ```
 
@@ -555,10 +661,15 @@ git push origin main
 
 ```text
 feat: nova funcionalidade
+
 fix: correção de problema
+
 docs: alteração na documentação
+
 test: alteração nos testes
+
 refactor: melhoria estrutural
+
 chore: configuração ou manutenção
 ```
 
@@ -584,8 +695,11 @@ Durante o desenvolvimento são priorizados:
 ## 🎓 Projeto acadêmico
 
 **Projeto:** NeuroVita
+
 **Instituição:** Faculdade Brasília
+
 **Curso:** Análise e Desenvolvimento de Sistemas
+
 **Área:** Desenvolvimento de Software
 
 O projeto possui finalidade acadêmica e prática, aplicando conhecimentos de programação, desenvolvimento backend, APIs REST, banco de dados, arquitetura de software, segurança e boas práticas de desenvolvimento.

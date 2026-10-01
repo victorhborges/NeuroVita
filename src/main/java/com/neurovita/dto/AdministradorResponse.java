@@ -7,6 +7,7 @@ public class AdministradorResponse {
     private String id;
     private String nome;
     private String email;
+    private String perfil;
 
     public AdministradorResponse() {
     }
@@ -15,6 +16,7 @@ public class AdministradorResponse {
         this.id = administrador.getId();
         this.nome = administrador.getNome();
         this.email = administrador.getEmail();
+        this.perfil = administrador.getPerfil();
     }
 
     public String getId() {
@@ -39,5 +41,13 @@ public class AdministradorResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPerfil() {
+        return perfil;
+    }
+
+    public void setPerfil(String perfil) {
+        this.perfil = perfil;
     }
 }

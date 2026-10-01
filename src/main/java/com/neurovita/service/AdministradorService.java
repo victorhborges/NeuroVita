@@ -26,17 +26,23 @@ public class AdministradorService {
         administrador.setNome(request.getNome());
         administrador.setEmail(request.getEmail());
         administrador.setSenha(passwordEncoder.encode(request.getSenha()));
+        administrador.setPerfil(request.getPerfil());
+
         Administrador salvo = administradorRepository.save(administrador);
         return new AdministradorResponse(salvo);
     }
 
     public List<AdministradorResponse> listarTodos() {
-        return administradorRepository.findAll().stream().map(AdministradorResponse::new).toList();
+        return administradorRepository.findAll()
+                .stream()
+                .map(AdministradorResponse::new)
+                .toList();
     }
 
     public AdministradorResponse buscarPorId(String id) {
         Administrador administrador = administradorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Administrador não encontrado"));
+
         return new AdministradorResponse(administrador);
     }
 
@@ -47,6 +53,7 @@ public class AdministradorService {
         administrador.setNome(request.getNome());
         administrador.setEmail(request.getEmail());
         administrador.setSenha(passwordEncoder.encode(request.getSenha()));
+        administrador.setPerfil(request.getPerfil());
 
         Administrador atualizado = administradorRepository.save(administrador);
         return new AdministradorResponse(atualizado);
@@ -56,6 +63,7 @@ public class AdministradorService {
         if (!administradorRepository.existsById(id)) {
             throw new ResourceNotFoundException("Administrador não encontrado");
         }
+
         administradorRepository.deleteById(id);
     }
 }
