@@ -1,8 +1,10 @@
 package com.neurovita.security;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,14 +24,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AdministradorRepository administradorRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AdministradorRepository administradorRepository) {
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            AdministradorRepository administradorRepository) {
+
         this.jwtService = jwtService;
         this.administradorRepository = administradorRepository;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-    throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
         String authorization = request.getHeader("Authorization");
 
         if (authorization == null || !authorization.startsWith("Bearer ")) {
@@ -43,12 +52,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String email = jwtService.extrairEmail(token);
 
-            Administrador administrador = administradorRepository.findByEmail(email).orElse(null);
+            Administrador administrador = administradorRepository
+                    .findByEmail(email)
+                    .orElse(null);
 
             if (administrador != null) {
-                UsernamePasswordAuthenticationToken authentication =new UsernamePasswordAuthenticationToken(administrador.getEmail(),null,null);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                String autoridade = "ROLE_" + administrador.getPerfil();
+
+                SimpleGrantedAuthority grantedAuthority =
+                        new SimpleGrantedAuthority(autoridade);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                administrador.getEmail(),
+                                null,
+                                List.of(grantedAuthority)
+                        );
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
             }
 
         } catch (Exception e) {
