@@ -43,21 +43,13 @@ O projeto utiliza uma arquitetura em camadas:
 
 ```text
 Cliente / Frontend / Postman
-
             ↓
-
        Controller
-
             ↓
-
          Service
-
             ↓
-
        Repository
-
             ↓
-
          MongoDB
 ```
 
@@ -110,7 +102,7 @@ neurovita/
 │   │   └── resources/
 │   │       └── application.properties
 │   └── test/
-│
+
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -127,13 +119,9 @@ CRUD completo de pacientes.
 
 ```text
 POST   /api/pacientes
-
 GET    /api/pacientes
-
 GET    /api/pacientes/{id}
-
 PUT    /api/pacientes/{id}
-
 DELETE /api/pacientes/{id}
 ```
 
@@ -145,13 +133,9 @@ Gerenciamento de profissionais e suas disponibilidades.
 
 ```text
 POST   /api/profissionais
-
 GET    /api/profissionais
-
 GET    /api/profissionais/{id}
-
 PUT    /api/profissionais/{id}
-
 DELETE /api/profissionais/{id}
 ```
 
@@ -159,9 +143,7 @@ DELETE /api/profissionais/{id}
 
 ```text
 POST   /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
-
 GET    /api/profissionais/{profissionalId}/disponibilidades
-
 DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 ```
 
@@ -171,13 +153,9 @@ DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 
 ```text
 POST   /api/disponibilidades
-
 GET    /api/disponibilidades
-
 GET    /api/disponibilidades/{id}
-
 PUT    /api/disponibilidades/{id}
-
 DELETE /api/disponibilidades/{id}
 ```
 
@@ -189,13 +167,9 @@ Gerenciamento e consulta dos atendimentos.
 
 ```text
 POST   /api/consultas
-
 GET    /api/consultas
-
 GET    /api/consultas/{id}
-
 PUT    /api/consultas/{id}
-
 DELETE /api/consultas/{id}
 ```
 
@@ -245,13 +219,9 @@ GET  /api/prontuarios/paciente/{pacienteId}
 
 ```text
 POST   /api/diagnosticos
-
 GET    /api/diagnosticos
-
 GET    /api/diagnosticos/{id}
-
 PUT    /api/diagnosticos/{id}
-
 DELETE /api/diagnosticos/{id}
 
 GET    /api/diagnosticos/paciente/{pacienteId}
@@ -263,13 +233,9 @@ GET    /api/diagnosticos/paciente/{pacienteId}
 
 ```text
 POST   /api/tratamentos
-
 GET    /api/tratamentos
-
 GET    /api/tratamentos/{id}
-
 PUT    /api/tratamentos/{id}
-
 DELETE /api/tratamentos/{id}
 
 GET    /api/tratamentos/paciente/{pacienteId}
@@ -281,13 +247,9 @@ GET    /api/tratamentos/paciente/{pacienteId}
 
 ```text
 POST   /api/exames
-
 GET    /api/exames
-
 GET    /api/exames/{id}
-
 PUT    /api/exames/{id}
-
 DELETE /api/exames/{id}
 
 GET    /api/exames/paciente/{pacienteId}
@@ -301,13 +263,9 @@ Gerenciamento de administradores.
 
 ```text
 POST   /api/administradores
-
 GET    /api/administradores
-
 GET    /api/administradores/{id}
-
 PUT    /api/administradores/{id}
-
 DELETE /api/administradores/{id}
 ```
 
@@ -414,10 +372,10 @@ http://localhost:8080/v3/api-docs
 
 O projeto possui um `Dockerfile` utilizando Java 21 e Maven Wrapper.
 
-A aplicação é executada na porta:
+A aplicação utiliza a porta definida pela variável de ambiente `PORT`, com `8080` como valor padrão.
 
 ```text
-8080
+PORT=8080
 ```
 
 O Dockerfile é utilizado para preparar a aplicação para hospedagem em serviços compatíveis com containers.
@@ -448,7 +406,7 @@ GET /
 https://neurovita.onrender.com/swagger-ui/index.html
 ```
 
-> ⚠️ A aplicação utiliza a variável de ambiente `MONGODB_URI` para conexão com o MongoDB. O ambiente de produção ainda depende da configuração dessa variável no Render e da liberação de acesso ao banco.
+> ⚠️ A aplicação utiliza a variável de ambiente `MONGODB_URI` para conexão com o MongoDB Atlas. A configuração está em validação no ambiente de produção.
 
 ---
 
@@ -461,6 +419,14 @@ A conexão é configurada através da variável de ambiente:
 ```text
 MONGODB_URI
 ```
+
+A aplicação utiliza a propriedade:
+
+```properties
+spring.mongodb.uri=${MONGODB_URI}
+```
+
+Em ambiente de produção, a aplicação utiliza a URI fornecida pela variável `MONGODB_URI` configurada no Render.
 
 A chave utilizada pelo JWT também é configurada através de:
 
@@ -479,7 +445,7 @@ Informações sensíveis não devem ser armazenadas no código-fonte ou enviadas
 * Java JDK 21+
 * Maven
 * Git
-* MongoDB, quando forem utilizadas funcionalidades que dependem de persistência
+* MongoDB Atlas ou outra instância MongoDB acessível
 
 ### Verificar Java
 
@@ -567,11 +533,8 @@ O backend anterior foi desenvolvido utilizando:
 
 ```text
 Node.js
-
 JavaScript
-
 Express.js
-
 MySQL
 ```
 
@@ -579,17 +542,11 @@ O novo backend está sendo desenvolvido utilizando:
 
 ```text
 Java
-
 Spring Boot
-
 Spring Web MVC
-
 Spring Data MongoDB
-
 MongoDB
-
 Spring Security
-
 JWT
 ```
 
@@ -620,7 +577,7 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 | BCrypt                  | 🟢 Concluído            |
 | Spring Security         | 🟢 Concluído            |
 | Perfil de acesso        | 🟢 Concluído            |
-| Autorização por perfil  | 🟡 Em desenvolvimento   |
+| Autorização por perfil  | 🟢 Concluído            |
 | Swagger/OpenAPI         | 🟢 Concluído            |
 | Tratamento de exceções  | 🟢 Concluído            |
 | Docker                  | 🟢 Concluído            |
@@ -628,7 +585,7 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 | Receita                 | ⚪ Aguardando requisitos |
 | Testes completos        | 🟡 Em desenvolvimento   |
 | Integração com frontend | ⚪ Planejado             |
-| MongoDB de produção     | ⚪ Pendente              |
+| MongoDB de produção     | 🟡 Em validação         |
 
 ---
 
@@ -640,7 +597,7 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 * [ ] Implementar Receita após definição do Figma
 * [ ] Ampliar testes
 * [ ] Integrar com frontend
-* [ ] Configurar MongoDB de produção
+* [ ] Validar conexão com MongoDB Atlas em produção
 * [ ] Validar API em produção
 
 ---
