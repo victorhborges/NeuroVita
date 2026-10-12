@@ -2,12 +2,34 @@ package com.neurovita.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
+
 public class PacienteRequest {
 
+    @NotBlank(message = "O nome do paciente é obrigatório.")
     private String nome;
+
+    @NotNull(message = "A data de nascimento é obrigatória.")
+    @Past(message = "A data de nascimento deve ser anterior à data atual.")
     private LocalDate dataNascimento;
+
+    @Email(message = "Informe um e-mail válido.")
     private String email;
+
+    @Pattern(
+        regexp = "^[0-9.\\- ]{11,14}$",
+        message = "O CPF deve conter 11 dígitos, podendo incluir pontos e hífen."
+    )
     private String cpf;
+
+    @Pattern(
+        regexp = "^[0-9()+.\\- ]{10,20}$",
+        message = "Informe um telefone válido."
+    )
     private String telefone;
 
     private String responsavel;

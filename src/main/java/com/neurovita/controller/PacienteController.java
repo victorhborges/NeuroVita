@@ -2,6 +2,8 @@ package com.neurovita.controller;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +29,8 @@ public class PacienteController {
     }
 
     @PostMapping
-    public ResponseEntity<PacienteResponse> salvar(@RequestBody PacienteRequest request) {
+    public ResponseEntity<PacienteResponse> salvar(
+            @Valid @RequestBody PacienteRequest request) {
 
         PacienteResponse response = pacienteService.salvar(request);
 
@@ -40,7 +43,8 @@ public class PacienteController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PacienteResponse> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<PacienteResponse> buscarPorId(
+            @PathVariable String id) {
 
         PacienteResponse response = pacienteService.buscarPorId(id);
 
@@ -52,7 +56,10 @@ public class PacienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PacienteResponse> atualizar(@PathVariable String id,@RequestBody PacienteRequest request) {
+    public ResponseEntity<PacienteResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody PacienteRequest request) {
+
         PacienteResponse response = pacienteService.atualizar(id, request);
 
         if (response == null) {
@@ -64,6 +71,7 @@ public class PacienteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
+
         pacienteService.deletar(id);
 
         return ResponseEntity.noContent().build();

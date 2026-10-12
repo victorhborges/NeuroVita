@@ -16,6 +16,8 @@ import com.neurovita.dto.ProfissionalRequest;
 import com.neurovita.dto.ProfissionalResponse;
 import com.neurovita.service.ProfissionalService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/profissionais")
 public class ProfissionalController {
@@ -27,7 +29,9 @@ public class ProfissionalController {
     }
 
     @PostMapping
-    public ResponseEntity<ProfissionalResponse> salvar(@RequestBody ProfissionalRequest request) {
+    public ResponseEntity<ProfissionalResponse> salvar(
+            @Valid @RequestBody ProfissionalRequest request) {
+
         ProfissionalResponse response = profissionalService.salvar(request);
 
         return ResponseEntity.ok(response);
@@ -35,12 +39,12 @@ public class ProfissionalController {
 
     @GetMapping
     public ResponseEntity<List<ProfissionalResponse>> listarTodos() {
-
         return ResponseEntity.ok(profissionalService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProfissionalResponse> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<ProfissionalResponse> buscarPorId(
+            @PathVariable String id) {
 
         ProfissionalResponse response = profissionalService.buscarPorId(id);
 
@@ -52,8 +56,12 @@ public class ProfissionalController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProfissionalResponse> atualizar(@PathVariable String id, @RequestBody ProfissionalRequest request) {
-        ProfissionalResponse response = profissionalService.atualizar(id, request);
+    public ResponseEntity<ProfissionalResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody ProfissionalRequest request) {
+
+        ProfissionalResponse response =
+                profissionalService.atualizar(id, request);
 
         if (response == null) {
             return ResponseEntity.notFound().build();
@@ -70,26 +78,34 @@ public class ProfissionalController {
     }
 
     @PostMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")
-public ResponseEntity<ProfissionalResponse> adicionarDisponibilidade(@PathVariable String profissionalId, @PathVariable String disponibilidadeId) {
+    public ResponseEntity<ProfissionalResponse> adicionarDisponibilidade(
+            @PathVariable String profissionalId,
+            @PathVariable String disponibilidadeId) {
 
-    ProfissionalResponse response = profissionalService.adicionarDisponibilidade(profissionalId, disponibilidadeId);
+        ProfissionalResponse response =
+                profissionalService.adicionarDisponibilidade(
+                        profissionalId, disponibilidadeId);
 
-    if (response == null) {
-        return ResponseEntity.notFound().build();
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response);
     }
-
-    return ResponseEntity.ok(response);
-}
 
     @DeleteMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")
-public ResponseEntity<Void> removerDisponibilidade(@PathVariable String profissionalId, @PathVariable String disponibilidadeId) {
-    boolean removido = profissionalService.removerDisponibilidade(profissionalId, disponibilidadeId);
+    public ResponseEntity<Void> removerDisponibilidade(
+            @PathVariable String profissionalId,
+            @PathVariable String disponibilidadeId) {
 
-    if (!removido) {
-        return ResponseEntity.notFound().build();
+        boolean removido =
+                profissionalService.removerDisponibilidade(
+                        profissionalId, disponibilidadeId);
+
+        if (!removido) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
     }
-
-    return ResponseEntity.noContent().build();
-}
-
 }

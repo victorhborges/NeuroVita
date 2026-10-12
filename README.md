@@ -1,39 +1,46 @@
 # 🧠 NeuroVita - Backend
 
-Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília - Análise e Desenvolvimento de Sistemas**.
+Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília — Análise e Desenvolvimento de Sistemas**.
 
 A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
 
-> 🚧 **Status:** Em desenvolvimento
+> 🚧 **Status:** Em desenvolvimento.
 
-| Tecnologia     | Versão / Uso             |
-| -------------- | ------------------------ |
-| ☕ Java         | 21                       |
-| 🌱 Spring Boot | 4.0.8                    |
-| 🗄️ MongoDB    | Banco de dados           |
-| 🐳 Docker      | Containerização          |
-| ☁️ Render      | Hospedagem               |
-| 📦 Maven       | Gerenciamento do projeto |
+## 🛠️ Tecnologias
+
+| Tecnologia | Versão / Uso |
+|---|---|
+| ☕ Java | 21 |
+| 🌱 Spring Boot | 4.0.8 |
+| 🗄️ MongoDB | Banco de dados |
+| 🐳 Docker | Containerização |
+| ☁️ Render | Hospedagem |
+| 📦 Maven | Gerenciamento do projeto |
+| 🔐 Spring Security | Segurança e autorização |
+| 🎟️ JWT | Autenticação por token |
+| 🔑 BCrypt | Codificação e verificação de senhas |
+| ✅ Jakarta Bean Validation | Validação dos dados de entrada |
 
 ---
 
 ## 📌 Funcionalidades
 
-Atualmente o backend possui os seguintes módulos:
+Atualmente, o backend possui os seguintes módulos:
 
-* 👤 Pacientes
-* 🧑‍⚕️ Profissionais
-* ⏰ Disponibilidades
-* 📅 Consultas
-* 🗓️ Agenda
-* 📋 Prontuários
-* 🧠 Diagnósticos
-* 💊 Tratamentos
-* 🧪 Exames
-* 👨‍💼 Administradores
-* 🔐 Autenticação e segurança
+- 👤 Pacientes
+- 🧑‍⚕️ Profissionais
+- ⏰ Disponibilidades
+- 📅 Consultas
+- 🗓️ Agenda
+- 📋 Prontuários
+- 🧠 Diagnósticos
+- 💊 Tratamentos
+- 🧪 Exames
+- 👨‍💼 Administradores
+- 🔐 Autenticação e segurança
+- ✅ Validação de dados de entrada para pacientes e profissionais, com Jakarta Bean Validation.
 
-O módulo de **Receitas** aguarda a definição dos campos e regras no Figma.
+O módulo de **Receitas** aguarda a definição dos campos e das regras no Figma.
 
 ---
 
@@ -55,11 +62,11 @@ Cliente / Frontend / Postman
 
 ### Controller
 
-Responsável pelas requisições HTTP e respostas da API.
+Responsável pelas requisições HTTP e pelas respostas da API.
 
 ### Service
 
-Responsável pelas regras de negócio e operações da aplicação.
+Responsável pelas regras de negócio e pelas operações da aplicação.
 
 ### Repository
 
@@ -79,7 +86,6 @@ Utilizado para separar os dados recebidos e enviados pela API dos modelos de per
 
 ```text
 neurovita/
-
 ├── src/
 │   ├── main/
 │   │   ├── java/com/neurovita/
@@ -102,7 +108,6 @@ neurovita/
 │   │   └── resources/
 │   │       └── application.properties
 │   └── test/
-
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -113,9 +118,9 @@ neurovita/
 
 ---
 
-## 👤 Paciente
+## 👤 Pacientes
 
-CRUD completo de pacientes.
+CRUD de pacientes com operações de cadastro, consulta, atualização e exclusão.
 
 ```text
 POST   /api/pacientes
@@ -125,9 +130,23 @@ PUT    /api/pacientes/{id}
 DELETE /api/pacientes/{id}
 ```
 
+### Validação dos dados
+
+O cadastro e a atualização utilizam Jakarta Bean Validation para verificar regras aplicáveis aos campos recebidos.
+
+Entre as validações implementadas estão:
+
+- Nome obrigatório.
+- Data de nascimento obrigatória e anterior à data atual.
+- Formato de e-mail.
+- Formato de CPF.
+- Formato de telefone.
+
+As validações de formato de CPF e telefone não substituem uma verificação completa dos dígitos ou a confirmação da existência desses dados.
+
 ---
 
-## 🧑‍⚕️ Profissional
+## 🧑‍⚕️ Profissionais
 
 Gerenciamento de profissionais e suas disponibilidades.
 
@@ -139,6 +158,19 @@ PUT    /api/profissionais/{id}
 DELETE /api/profissionais/{id}
 ```
 
+### Validação dos dados
+
+O cadastro e a atualização utilizam Jakarta Bean Validation para verificar regras aplicáveis aos campos recebidos.
+
+Entre as validações implementadas estão:
+
+- Nome obrigatório.
+- Formato de e-mail.
+- Formato de CPF.
+- Formato de telefone.
+- Categoria profissional obrigatória.
+- Limites para o ano de conclusão.
+
 ### Disponibilidades vinculadas
 
 ```text
@@ -149,7 +181,7 @@ DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 
 ---
 
-## ⏰ Disponibilidade
+## ⏰ Disponibilidades
 
 ```text
 POST   /api/disponibilidades
@@ -161,7 +193,7 @@ DELETE /api/disponibilidades/{id}
 
 ---
 
-## 📅 Consulta
+## 📅 Consultas
 
 Gerenciamento e consulta dos atendimentos.
 
@@ -177,7 +209,6 @@ DELETE /api/consultas/{id}
 
 ```text
 GET /api/consultas/paciente/{pacienteId}
-
 GET /api/consultas/profissional/{profissionalId}
 ```
 
@@ -199,9 +230,9 @@ GET /api/agenda/paciente/{id}
 
 ---
 
-## 📋 Prontuário
+## 📋 Prontuários
 
-Armazena informações relacionadas ao acompanhamento clínico.
+Armazenam informações relacionadas ao acompanhamento clínico.
 
 ```text
 POST /api/prontuarios
@@ -213,9 +244,11 @@ PUT  /api/prontuarios/{id}
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
+O acesso aos prontuários deverá respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes.
+
 ---
 
-## 🧠 Diagnóstico
+## 🧠 Diagnósticos
 
 ```text
 POST   /api/diagnosticos
@@ -229,7 +262,7 @@ GET    /api/diagnosticos/paciente/{pacienteId}
 
 ---
 
-## 💊 Tratamento
+## 💊 Tratamentos
 
 ```text
 POST   /api/tratamentos
@@ -243,7 +276,7 @@ GET    /api/tratamentos/paciente/{pacienteId}
 
 ---
 
-## 🧪 Exame
+## 🧪 Exames
 
 ```text
 POST   /api/exames
@@ -257,7 +290,7 @@ GET    /api/exames/paciente/{pacienteId}
 
 ---
 
-## 👨‍💼 Administrador
+## 👨‍💼 Administradores
 
 Gerenciamento de administradores.
 
@@ -271,7 +304,7 @@ DELETE /api/administradores/{id}
 
 As senhas não são retornadas pelos DTOs de resposta e são armazenadas utilizando **BCrypt**.
 
-Os administradores também possuem um **perfil de acesso**, utilizado no controle de autorização da API.
+Os administradores possuem um perfil de acesso utilizado no controle de autorização da API.
 
 ---
 
@@ -279,13 +312,13 @@ Os administradores também possuem um **perfil de acesso**, utilizado no control
 
 O projeto utiliza:
 
-* Spring Security
-* JWT
-* BCrypt
-* Filtro de autenticação
-* Controle de acesso aos endpoints
-* Controle de acesso por perfil
-* Tratamento global de exceções
+- Spring Security.
+- JWT (JSON Web Token).
+- BCrypt.
+- Filtro de autenticação JWT.
+- Controle de acesso aos endpoints.
+- Controle de acesso por perfil, em evolução.
+- Tratamento global de exceções.
 
 ### Login
 
@@ -293,7 +326,7 @@ O projeto utiliza:
 POST /api/auth/login
 ```
 
-Exemplo:
+Exemplo de requisição:
 
 ```json
 {
@@ -302,51 +335,40 @@ Exemplo:
 }
 ```
 
-Após o login, a API retorna um token JWT.
+Após a validação das credenciais, a API retorna um token JWT.
 
-Nas requisições protegidas:
+Nas requisições protegidas, o token deve ser enviado no cabeçalho:
 
 ```text
 Authorization: Bearer <token>
 ```
 
-### Perfis
+### Perfis e autorização
 
-Os administradores possuem um perfil de acesso, utilizado para determinar suas permissões dentro da API.
+Atualmente, o fluxo de autenticação está implementado para administradores, com validação de credenciais utilizando BCrypt e emissão de token JWT.
 
-O perfil atualmente utilizado para controle de autorização é:
+O perfil `ADMINISTRADOR` é utilizado no controle de acesso aos endpoints de gerenciamento de administradores.
 
-```text
-ADMINISTRADOR
-```
+A autenticação dos perfis **profissional, secretaria e paciente**, assim como as regras específicas de autorização para cada perfil, ainda precisa ser implementada e validada.
 
-A autoridade correspondente é criada a partir do perfil do usuário autenticado:
+As permissões previstas para os perfis deverão considerar as responsabilidades de cada usuário e a proteção dos dados pessoais e clínicos.
 
-```text
-ADMINISTRADOR
-      ↓
-ROLE_ADMINISTRADOR
-```
+- **Administrador:** administração geral do sistema.
+- **Profissional:** acesso aos atendimentos e aos dados necessários dos pacientes sob sua responsabilidade.
+- **Secretaria:** acesso aos dados necessários às operações administrativas, respeitando as restrições de informações clínicas.
+- **Paciente:** acesso aos próprios dados e informações de atendimento, conforme as regras do sistema.
 
-### Autorização
+Essas permissões são uma proposta inicial e ainda precisam ser implementadas e validadas no backend.
 
-Os endpoints de gerenciamento de administradores possuem acesso restrito ao perfil `ADMINISTRADOR`.
-
-```text
-/api/administradores/**
-```
-
-Os demais endpoints protegidos exigem autenticação através de um token JWT.
-
-As regras de autorização dos demais perfis serão refinadas conforme as permissões definidas para o sistema.
+O acesso a prontuários, diagnósticos, exames e demais informações clínicas deverá respeitar as permissões de cada perfil e o vínculo entre profissionais e pacientes. A autorização deverá ser verificada no backend, não apenas na interface do usuário.
 
 ### Tratamento de erros
 
-Recursos inexistentes retornam `404`.
+- Recursos inexistentes retornam `404`.
+- Credenciais inválidas retornam `401`, sem diferenciar e-mail inexistente de senha incorreta.
+- Tokens inválidos ou expirados não autenticam a requisição.
 
-Credenciais inválidas retornam `401`, sem diferenciar e-mail inexistente de senha incorreta.
-
-Tokens inválidos ou expirados não autenticam a requisição.
+O tratamento de erros de validação dos campos também deverá ser padronizado para fornecer respostas claras e consistentes à API.
 
 ---
 
@@ -356,15 +378,11 @@ A API possui documentação através do Swagger.
 
 ### Localmente
 
-```text
-http://localhost:8080/swagger-ui/index.html
-```
+[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 ### Documentação OpenAPI
 
-```text
-http://localhost:8080/v3/api-docs
-```
+[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ---
 
@@ -388,53 +406,50 @@ O backend está configurado para hospedagem no **Render** utilizando Docker.
 
 ### URL
 
-```text
-https://neurovita.onrender.com
-```
+[https://neurovita.onrender.com](https://neurovita.onrender.com)
 
-### Endpoints públicos disponíveis para verificação
+### Endpoints públicos para verificação
 
 ```text
-GET /teste
-
 GET /
+GET /teste
 ```
 
 ### Swagger
 
-```text
-https://neurovita.onrender.com/swagger-ui/index.html
-```
+[https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
 
-> ⚠️ A aplicação utiliza a variável de ambiente `MONGODB_URI` para conexão com o MongoDB Atlas. A configuração está em validação no ambiente de produção.
+> ⚠️ A aplicação utiliza a variável de ambiente `MONGODB_URI` para conexão com o MongoDB Atlas. A conectividade com o banco em produção permanece em validação.
 
 ---
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza **MongoDB**.
+O projeto utiliza **MongoDB** e Spring Data MongoDB.
 
-A conexão é configurada através da variável de ambiente:
+A conexão é configurada por meio da variável de ambiente:
 
 ```text
 MONGODB_URI
 ```
 
-A aplicação utiliza a propriedade:
+A propriedade utilizada pela aplicação é:
 
 ```properties
 spring.mongodb.uri=${MONGODB_URI}
 ```
 
-Em ambiente de produção, a aplicação utiliza a URI fornecida pela variável `MONGODB_URI` configurada no Render.
+Em produção, a aplicação utiliza a URI fornecida pela variável `MONGODB_URI` configurada no Render.
 
-A chave utilizada pelo JWT também é configurada através de:
+A chave utilizada para assinatura dos tokens JWT também é configurada por meio de:
 
 ```text
 JWT_SECRET
 ```
 
-Informações sensíveis não devem ser armazenadas no código-fonte ou enviadas para o GitHub.
+Informações sensíveis, como senhas, tokens e URIs com credenciais, não devem ser armazenadas no código-fonte ou enviadas para o GitHub.
+
+**Status da conexão em produção:** em validação. O teste de contexto automatizado passou localmente, mas ainda é necessário confirmar que a aplicação consegue estabelecer conexão real com o MongoDB Atlas e executar operações de leitura e gravação.
 
 ---
 
@@ -442,10 +457,10 @@ Informações sensíveis não devem ser armazenadas no código-fonte ou enviadas
 
 ### Pré-requisitos
 
-* Java JDK 21+
-* Maven
-* Git
-* MongoDB Atlas ou outra instância MongoDB acessível
+- Java JDK 21 ou superior, com compatibilidade com a versão definida no projeto.
+- Git.
+- MongoDB Atlas ou outra instância MongoDB acessível.
+- Variáveis de ambiente necessárias configuradas.
 
 ### Verificar Java
 
@@ -459,7 +474,7 @@ java -version
 mvn -version
 ```
 
-### Clonar
+### Clonar o repositório
 
 ```bash
 git clone https://github.com/victorhborges/NeuroVita.git
@@ -467,25 +482,29 @@ git clone https://github.com/victorhborges/NeuroVita.git
 cd NeuroVita
 ```
 
+### Configurar as variáveis de ambiente
+
+Configure `MONGODB_URI` com a URI de conexão válida do MongoDB e `JWT_SECRET` com uma chave secreta forte.
+
+Não inclua os valores reais dessas variáveis em arquivos versionados ou em exemplos públicos.
+
 ### Executar
 
-#### Windows
+**Windows**
 
-```bash
+```cmd
 mvnw.cmd spring-boot:run
 ```
 
-#### Linux/macOS
+**Linux/macOS**
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-A aplicação será iniciada em:
+A aplicação será iniciada na porta configurada, normalmente:
 
-```text
-http://localhost:8080
-```
+[http://localhost:8080](http://localhost:8080)
 
 ### Endpoint de teste
 
@@ -493,25 +512,23 @@ http://localhost:8080
 GET /teste
 ```
 
-Resposta:
+Resposta esperada:
 
 ```text
 API NeuroVita funcionando!
 ```
 
+A resposta desse endpoint confirma que a rota está respondendo, mas não comprova, por si só, a conectividade com o MongoDB.
+
 ---
 
 ## 🧪 Testes
 
-Os testes são executados através do Maven:
-
-```bash
-mvn test
-```
+Os testes são executados por meio do Maven.
 
 ### Windows
 
-```bash
+```cmd
 mvnw.cmd test
 ```
 
@@ -521,9 +538,13 @@ mvnw.cmd test
 ./mvnw test
 ```
 
-O projeto possui testes básicos de contexto.
+O projeto possui um teste básico de contexto da aplicação.
 
-Testes mais abrangentes serão desenvolvidos conforme a evolução do projeto e a organização da equipe responsável.
+A execução local mais recente do teste automatizado terminou com `BUILD SUCCESS`, sem falhas ou erros no teste executado.
+
+Esse resultado não comprova a conectividade real com o MongoDB Atlas nem a validação funcional de todos os endpoints.
+
+Testes mais abrangentes serão desenvolvidos conforme a evolução do projeto e a organização da equipe responsável pelos testes.
 
 ---
 
@@ -548,57 +569,67 @@ Spring Data MongoDB
 MongoDB
 Spring Security
 JWT
+Jakarta Bean Validation
 ```
 
 A implementação utiliza o backend anterior como referência, mas reorganiza a aplicação de acordo com a arquitetura e o ecossistema Java/Spring Boot.
 
 ---
 
-## 📊 Status
+## 📊 Status do projeto
 
-| Módulo / Recurso        | Status                  |
-| ----------------------- | ----------------------- |
-| Estrutura Java          | 🟢 Concluído            |
-| Spring Boot             | 🟢 Concluído            |
-| Spring Web MVC          | 🟢 Concluído            |
-| Spring Data MongoDB     | 🟢 Concluído            |
-| Pacientes               | 🟢 Concluído            |
-| Profissionais           | 🟢 Concluído            |
-| Disponibilidades        | 🟢 Concluído            |
-| Consultas               | 🟢 Concluído            |
-| Agenda                  | 🟢 Concluído            |
-| Prontuários             | 🟢 Concluído            |
-| Diagnósticos            | 🟢 Concluído            |
-| Tratamentos             | 🟢 Concluído            |
-| Exames                  | 🟢 Concluído            |
-| Administradores         | 🟢 Concluído            |
-| Autenticação            | 🟢 Concluído            |
-| JWT                     | 🟢 Concluído            |
-| BCrypt                  | 🟢 Concluído            |
-| Spring Security         | 🟢 Concluído            |
-| Perfil de acesso        | 🟢 Concluído            |
-| Autorização por perfil  | 🟢 Concluído            |
-| Swagger/OpenAPI         | 🟢 Concluído            |
-| Tratamento de exceções  | 🟢 Concluído            |
-| Docker                  | 🟢 Concluído            |
-| Deploy Render           | 🟢 Concluído            |
-| Receita                 | ⚪ Aguardando requisitos |
-| Testes completos        | 🟡 Em desenvolvimento   |
-| Integração com frontend | ⚪ Planejado             |
-| MongoDB de produção     | 🟡 Em validação         |
+| Módulo / Recurso | Status |
+|---|---|
+| Estrutura Java | 🟢 Implementada |
+| Spring Boot | 🟢 Implementado |
+| Spring Web MVC | 🟢 Implementado |
+| Spring Data MongoDB | 🟢 Implementado |
+| Validação de pacientes e profissionais | 🟢 Implementada localmente |
+| Pacientes | 🟢 CRUD implementado |
+| Profissionais | 🟢 CRUD implementado |
+| Disponibilidades | 🟢 Implementadas |
+| Consultas | 🟢 CRUD implementado |
+| Agenda | 🟢 Implementada |
+| Prontuários | 🟢 CRUD implementado |
+| Diagnósticos | 🟢 CRUD implementado |
+| Tratamentos | 🟢 CRUD implementado |
+| Exames | 🟢 CRUD implementado |
+| Administradores | 🟢 CRUD implementado |
+| Login de administrador | 🟡 Implementado, pendente de validação funcional |
+| Login dos quatro perfis | ⚪ Pendente |
+| JWT | 🟢 Implementado no fluxo atual |
+| BCrypt | 🟢 Implementado no fluxo atual |
+| Spring Security | 🟡 Configuração em revisão |
+| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento |
+| Proteção de informações clínicas por vínculo profissional-paciente | ⚪ Pendente de implementação e validação |
+| Swagger/OpenAPI | 🟢 Implementado |
+| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
+| Docker | 🟢 Configurado |
+| Deploy Render | 🟢 Implantação configurada |
+| MongoDB de produção | 🟡 Em validação |
+| Receita | ⚪ Aguardando requisitos |
+| Testes completos | 🟡 Em desenvolvimento pela equipe responsável |
+| Integração com frontend | ⚪ Planejada |
+
+Os status indicam o estado de desenvolvimento conhecido e não substituem a validação funcional dos módulos.
 
 ---
 
 ## 🗺️ Próximas etapas
 
-* [ ] Revisar Controllers
-* [ ] Refinar validações da API
-* [ ] Definir regras de autorização dos demais perfis
-* [ ] Implementar Receita após definição do Figma
-* [ ] Ampliar testes
-* [ ] Integrar com frontend
-* [ ] Validar conexão com MongoDB Atlas em produção
-* [ ] Validar API em produção
+- [x] Adicionar validações iniciais aos DTOs de pacientes e profissionais.
+- [x] Aplicar `@Valid` nos endpoints de cadastro e atualização desses módulos.
+- [ ] Padronizar as respostas de erro de validação.
+- [ ] Revisar a configuração automática do Spring Security.
+- [ ] Implementar e validar o login dos perfis profissional, secretaria e paciente.
+- [ ] Refinar as regras de autorização dos perfis.
+- [ ] Implementar a proteção de dados clínicos com base no vínculo profissional-paciente.
+- [ ] Definir o módulo de Receitas após a especificação no Figma.
+- [ ] Validar a conexão com o MongoDB Atlas em produção.
+- [ ] Validar as operações de leitura e gravação no banco de produção.
+- [ ] Validar a API em produção.
+- [ ] Integrar com o frontend.
+- [ ] Ampliar a cobertura de testes com a equipe responsável.
 
 ---
 
@@ -606,13 +637,19 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 O projeto utiliza Git e GitHub para controle de versão.
 
+### Fluxo básico
+
 ```bash
+git status
+
 git add .
 
-git commit -m "feat: mensagem"
+git commit -m "feat: mensagem descritiva"
 
 git push origin main
 ```
+
+Antes de executar `git add .`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
 
 ### Padrão de commits
 
@@ -636,16 +673,17 @@ chore: configuração ou manutenção
 
 Durante o desenvolvimento são priorizados:
 
-* Programação Orientada a Objetos
-* Separação de responsabilidades
-* Princípios SOLID
-* DTOs
-* Tratamento de exceções
-* Segurança das informações
-* Variáveis de ambiente
-* Código legível
-* Documentação
-* Controle de versão
+- Programação Orientada a Objetos.
+- Separação de responsabilidades.
+- Princípios SOLID.
+- DTOs.
+- Validação de dados de entrada.
+- Tratamento de exceções.
+- Segurança das informações.
+- Variáveis de ambiente.
+- Código legível.
+- Documentação.
+- Controle de versão.
 
 ---
 
