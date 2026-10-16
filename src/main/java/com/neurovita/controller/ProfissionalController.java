@@ -1,3 +1,4 @@
+
 package com.neurovita.controller;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.neurovita.dto.CadastroProfissionalResponse;
 import com.neurovita.dto.ProfissionalRequest;
 import com.neurovita.dto.ProfissionalResponse;
 import com.neurovita.service.ProfissionalService;
@@ -29,12 +31,11 @@ public class ProfissionalController {
     }
 
     @PostMapping
-    public ResponseEntity<ProfissionalResponse> salvar(
+    public ResponseEntity<CadastroProfissionalResponse> salvar(
             @Valid @RequestBody ProfissionalRequest request) {
 
-        ProfissionalResponse response = profissionalService.salvar(request);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(201)
+                .body(profissionalService.salvar(request));
     }
 
     @GetMapping
@@ -46,13 +47,8 @@ public class ProfissionalController {
     public ResponseEntity<ProfissionalResponse> buscarPorId(
             @PathVariable String id) {
 
-        ProfissionalResponse response = profissionalService.buscarPorId(id);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                profissionalService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
@@ -60,20 +56,13 @@ public class ProfissionalController {
             @PathVariable String id,
             @Valid @RequestBody ProfissionalRequest request) {
 
-        ProfissionalResponse response =
-                profissionalService.atualizar(id, request);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                profissionalService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         profissionalService.deletar(id);
-
         return ResponseEntity.noContent().build();
     }
 
@@ -82,15 +71,9 @@ public class ProfissionalController {
             @PathVariable String profissionalId,
             @PathVariable String disponibilidadeId) {
 
-        ProfissionalResponse response =
+        return ResponseEntity.ok(
                 profissionalService.adicionarDisponibilidade(
-                        profissionalId, disponibilidadeId);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+                        profissionalId, disponibilidadeId));
     }
 
     @DeleteMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")
@@ -98,13 +81,8 @@ public class ProfissionalController {
             @PathVariable String profissionalId,
             @PathVariable String disponibilidadeId) {
 
-        boolean removido =
-                profissionalService.removerDisponibilidade(
-                        profissionalId, disponibilidadeId);
-
-        if (!removido) {
-            return ResponseEntity.notFound().build();
-        }
+        profissionalService.removerDisponibilidade(
+                profissionalId, disponibilidadeId);
 
         return ResponseEntity.noContent().build();
     }

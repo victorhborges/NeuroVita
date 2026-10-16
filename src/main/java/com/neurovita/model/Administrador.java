@@ -3,7 +3,7 @@ package com.neurovita.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "administradores")
+@Document(collection = "Administradores")
 public class Administrador {
 
     @Id

@@ -1,8 +1,7 @@
+
 package com.neurovita.controller;
 
 import java.util.List;
-
-import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,9 +13,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.neurovita.dto.CadastroPacienteResponse;
 import com.neurovita.dto.PacienteRequest;
 import com.neurovita.dto.PacienteResponse;
 import com.neurovita.service.PacienteService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/pacientes")
@@ -29,12 +31,11 @@ public class PacienteController {
     }
 
     @PostMapping
-    public ResponseEntity<PacienteResponse> salvar(
+    public ResponseEntity<CadastroPacienteResponse> salvar(
             @Valid @RequestBody PacienteRequest request) {
 
-        PacienteResponse response = pacienteService.salvar(request);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(201)
+                .body(pacienteService.salvar(request));
     }
 
     @GetMapping
@@ -46,13 +47,7 @@ public class PacienteController {
     public ResponseEntity<PacienteResponse> buscarPorId(
             @PathVariable String id) {
 
-        PacienteResponse response = pacienteService.buscarPorId(id);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(pacienteService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
@@ -60,20 +55,13 @@ public class PacienteController {
             @PathVariable String id,
             @Valid @RequestBody PacienteRequest request) {
 
-        PacienteResponse response = pacienteService.atualizar(id, request);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                pacienteService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
-
         pacienteService.deletar(id);
-
         return ResponseEntity.noContent().build();
     }
 }

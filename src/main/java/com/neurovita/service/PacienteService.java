@@ -1,61 +1,135 @@
+
 package com.neurovita.service;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.neurovita.dto.CadastroPacienteResponse;
 import com.neurovita.dto.PacienteRequest;
 import com.neurovita.dto.PacienteResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Paciente;
+import com.neurovita.model.Usuario;
 import com.neurovita.repository.PacienteRepository;
+import com.neurovita.repository.UsuarioRepository;
 
 @Service
 public class PacienteService {
 
-    private final PacienteRepository pacienteRepository;
+    private static final String PERFIL_PACIENTE = "PACIENTE";
 
-    public PacienteService(PacienteRepository pacienteRepository) {
+    private final PacienteRepository pacienteRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    public PacienteService(
+            PacienteRepository pacienteRepository,
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder) {
+
         this.pacienteRepository = pacienteRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public PacienteResponse salvar(PacienteRequest request) {
+    public CadastroPacienteResponse salvar(PacienteRequest request) {
+        validarEmailDisponivel(request.getEmail(), null);
 
         Paciente paciente = new Paciente();
-
-        paciente.setNome(request.getNome());
-        paciente.setDataNascimento(request.getDataNascimento());
-        paciente.setEmail(request.getEmail());
-        paciente.setCpf(request.getCpf());
-        paciente.setTelefone(request.getTelefone());
-
-        paciente.setResponsavel(request.getResponsavel());
-        paciente.setGrauParentesco(request.getGrauParentesco());
-
-        paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
-        paciente.setPlanoSaude(request.getPlanoSaude());
-        paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
-        paciente.setValidadePlano(request.getValidadePlano());
+        preencherPaciente(paciente, request);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
 
-        return new PacienteResponse(pacienteSalvo);
+        String senhaProvisoria = gerarSenhaProvisoria();
+
+        try {
+            Usuario usuario = new Usuario();
+            usuario.setNome(pacienteSalvo.getNome());
+            usuario.setEmail(pacienteSalvo.getEmail());
+            usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
+            usuario.setPerfil(PERFIL_PACIENTE);
+            usuario.setSenhaProvisoria(true);
+            usuario.setAtivo(true);
+            usuario.setEntidadeId(pacienteSalvo.getId());
+
+            usuarioRepository.save(usuario);
+
+        } catch (RuntimeException e) {
+            try {
+                pacienteRepository.deleteById(pacienteSalvo.getId());
+            } catch (RuntimeException erroLimpeza) {
+                e.addSuppressed(erroLimpeza);
+            }
+
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Não foi possível concluir a criação da conta do paciente.",
+                    e);
+        }
+
+        return new CadastroPacienteResponse(
+                new PacienteResponse(pacienteSalvo),
+                senhaProvisoria);
     }
 
     public List<PacienteResponse> listarTodos() {
-        return pacienteRepository.findAll().stream().map(PacienteResponse::new).toList();
+        return pacienteRepository.findAll()
+                .stream()
+                .map(PacienteResponse::new)
+                .toList();
     }
 
     public PacienteResponse buscarPorId(String id) {
+        Paciente paciente = pacienteRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Paciente não encontrado"));
 
-        return pacienteRepository.findById(id).map(PacienteResponse::new).orElseThrow(() ->
-            new ResourceNotFoundException("Paciente não encontrado"));
+        return new PacienteResponse(paciente);
     }
 
     public PacienteResponse atualizar(String id, PacienteRequest request) {
+        Paciente paciente = pacienteRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Paciente não encontrado"));
 
-        Paciente paciente = pacienteRepository.findById(id).orElseThrow(() ->
-            new ResourceNotFoundException("Paciente não encontrado"));
+        validarEmailDisponivel(request.getEmail(), id);
+
+        preencherPaciente(paciente, request);
+
+        Paciente atualizado = pacienteRepository.save(paciente);
+
+        usuarioRepository.findByEntidadeId(id)
+                .ifPresent(usuario -> {
+                    usuario.setNome(atualizado.getNome());
+                    usuario.setEmail(atualizado.getEmail());
+                    usuarioRepository.save(usuario);
+                });
+
+        return new PacienteResponse(atualizado);
+    }
+
+    public void deletar(String id) {
+        Paciente paciente = pacienteRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Paciente não encontrado"));
+
+        usuarioRepository.findByEntidadeId(id)
+                .ifPresent(usuarioRepository::delete);
+
+        pacienteRepository.delete(paciente);
+    }
+
+    private void preencherPaciente(
+            Paciente paciente,
+            PacienteRequest request) {
 
         paciente.setNome(request.getNome());
         paciente.setDataNascimento(request.getDataNascimento());
@@ -70,18 +144,50 @@ public class PacienteService {
         paciente.setPlanoSaude(request.getPlanoSaude());
         paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
         paciente.setValidadePlano(request.getValidadePlano());
-
-        Paciente pacienteAtualizado = pacienteRepository.save(paciente);
-
-        return new PacienteResponse(pacienteAtualizado);
     }
 
-    public void deletar(String id) {
+    private void validarEmailDisponivel(String email, String pacienteId) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O e-mail do paciente é obrigatório para criar a conta.");
+        }
 
-    if (!pacienteRepository.existsById(id)) {
-        throw new ResourceNotFoundException("Paciente não encontrado");
+        pacienteRepository.findByEmailIgnoreCase(email)
+                .filter(paciente -> !paciente.getId().equals(pacienteId))
+                .ifPresent(paciente -> {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Este e-mail já está associado a outro paciente.");
+                });
+
+        usuarioRepository.findByEmailIgnoreCase(email)
+                .filter(usuario -> !PERFIL_PACIENTE.equals(
+                        usuario.getPerfil() == null
+                                ? ""
+                                : usuario.getPerfil().toUpperCase(Locale.ROOT)))
+                .ifPresent(usuario -> {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Este e-mail já está associado a outra conta.");
+                });
+
+        usuarioRepository.findByEmailIgnoreCase(email)
+                .filter(usuario -> pacienteId == null
+                        || !pacienteId.equals(usuario.getEntidadeId()))
+                .ifPresent(usuario -> {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Este e-mail já possui uma conta de acesso.");
+                });
     }
 
-    pacienteRepository.deleteById(id);
-}
+    private String gerarSenhaProvisoria() {
+        byte[] bytes = new byte[18];
+        secureRandom.nextBytes(bytes);
+
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(bytes);
+    }
 }
