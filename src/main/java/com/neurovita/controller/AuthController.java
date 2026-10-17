@@ -13,6 +13,7 @@ import com.neurovita.dto.LoginRequest;
 import com.neurovita.dto.LoginResponse;
 import com.neurovita.service.AuthService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -25,10 +26,10 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @Operation(security = {})
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @RequestBody LoginRequest request) {
-
         return ResponseEntity.ok(authService.login(request));
     }
 
@@ -36,12 +37,9 @@ public class AuthController {
     public ResponseEntity<Void> alterarSenhaPrimeiroAcesso(
             Authentication authentication,
             @Valid @RequestBody AlterarSenhaRequest request) {
-
         authService.alterarSenhaPrimeiroAcesso(
                 authentication.getName(),
-                request
-        );
-
+                request);
         return ResponseEntity.noContent().build();
     }
 }

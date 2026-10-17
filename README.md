@@ -8,21 +8,21 @@ A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, pr
 
 ## 🛠️ Tecnologias
 
-| Tecnologia                | Versão / Uso                                        |
-| ------------------------- | --------------------------------------------------- |
-| ☕ Java                    | 21                                                  |
-| 🌱 Spring Boot            | 4.0.8                                               |
-| 🗄️ MongoDB               | Banco de dados NoSQL                                |
-| 🔗 Spring Data MongoDB    | Persistência de dados                               |
-| 🔐 Spring Security        | Autenticação e autorização                          |
-| 🎟️ JWT                   | Autenticação por token                              |
-| 🔑 BCrypt                 | Hash e verificação de senhas                        |
-| ✅ Jakarta Bean Validation | Validação dos dados de entrada                      |
-| 📖 SpringDoc OpenAPI      | Documentação da API                                 |
-| 🐳 Docker                 | Containerização                                     |
-| ☁️ Render                 | Hospedagem                                          |
-| 📦 Maven                  | Gerenciamento e construção do projeto               |
-| 🧪 Maven Wrapper          | Execução do Maven sem instalação global obrigatória |
+| Tecnologia | Versão / Uso |
+|---|---|
+| ☕ Java | 21 |
+| 🌱 Spring Boot | 4.0.8 |
+| 🗄️ MongoDB | Banco de dados NoSQL |
+| 🔗 Spring Data MongoDB | Persistência de dados |
+| 🔐 Spring Security | Autenticação e autorização |
+| 🎟️ JWT | Autenticação por token |
+| 🔑 BCrypt | Hash e verificação de senhas |
+| ✅ Jakarta Bean Validation | Validação dos dados de entrada |
+| 📖 SpringDoc OpenAPI | Documentação da API |
+| 🐳 Docker | Containerização |
+| ☁️ Render | Hospedagem |
+| 📦 Maven | Gerenciamento e construção do projeto |
+| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
 
 ---
 
@@ -255,11 +255,8 @@ Armazenam informações relacionadas ao acompanhamento clínico.
 
 ```text
 POST /api/prontuarios
-
 GET  /api/prontuarios/{id}
-
 PUT  /api/prontuarios/{id}
-
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
@@ -455,19 +452,35 @@ As respostas de validação e os códigos de erro devem ser conferidos durante o
 
 ## 📖 Swagger / OpenAPI
 
-A API possui documentação por meio do Swagger/OpenAPI.
+A API possui documentação interativa por meio do Swagger/OpenAPI, permitindo consultar os endpoints e executar requisições HTTP.
 
 ### Localmente
 
-[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-
-### Documentação OpenAPI
-
-[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
+- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
 
 ### Em produção
 
-[Swagger — NeuroVita](https://neurovita.onrender.com/swagger-ui/index.html)
+- **Swagger UI:** https://neurovita.onrender.com/swagger-ui/index.html
+- **API:** https://neurovita.onrender.com
+
+### Autenticação no Swagger
+
+O Swagger está configurado para utilizar autenticação HTTP Bearer com JWT nos endpoints protegidos.
+
+**Como autenticar:**
+
+1. Execute `POST /api/auth/login` com um e-mail e uma senha válidos.
+2. Copie o token JWT retornado pela API.
+3. Clique no botão **Authorize**, identificado pelo cadeado no Swagger.
+4. Informe o token no campo de autenticação, utilizando o formato `Bearer SEU_TOKEN` caso o campo não acrescente o prefixo automaticamente.
+5. Confirme a autorização e execute um endpoint que exija autenticação.
+
+O endpoint `POST /api/auth/login` não exige um token prévio. Os demais endpoints seguem as regras de autenticação e autorização configuradas no Spring Security.
+
+**Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
+
+A presença do botão Authorize confirma a configuração da documentação OpenAPI, mas o funcionamento do login e das permissões deve ser validado por meio de requisições reais.
 
 ---
 
@@ -679,39 +692,39 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 ## 📊 Status do projeto
 
-| Módulo / Recurso                             | Status conhecido                                            |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Estrutura Java                               | 🟢 Implementada                                             |
-| Spring Boot                                  | 🟢 Implementado                                             |
-| Spring Web MVC                               | 🟢 Implementado                                             |
-| Spring Data MongoDB                          | 🟢 Configurado                                              |
-| Pacientes                                    | 🟢 CRUD implementado                                        |
-| Profissionais                                | 🟢 CRUD implementado                                        |
-| Validação de pacientes e profissionais       | 🟢 Implementada localmente                                  |
-| Disponibilidades                             | 🟢 Implementadas                                            |
-| Consultas                                    | 🟢 CRUD implementado                                        |
-| Agenda                                       | 🟢 Implementada                                             |
-| Prontuários                                  | 🟢 CRUD implementado                                        |
-| Diagnósticos                                 | 🟢 CRUD implementado                                        |
-| Tratamentos                                  | 🟢 CRUD implementado                                        |
-| Exames                                       | 🟢 CRUD implementado                                        |
-| Administradores                              | 🟢 CRUD implementado                                        |
-| Modelo centralizado `Usuario`                | 🟡 Implementado localmente, pendente de validação funcional |
-| Login centralizado                           | 🟡 Implementado localmente, pendente de validação funcional |
-| JWT                                          | 🟡 Implementação local em revisão                           |
-| BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                       |
-| Troca de senha no primeiro acesso            | 🟡 Implementada localmente, pendente de validação funcional |
-| Spring Security                              | 🟡 Configuração e permissões em revisão                     |
-| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento                                       |
-| Proteção por vínculo profissional-paciente   | ⚪ Pendente de validação                                     |
-| Swagger/OpenAPI                              | 🟢 Implementado                                             |
-| Tratamento global de exceções                | 🟢 Implementado, com melhorias pendentes                    |
-| Docker                                       | 🟢 Configurado                                              |
-| Deploy Render                                | 🟢 Implantação configurada                                  |
-| MongoDB Atlas em produção                    | 🟡 Conexão real e operações pendentes de confirmação        |
-| Receitas                                     | ⚪ Aguardando requisitos                                     |
-| Testes completos                             | 🟡 Sob responsabilidade da equipe de testes                 |
-| Integração com frontend                      | ⚪ Planejada                                                 |
+| Módulo / Recurso | Status conhecido |
+|---|---|
+| Estrutura Java | 🟢 Implementada |
+| Spring Boot | 🟢 Implementado |
+| Spring Web MVC | 🟢 Implementado |
+| Spring Data MongoDB | 🟢 Configurado |
+| Pacientes | 🟢 CRUD implementado |
+| Profissionais | 🟢 CRUD implementado |
+| Validação de pacientes e profissionais | 🟢 Implementada localmente |
+| Disponibilidades | 🟢 Implementadas |
+| Consultas | 🟢 CRUD implementado |
+| Agenda | 🟢 Implementada |
+| Prontuários | 🟢 CRUD implementado |
+| Diagnósticos | 🟢 CRUD implementado |
+| Tratamentos | 🟢 CRUD implementado |
+| Exames | 🟢 CRUD implementado |
+| Administradores | 🟢 CRUD implementado |
+| Modelo centralizado `Usuario` | 🟡 Implementado localmente, pendente de validação funcional |
+| Login centralizado | 🟡 Implementado localmente, pendente de validação funcional |
+| JWT | 🟡 Implementação local em revisão |
+| BCrypt | 🟢 Utilizado no fluxo de autenticação |
+| Troca de senha no primeiro acesso | 🟡 Implementada localmente, pendente de validação funcional |
+| Spring Security | 🟡 Configuração e permissões em revisão |
+| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento |
+| Proteção por vínculo profissional-paciente | ⚪ Pendente de validação |
+| Swagger/OpenAPI | 🟢 Implementado |
+| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
+| Docker | 🟢 Configurado |
+| Deploy Render | 🟢 Implantação configurada |
+| MongoDB Atlas em produção | 🟡 Conexão real e operações pendentes de confirmação |
+| Receitas | ⚪ Aguardando requisitos |
+| Testes completos | 🟡 Sob responsabilidade da equipe de testes |
+| Integração com frontend | ⚪ Planejada |
 
 Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação do ambiente de produção.
 
