@@ -1,3 +1,4 @@
+
 package com.neurovita.config;
 
 import java.util.List;
@@ -5,9 +6,6 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -62,23 +60,25 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors ->
+                        cors.configurationSource(corsConfigurationSource()))
 
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
 
                         // Rotas públicas
                         .requestMatchers(
                                 "/",
+                                "/teste",
                                 "/api/auth/login",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/teste"
+                                "/v3/api-docs/**"
                         ).permitAll()
 
                         // Troca de senha no primeiro acesso
@@ -87,25 +87,66 @@ public class SecurityConfig {
                                 "/api/auth/primeiro-acesso/alterar-senha"
                         ).hasRole("PRIMEIRO_ACESSO")
 
-                        // Administradores
+                        // Administração do sistema
                         .requestMatchers("/api/administradores/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Cadastro de pacientes e profissionais
+                        // Cadastro de pacientes: administrador ou secretaria
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/pacientes",
+                                "/api/pacientes"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
+                        // Demais operações com pacientes: somente administrador
+                        .requestMatchers("/api/pacientes/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        // Cadastro de profissionais: administrador ou secretaria
+                        .requestMatchers(
+                                HttpMethod.POST,
                                 "/api/profissionais"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
-                        // Exclusão de pacientes e profissionais
+                        // Gestão de disponibilidades vinculadas ao profissional
                         .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/pacientes/**",
-                                "/api/profissionais/**"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                                "/api/profissionais/*/disponibilidades/**"
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL",
+                                "SECRETARIA"
+                        )
 
-                        // Demais rotas exigem autenticação
+                        // Demais operações com profissionais: administrador
+                        .requestMatchers("/api/profissionais/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        // Consultas e agenda
+                        .requestMatchers(
+                                "/api/consultas/**",
+                                "/api/agenda/**"
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL",
+                                "SECRETARIA"
+                        )
+
+                        // Disponibilidades
+                        .requestMatchers("/api/disponibilidades/**")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL",
+                                "SECRETARIA"
+                        )
+
+                        // Dados clínicos
+                        .requestMatchers(
+                                "/api/prontuarios/**",
+                                "/api/diagnosticos/**",
+                                "/api/tratamentos/**",
+                                "/api/exames/**"
+                        ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
+
+                        // Outras rotas exigem autenticação
                         .anyRequest().authenticated()
                 )
 

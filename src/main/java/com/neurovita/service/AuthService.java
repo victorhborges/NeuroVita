@@ -1,8 +1,10 @@
 
 package com.neurovita.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.AlterarSenhaRequest;
 import com.neurovita.dto.LoginRequest;
@@ -29,9 +31,20 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        if (request == null
+                || request.getEmail() == null
+                || request.getEmail().isBlank()
+                || request.getSenha() == null
+                || request.getSenha().isBlank()) {
+
+            throw new InvalidCredentialsException(
+                    "E-mail ou senha inválidos");
+        }
+
+        String email = request.getEmail().trim();
 
         Usuario usuario = usuarioRepository
-                .findByEmailIgnoreCase(request.getEmail())
+                .findByEmailIgnoreCase(email)
                 .orElseThrow(() ->
                         new InvalidCredentialsException(
                                 "E-mail ou senha inválidos"));
@@ -64,8 +77,43 @@ public class AuthService {
             String email,
             AlterarSenhaRequest request) {
 
+        if (email == null || email.isBlank()) {
+            throw new InvalidCredentialsException(
+                    "Usuário não autenticado");
+        }
+
+        if (request == null
+                || request.getNovaSenha() == null
+                || request.getConfirmarSenha() == null) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A nova senha e a confirmação são obrigatórias.");
+        }
+
+        String novaSenha = request.getNovaSenha();
+        String confirmarSenha = request.getConfirmarSenha();
+
+        if (novaSenha.isBlank() || confirmarSenha.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A nova senha e a confirmação são obrigatórias.");
+        }
+
+        if (novaSenha.length() < 8 || novaSenha.length() > 72) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A nova senha deve ter entre 8 e 72 caracteres.");
+        }
+
+        if (!novaSenha.equals(confirmarSenha)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A nova senha e a confirmação devem ser iguais.");
+        }
+
         Usuario usuario = usuarioRepository
-                .findByEmailIgnoreCase(email)
+                .findByEmailIgnoreCase(email.trim())
                 .orElseThrow(() ->
                         new InvalidCredentialsException(
                                 "Usuário não encontrado"));
@@ -76,22 +124,12 @@ public class AuthService {
         }
 
         if (!usuario.isSenhaProvisoria()) {
-            throw new IllegalStateException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "A conta não exige troca de senha no primeiro acesso.");
         }
 
-        if (request.getNovaSenha() == null
-                || request.getConfirmarSenha() == null
-                || !request.getNovaSenha().equals(
-                        request.getConfirmarSenha())) {
-
-            throw new IllegalArgumentException(
-                    "A nova senha e a confirmação devem ser iguais.");
-        }
-
-        usuario.setSenha(
-                passwordEncoder.encode(request.getNovaSenha()));
-
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
         usuario.setSenhaProvisoria(false);
 
         usuarioRepository.save(usuario);

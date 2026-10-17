@@ -15,38 +15,60 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    private final String chaveSecreta = System.getenv("JWT_SECRET");
+    private static final int TAMANHO_MINIMO_CHAVE_BYTES = 32;
 
-    private final long expiracaoNormal = 1000L * 60 * 60;
-    private final long expiracaoPrimeiroAcesso = 1000L * 60 * 10;
+    private static final long EXPIRACAO_NORMAL =
+            1000L * 60 * 60;
+
+    private static final long EXPIRACAO_PRIMEIRO_ACESSO =
+            1000L * 60 * 10;
+
+    private final String chaveSecreta =
+            System.getenv("JWT_SECRET");
 
     private SecretKey obterChave() {
         if (chaveSecreta == null || chaveSecreta.isBlank()) {
             throw new IllegalStateException(
-                    "A variável de ambiente JWT_SECRET não foi configurada."
-            );
+                    "A variável de ambiente JWT_SECRET não foi configurada.");
         }
 
-        return Keys.hmacShaKeyFor(
-                chaveSecreta.getBytes(StandardCharsets.UTF_8)
-        );
+        byte[] chaveBytes =
+                chaveSecreta.getBytes(StandardCharsets.UTF_8);
+
+        if (chaveBytes.length < TAMANHO_MINIMO_CHAVE_BYTES) {
+            throw new IllegalStateException(
+                    "A variável JWT_SECRET deve possuir pelo menos "
+                            + TAMANHO_MINIMO_CHAVE_BYTES
+                            + " bytes.");
+        }
+
+        return Keys.hmacShaKeyFor(chaveBytes);
     }
 
     public String gerarToken(String email) {
         return gerarToken(email, false);
     }
 
-    public String gerarToken(String email, boolean primeiroAcesso) {
+    public String gerarToken(
+            String email,
+            boolean primeiroAcesso) {
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException(
+                    "O e-mail é obrigatório para gerar o token.");
+        }
+
         Date agora = new Date();
 
         long duracao = primeiroAcesso
-                ? expiracaoPrimeiroAcesso
-                : expiracaoNormal;
+                ? EXPIRACAO_PRIMEIRO_ACESSO
+                : EXPIRACAO_NORMAL;
 
-        Date dataExpiracao = new Date(agora.getTime() + duracao);
+        Date dataExpiracao =
+                new Date(agora.getTime() + duracao);
 
         return Jwts.builder()
-                .subject(email)
+                .subject(email.trim())
                 .claim("primeiroAcesso", primeiroAcesso)
                 .issuedAt(agora)
                 .expiration(dataExpiracao)
@@ -66,6 +88,11 @@ public class JwtService {
     }
 
     private Claims obterClaims(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException(
+                    "O token JWT é obrigatório.");
+        }
+
         return Jwts.parser()
                 .verifyWith(obterChave())
                 .build()

@@ -1,28 +1,28 @@
 # 🧠 NeuroVita - Backend
 
-Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília - Análise e Desenvolvimento de Sistemas (ADS)**.
+Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
 A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
 
-> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render, e a autenticação, a integração com o banco de dados e as permissões continuam em validação.
+> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. A autenticação, as permissões de acesso e a integração com o banco de dados continuam em validação.
 
 ## 🛠️ Tecnologias
 
-| Tecnologia | Versão / Uso |
-|---|---|
-| ☕ Java | 21 |
-| 🌱 Spring Boot | 4.0.8 |
-| 🗄️ MongoDB | Banco de dados NoSQL |
-| 🔗 Spring Data MongoDB | Persistência de dados |
-| 🔐 Spring Security | Autenticação e autorização |
-| 🎟️ JWT | Autenticação por token |
-| 🔑 BCrypt | Hash e verificação de senhas |
-| ✅ Jakarta Bean Validation | Validação dos dados de entrada |
-| 📖 SpringDoc OpenAPI | Documentação da API |
-| 🐳 Docker | Containerização |
-| ☁️ Render | Hospedagem |
-| 📦 Maven | Gerenciamento e construção do projeto |
-| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
+| Tecnologia                | Versão / uso                                        |
+| ------------------------- | --------------------------------------------------- |
+| ☕ Java                    | 21                                                  |
+| 🌱 Spring Boot            | 4.0.8                                               |
+| 🗄️ MongoDB               | Banco de dados NoSQL                                |
+| 🔗 Spring Data MongoDB    | Persistência de dados                               |
+| 🔐 Spring Security        | Autenticação e autorização                          |
+| 🎟️ JWT                   | Autenticação por token                              |
+| 🔑 BCrypt                 | Hash e verificação de senhas                        |
+| ✅ Jakarta Bean Validation | Validação de dados de entrada                       |
+| 📖 SpringDoc OpenAPI      | Documentação da API                                 |
+| 🐳 Docker                 | Containerização                                     |
+| ☁️ Render                 | Hospedagem                                          |
+| 📦 Maven                  | Gerenciamento e construção do projeto               |
+| 🧪 Maven Wrapper          | Execução do Maven sem instalação global obrigatória |
 
 ---
 
@@ -42,7 +42,7 @@ O backend possui os seguintes módulos:
 - 👨‍💼 Administradores
 - 🔐 Autenticação e segurança
 - 👥 Modelo centralizado de usuários
-- ✅ Validação dos dados de entrada de pacientes e profissionais
+- ✅ Validação de dados de pacientes e profissionais
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -68,11 +68,11 @@ Cliente / Frontend / Postman
 
 ### Controller
 
-Responsável por receber as requisições HTTP, validar as entradas quando aplicável e retornar as respostas da API.
+Recebe as requisições HTTP, valida as entradas quando aplicável e retorna as respostas da API.
 
 ### Service
 
-Responsável pelas regras de negócio e pelas operações da aplicação.
+Implementa as regras de negócio e as operações da aplicação.
 
 ### Repository
 
@@ -84,7 +84,7 @@ Representa as entidades e os documentos persistidos no MongoDB.
 
 ### DTO
 
-Utilizado para separar os dados recebidos e enviados pela API dos modelos de persistência.
+Separa os dados recebidos e enviados pela API dos modelos de persistência.
 
 ### Security
 
@@ -129,7 +129,7 @@ neurovita/
 └── README.md
 ```
 
-A estrutura acima destaca os principais componentes. Outros arquivos de controllers, DTOs, models, repositories e services foram omitidos para facilitar a leitura.
+A estrutura apresenta os principais componentes. Outros arquivos de controllers, DTOs, models, repositories e services foram omitidos para facilitar a leitura.
 
 ---
 
@@ -157,7 +157,7 @@ Entre as validações implementadas estão:
 - Formato de CPF.
 - Formato de telefone.
 
-As validações de formato de CPF e telefone não substituem uma verificação completa dos dígitos nem a confirmação da existência desses dados.
+As validações de formato de CPF e telefone não substituem a verificação completa dos dígitos nem a confirmação da existência desses dados.
 
 O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação local em revisão.
 
@@ -210,6 +210,8 @@ PUT    /api/disponibilidades/{id}
 DELETE /api/disponibilidades/{id}
 ```
 
+O serviço possui validações para os dados obrigatórios e para a ordem dos horários. As regras funcionais completas ainda devem ser verificadas.
+
 ---
 
 ## 📅 Consultas
@@ -230,6 +232,8 @@ DELETE /api/consultas/{id}
 GET /api/consultas/paciente/{pacienteId}
 GET /api/consultas/profissional/{profissionalId}
 ```
+
+A validação das regras de agendamento, dos horários e das permissões de acesso deve ser confirmada durante os testes funcionais.
 
 ---
 
@@ -260,9 +264,7 @@ PUT  /api/prontuarios/{id}
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
-O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes.
-
-A validação completa dessas restrições permanece necessária.
+O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes. A validação completa dessas restrições permanece necessária.
 
 ---
 
@@ -346,7 +348,7 @@ O projeto utiliza:
 
 A autenticação utiliza a entidade `Usuario`, responsável pelas credenciais e pelas informações necessárias à identificação dos usuários.
 
-O modelo contempla os seguintes dados:
+O modelo contempla:
 
 - Nome.
 - E-mail.
@@ -377,7 +379,7 @@ Exemplo de requisição:
 
 Após a validação das credenciais, a API retorna um token JWT e os dados previstos no DTO de resposta.
 
-O exemplo acima é ilustrativo. Não utilize credenciais reais em documentação pública.
+O exemplo é ilustrativo. Não utilize credenciais reais em documentação pública.
 
 ### Envio do token
 
@@ -456,17 +458,17 @@ A API possui documentação interativa por meio do Swagger/OpenAPI, permitindo c
 
 ### Localmente
 
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
+- **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **Documentação OpenAPI:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ### Em produção
 
-- **Swagger UI:** https://neurovita.onrender.com/swagger-ui/index.html
-- **API:** https://neurovita.onrender.com
+- **Swagger UI:** [https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
+- **API:** [https://neurovita.onrender.com](https://neurovita.onrender.com)
 
 ### Autenticação no Swagger
 
-O Swagger está configurado para utilizar autenticação HTTP Bearer com JWT nos endpoints protegidos.
+A documentação está configurada para utilizar autenticação HTTP Bearer com JWT nos endpoints protegidos.
 
 **Como autenticar:**
 
@@ -478,7 +480,7 @@ O Swagger está configurado para utilizar autenticação HTTP Bearer com JWT nos
 
 O endpoint `POST /api/auth/login` não exige um token prévio. Os demais endpoints seguem as regras de autenticação e autorização configuradas no Spring Security.
 
-**Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
+> **Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
 
 A presença do botão Authorize confirma a configuração da documentação OpenAPI, mas o funcionamento do login e das permissões deve ser validado por meio de requisições reais.
 
@@ -543,13 +545,7 @@ spring.mongodb.uri=${MONGODB_URI}
 
 Em produção, a URI de conexão é fornecida pela variável `MONGODB_URI`, configurada no ambiente do Render.
 
-A aplicação também utiliza a variável:
-
-```text
-JWT_SECRET
-```
-
-Essa variável fornece a chave usada para assinar e validar os tokens JWT.
+A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usada para assinar e validar os tokens JWT.
 
 ### Segurança das configurações
 
@@ -560,9 +556,9 @@ Essa variável fornece a chave usada para assinar e validar os tokens JWT.
 
 ### Status da conexão
 
-A configuração da integração com MongoDB está presente no projeto. A conectividade real com o MongoDB Atlas, a leitura e a gravação de documentos precisam ser confirmadas em produção.
+A configuração da integração com MongoDB está presente no projeto. A conectividade com o MongoDB Atlas, bem como a leitura e a gravação de documentos em produção, deve ser confirmada por meio de verificações específicas.
 
-O teste automatizado de contexto aprovado localmente não comprova, isoladamente, a conexão real com o banco de dados.
+Um teste automatizado de contexto aprovado localmente não comprova, isoladamente, a conexão real com o banco de dados.
 
 ---
 
@@ -600,6 +596,8 @@ cd NeuroVita
 ### Configurar as variáveis de ambiente
 
 Configure `MONGODB_URI` com uma URI válida do MongoDB e `JWT_SECRET` com uma chave secreta forte.
+
+A chave JWT deve atender ao tamanho mínimo exigido pela implementação de autenticação.
 
 Não inclua os valores reais dessas variáveis em arquivos versionados ou em exemplos públicos.
 
@@ -657,7 +655,7 @@ A execução local mais recente informada terminou com `BUILD SUCCESS`.
 
 Esse resultado indica que a execução dos testes Maven terminou sem falhas reportadas. Ele não comprova a conectividade real com o MongoDB Atlas nem a validação funcional de todos os endpoints, perfis e permissões.
 
-Os testes completos da aplicação são responsabilidade da equipe designada para essa atividade. A cobertura de testes poderá ser ampliada conforme a evolução do projeto e o planejamento da equipe.
+Os testes funcionais completos são responsabilidade da equipe designada para essa atividade. A cobertura de testes poderá ser ampliada conforme a evolução do projeto e o planejamento da equipe.
 
 ---
 
@@ -692,39 +690,39 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 ## 📊 Status do projeto
 
-| Módulo / Recurso | Status conhecido |
-|---|---|
-| Estrutura Java | 🟢 Implementada |
-| Spring Boot | 🟢 Implementado |
-| Spring Web MVC | 🟢 Implementado |
-| Spring Data MongoDB | 🟢 Configurado |
-| Pacientes | 🟢 CRUD implementado |
-| Profissionais | 🟢 CRUD implementado |
-| Validação de pacientes e profissionais | 🟢 Implementada localmente |
-| Disponibilidades | 🟢 Implementadas |
-| Consultas | 🟢 CRUD implementado |
-| Agenda | 🟢 Implementada |
-| Prontuários | 🟢 CRUD implementado |
-| Diagnósticos | 🟢 CRUD implementado |
-| Tratamentos | 🟢 CRUD implementado |
-| Exames | 🟢 CRUD implementado |
-| Administradores | 🟢 CRUD implementado |
-| Modelo centralizado `Usuario` | 🟡 Implementado localmente, pendente de validação funcional |
-| Login centralizado | 🟡 Implementado localmente, pendente de validação funcional |
-| JWT | 🟡 Implementação local em revisão |
-| BCrypt | 🟢 Utilizado no fluxo de autenticação |
-| Troca de senha no primeiro acesso | 🟡 Implementada localmente, pendente de validação funcional |
-| Spring Security | 🟡 Configuração e permissões em revisão |
-| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento |
-| Proteção por vínculo profissional-paciente | ⚪ Pendente de validação |
-| Swagger/OpenAPI | 🟢 Implementado |
-| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
-| Docker | 🟢 Configurado |
-| Deploy Render | 🟢 Implantação configurada |
-| MongoDB Atlas em produção | 🟡 Conexão real e operações pendentes de confirmação |
-| Receitas | ⚪ Aguardando requisitos |
-| Testes completos | 🟡 Sob responsabilidade da equipe de testes |
-| Integração com frontend | ⚪ Planejada |
+| Módulo / recurso                             | Status conhecido                                            |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Estrutura Java                               | 🟢 Implementada                                             |
+| Spring Boot                                  | 🟢 Implementado                                             |
+| Spring Web MVC                               | 🟢 Implementado                                             |
+| Spring Data MongoDB                          | 🟢 Configurado                                              |
+| Pacientes                                    | 🟢 CRUD implementado                                        |
+| Profissionais                                | 🟢 CRUD implementado                                        |
+| Validação de pacientes e profissionais       | 🟢 Implementada localmente                                  |
+| Disponibilidades                             | 🟢 Implementadas                                            |
+| Consultas                                    | 🟢 CRUD implementado                                        |
+| Agenda                                       | 🟢 Implementada                                             |
+| Prontuários                                  | 🟢 CRUD implementado                                        |
+| Diagnósticos                                 | 🟢 CRUD implementado                                        |
+| Tratamentos                                  | 🟢 CRUD implementado                                        |
+| Exames                                       | 🟢 CRUD implementado                                        |
+| Administradores                              | 🟢 CRUD implementado                                        |
+| Modelo centralizado `Usuario`                | 🟡 Implementado localmente, pendente de validação funcional |
+| Login centralizado                           | 🟡 Implementado localmente, pendente de validação funcional |
+| JWT                                          | 🟡 Implementação local em revisão                           |
+| BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                       |
+| Troca de senha no primeiro acesso            | 🟡 Implementada localmente, pendente de validação funcional |
+| Spring Security                              | 🟡 Configuração e permissões em revisão                     |
+| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento                                       |
+| Proteção por vínculo profissional-paciente   | ⚪ Pendente de validação                                     |
+| Swagger/OpenAPI                              | 🟢 Implementado                                             |
+| Tratamento global de exceções                | 🟢 Implementado, com melhorias pendentes                    |
+| Docker                                       | 🟢 Configurado                                              |
+| Deploy Render                                | 🟢 Implantação configurada                                  |
+| MongoDB Atlas em produção                    | 🟡 Conexão e operações reais pendentes de confirmação       |
+| Receitas                                     | ⚪ Aguardando requisitos                                     |
+| Testes completos                             | 🟡 Sob responsabilidade da equipe de testes                 |
+| Integração com frontend                      | ⚪ Planejada                                                 |
 
 Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação do ambiente de produção.
 
@@ -762,14 +760,16 @@ O projeto utiliza Git e GitHub para controle de versão.
 ```bash
 git status
 
-git add .
+git add README.md src/main/java/com/neurovita/config/SecurityConfig.java src/main/java/com/neurovita/repository/ConsultaRepository.java src/main/java/com/neurovita/service/
 
-git commit -m "feat: mensagem descritiva"
+git diff --cached --stat
+
+git commit -m "refactor: revisa serviços e segurança"
 
 git push origin main
 ```
 
-Antes de executar `git add .`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
+Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
 
 Atualize o README quando houver alterações relevantes na arquitetura, nas funcionalidades, nos endpoints ou na configuração do projeto.
 
@@ -812,11 +812,8 @@ Durante o desenvolvimento são priorizados:
 ## 🎓 Projeto acadêmico
 
 **Projeto:** NeuroVita
-
 **Instituição:** Faculdade Brasília
-
 **Curso:** Análise e Desenvolvimento de Sistemas
-
 **Área:** Desenvolvimento de Software
 
 O projeto possui finalidade acadêmica e prática, aplicando conhecimentos de programação, desenvolvimento backend, APIs REST, banco de dados, arquitetura de software, segurança e boas práticas de desenvolvimento.

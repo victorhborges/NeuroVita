@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -41,13 +44,13 @@ public class PacienteService {
     }
 
     public CadastroPacienteResponse salvar(PacienteRequest request) {
+        exigirAdministradorOuSecretaria();
         validarEmailDisponivel(request.getEmail(), null);
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
-
         String senhaProvisoria = gerarSenhaProvisoria();
 
         try {
@@ -81,6 +84,8 @@ public class PacienteService {
     }
 
     public List<PacienteResponse> listarTodos() {
+        exigirAdministrador();
+
         return pacienteRepository.findAll()
                 .stream()
                 .map(PacienteResponse::new)
@@ -88,20 +93,20 @@ public class PacienteService {
     }
 
     public PacienteResponse buscarPorId(String id) {
-        Paciente paciente = pacienteRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Paciente não encontrado"));
+        exigirAdministrador();
 
+        Paciente paciente = buscarPaciente(id);
         return new PacienteResponse(paciente);
     }
 
-    public PacienteResponse atualizar(String id, PacienteRequest request) {
-        Paciente paciente = pacienteRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Paciente não encontrado"));
+    public PacienteResponse atualizar(
+            String id, PacienteRequest request) {
+
+        exigirAdministrador();
+
+        Paciente paciente = buscarPaciente(id);
 
         validarEmailDisponivel(request.getEmail(), id);
-
         preencherPaciente(paciente, request);
 
         Paciente atualizado = pacienteRepository.save(paciente);
@@ -117,14 +122,21 @@ public class PacienteService {
     }
 
     public void deletar(String id) {
-        Paciente paciente = pacienteRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Paciente não encontrado"));
+        exigirAdministrador();
+
+        Paciente paciente = buscarPaciente(id);
 
         usuarioRepository.findByEntidadeId(id)
                 .ifPresent(usuarioRepository::delete);
 
         pacienteRepository.delete(paciente);
+    }
+
+    private Paciente buscarPaciente(String id) {
+        return pacienteRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Paciente não encontrado"));
     }
 
     private void preencherPaciente(
@@ -146,7 +158,9 @@ public class PacienteService {
         paciente.setValidadePlano(request.getValidadePlano());
     }
 
-    private void validarEmailDisponivel(String email, String pacienteId) {
+    private void validarEmailDisponivel(
+            String email, String pacienteId) {
+
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -154,7 +168,8 @@ public class PacienteService {
         }
 
         pacienteRepository.findByEmailIgnoreCase(email)
-                .filter(paciente -> !paciente.getId().equals(pacienteId))
+                .filter(paciente ->
+                        !paciente.getId().equals(pacienteId))
                 .ifPresent(paciente -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
@@ -165,7 +180,8 @@ public class PacienteService {
                 .filter(usuario -> !PERFIL_PACIENTE.equals(
                         usuario.getPerfil() == null
                                 ? ""
-                                : usuario.getPerfil().toUpperCase(Locale.ROOT)))
+                                : usuario.getPerfil().toUpperCase(
+                                        Locale.ROOT)))
                 .ifPresent(usuario -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
@@ -173,8 +189,10 @@ public class PacienteService {
                 });
 
         usuarioRepository.findByEmailIgnoreCase(email)
-                .filter(usuario -> pacienteId == null
-                        || !pacienteId.equals(usuario.getEntidadeId()))
+                .filter(usuario ->
+                        pacienteId == null
+                                || !pacienteId.equals(
+                                        usuario.getEntidadeId()))
                 .ifPresent(usuario -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
@@ -189,5 +207,49 @@ public class PacienteService {
         return Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(bytes);
+    }
+
+    private void exigirAdministradorOuSecretaria() {
+        boolean autorizado = obterAutenticacao()
+                .getAuthorities()
+                .stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        || a.getAuthority().equals("ROLE_SECRETARIA"));
+
+        if (!autorizado) {
+            throw new AccessDeniedException(
+                    "Somente administradores ou secretarias podem "
+                    + "cadastrar pacientes");
+        }
+    }
+
+    private void exigirAdministrador() {
+        boolean autorizado = obterAutenticacao()
+                .getAuthorities()
+                .stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+
+        if (!autorizado) {
+            throw new AccessDeniedException(
+                    "Somente administradores podem consultar, "
+                    + "atualizar ou excluir pacientes");
+        }
+    }
+
+    private Authentication obterAutenticacao() {
+        Authentication autenticacao =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (autenticacao == null
+                || !autenticacao.isAuthenticated()
+                || autenticacao.getAuthorities().stream()
+                        .anyMatch(a ->
+                                a.getAuthority().equals("ROLE_ANONYMOUS"))) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        return autenticacao;
     }
 }

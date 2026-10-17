@@ -6,8 +6,12 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,6 +30,8 @@ import com.neurovita.repository.UsuarioRepository;
 @Service
 public class ProfissionalService {
 
+    private static final String PERFIL_ADMINISTRADOR = "ADMINISTRADOR";
+    private static final String PERFIL_SECRETARIA = "SECRETARIA";
     private static final String PERFIL_PROFISSIONAL = "PROFISSIONAL";
 
     private final ProfissionalRepository profissionalRepository;
@@ -47,6 +53,7 @@ public class ProfissionalService {
     }
 
     public CadastroProfissionalResponse salvar(ProfissionalRequest request) {
+        exigirAdministradorOuSecretaria();
         validarEmailDisponivel(request.getEmail(), null);
 
         Profissional profissional = new Profissional();
@@ -66,6 +73,7 @@ public class ProfissionalService {
             usuario.setEntidadeId(salvo.getId());
 
             usuarioRepository.save(usuario);
+
         } catch (RuntimeException e) {
             try {
                 profissionalRepository.deleteById(salvo.getId());
@@ -85,6 +93,8 @@ public class ProfissionalService {
     }
 
     public List<ProfissionalResponse> listarTodos() {
+        exigirAdministrador();
+
         return profissionalRepository.findAll()
                 .stream()
                 .map(ProfissionalResponse::new)
@@ -92,10 +102,9 @@ public class ProfissionalService {
     }
 
     public ProfissionalResponse buscarPorId(String id) {
-        Profissional profissional = profissionalRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+        exigirAdministrador();
 
+        Profissional profissional = buscarProfissional(id);
         return new ProfissionalResponse(profissional);
     }
 
@@ -103,9 +112,9 @@ public class ProfissionalService {
             String id,
             ProfissionalRequest request) {
 
-        Profissional profissional = profissionalRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+        exigirAdministrador();
+
+        Profissional profissional = buscarProfissional(id);
 
         validarEmailDisponivel(request.getEmail(), id);
         preencherProfissional(profissional, request);
@@ -117,7 +126,8 @@ public class ProfissionalService {
                 .ifPresent(usuario -> {
                     usuario.setNome(atualizado.getNome());
                     usuario.setEmail(atualizado.getEmail());
-                    usuario.setAtivo(Boolean.TRUE.equals(atualizado.getAtivo()));
+                    usuario.setAtivo(
+                            Boolean.TRUE.equals(atualizado.getAtivo()));
                     usuarioRepository.save(usuario);
                 });
 
@@ -125,9 +135,9 @@ public class ProfissionalService {
     }
 
     public void deletar(String id) {
-        Profissional profissional = profissionalRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+        exigirAdministrador();
+
+        Profissional profissional = buscarProfissional(id);
 
         usuarioRepository.findByEntidadeId(id)
                 .filter(this::ehProfissional)
@@ -140,20 +150,21 @@ public class ProfissionalService {
             String profissionalId,
             String disponibilidadeId) {
 
-        Profissional profissional = profissionalRepository.findById(profissionalId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+        exigirAcessoAoProfissional(profissionalId);
 
-        Disponibilidade disponibilidade = disponibilidadeRepository
-                .findById(disponibilidadeId)
+        Profissional profissional = buscarProfissional(profissionalId);
+
+        disponibilidadeRepository.findById(disponibilidadeId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Disponibilidade não encontrada"));
+                        new ResourceNotFoundException(
+                                "Disponibilidade não encontrada"));
 
         if (profissional.getDisponibilidadeIds() == null) {
             profissional.setDisponibilidadeIds(new ArrayList<>());
         }
 
-        if (!profissional.getDisponibilidadeIds().contains(disponibilidadeId)) {
+        if (!profissional.getDisponibilidadeIds()
+                .contains(disponibilidadeId)) {
             profissional.getDisponibilidadeIds().add(disponibilidadeId);
         }
 
@@ -161,19 +172,22 @@ public class ProfissionalService {
                 profissionalRepository.save(profissional));
     }
 
-    public List<Disponibilidade> listarDisponibilidades(String profissionalId) {
-        Profissional profissional = profissionalRepository.findById(profissionalId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+    public List<Disponibilidade> listarDisponibilidades(
+            String profissionalId) {
+
+        exigirAcessoAoProfissional(profissionalId);
+
+        Profissional profissional = buscarProfissional(profissionalId);
 
         if (profissional.getDisponibilidadeIds() == null) {
             return List.of();
         }
 
-        return profissional.getDisponibilidadeIds().stream()
+        return profissional.getDisponibilidadeIds()
+                .stream()
                 .map(disponibilidadeRepository::findById)
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .toList();
     }
 
@@ -181,18 +195,27 @@ public class ProfissionalService {
             String profissionalId,
             String disponibilidadeId) {
 
-        Profissional profissional = profissionalRepository.findById(profissionalId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+        exigirAcessoAoProfissional(profissionalId);
+
+        Profissional profissional = buscarProfissional(profissionalId);
 
         if (profissional.getDisponibilidadeIds() == null
-                || !profissional.getDisponibilidadeIds().remove(disponibilidadeId)) {
+                || !profissional.getDisponibilidadeIds()
+                        .remove(disponibilidadeId)) {
+
             throw new ResourceNotFoundException(
                     "Disponibilidade não encontrada no profissional");
         }
 
         profissionalRepository.save(profissional);
         return true;
+    }
+
+    private Profissional buscarProfissional(String id) {
+        return profissionalRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Profissional não encontrado"));
     }
 
     private void preencherProfissional(
@@ -213,7 +236,10 @@ public class ProfissionalService {
         profissional.setAtivo(request.getAtivo());
     }
 
-    private void validarEmailDisponivel(String email, String profissionalId) {
+    private void validarEmailDisponivel(
+            String email,
+            String profissionalId) {
+
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -221,22 +247,24 @@ public class ProfissionalService {
         }
 
         profissionalRepository.findByEmailIgnoreCase(email)
-                .filter(p -> !p.getId().equals(profissionalId))
-                .ifPresent(p -> {
+                .filter(profissional ->
+                        !profissional.getId().equals(profissionalId))
+                .ifPresent(profissional -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
                             "Este e-mail já está associado a outro profissional.");
                 });
 
         usuarioRepository.findByEmailIgnoreCase(email)
-                .filter(usuario -> !(
-                        ehProfissional(usuario)
-                        && profissionalId != null
-                        && profissionalId.equals(usuario.getEntidadeId())))
+                .filter(usuario ->
+                        profissionalId == null
+                                || !ehProfissional(usuario)
+                                || !profissionalId.equals(
+                                        usuario.getEntidadeId()))
                 .ifPresent(usuario -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
-                            "Este e-mail já possui uma conta de acesso.");
+                            "Este e-mail já possui outra conta de acesso.");
                 });
     }
 
@@ -244,6 +272,97 @@ public class ProfissionalService {
         return usuario.getPerfil() != null
                 && PERFIL_PROFISSIONAL.equals(
                         usuario.getPerfil().toUpperCase(Locale.ROOT));
+    }
+
+    private void exigirAdministradorOuSecretaria() {
+        exigirUmDosPerfis(
+                PERFIL_ADMINISTRADOR,
+                PERFIL_SECRETARIA);
+    }
+
+    private void exigirAdministrador() {
+        exigirUmDosPerfis(PERFIL_ADMINISTRADOR);
+    }
+
+    private void exigirAcessoAoProfissional(String profissionalId) {
+        Authentication autenticacao = obterAutenticacao();
+        String perfil = obterPerfil(autenticacao);
+
+        if (PERFIL_ADMINISTRADOR.equals(perfil)
+                || PERFIL_SECRETARIA.equals(perfil)) {
+            return;
+        }
+
+        if (!PERFIL_PROFISSIONAL.equals(perfil)) {
+            throw new AccessDeniedException(
+                    "Você não tem permissão para acessar disponibilidades.");
+        }
+
+        Usuario usuario = buscarUsuarioAutenticado(autenticacao);
+
+        if (usuario.getEntidadeId() == null
+                || !usuario.getEntidadeId().equals(profissionalId)) {
+            throw new AccessDeniedException(
+                    "O profissional só pode acessar as próprias disponibilidades.");
+        }
+    }
+
+    private void exigirUmDosPerfis(String... perfisPermitidos) {
+        Authentication autenticacao = obterAutenticacao();
+        String perfil = obterPerfil(autenticacao);
+
+        for (String perfilPermitido : perfisPermitidos) {
+            if (perfilPermitido.equals(perfil)) {
+                return;
+            }
+        }
+
+        throw new AccessDeniedException(
+                "Você não tem permissão para realizar esta operação.");
+    }
+
+private Authentication obterAutenticacao() {
+    Authentication autenticacao =
+            SecurityContextHolder.getContext().getAuthentication();
+
+    if (autenticacao == null || !autenticacao.isAuthenticated()) {
+        throw new AccessDeniedException("Usuário não autenticado");
+    }
+
+    boolean usuarioAnonimo = autenticacao.getAuthorities()
+            .stream()
+            .anyMatch(grantedAuthority ->
+                    "ROLE_ANONYMOUS".equals(
+                            grantedAuthority.getAuthority()));
+
+    if (usuarioAnonimo) {
+        throw new AccessDeniedException("Usuário não autenticado");
+    }
+
+    return autenticacao;
+}
+
+
+
+private String obterPerfil(Authentication autenticacao) {
+    return autenticacao.getAuthorities()
+            .stream()
+            .map(grantedAuthority -> grantedAuthority.getAuthority())
+            .filter(nome -> nome.startsWith("ROLE_"))
+            .map(nome -> nome.substring(5))
+            .findFirst()
+            .orElse("");
+}
+
+
+    private Usuario buscarUsuarioAutenticado(
+            Authentication autenticacao) {
+
+        return usuarioRepository
+                .findByEmailIgnoreCase(autenticacao.getName())
+                .orElseThrow(() ->
+                        new AccessDeniedException(
+                                "Usuário autenticado não encontrado."));
     }
 
     private String gerarSenhaProvisoria() {
