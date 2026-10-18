@@ -1,11 +1,17 @@
+
 package com.neurovita.dto;
+
+import jakarta.validation.constraints.NotBlank;
 
 public class ProntuarioRequest {
 
+    @NotBlank(message = "O paciente é obrigatório.")
     private String pacienteId;
-    private String profissionalId;
-    private String consultaId;
 
+    @NotBlank(message = "O profissional é obrigatório.")
+    private String profissionalId;
+
+    private String consultaId;
     private String queixaPrincipal;
     private String avaliacao;
     private String planoTratamento;

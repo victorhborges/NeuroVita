@@ -1,4 +1,7 @@
+
 package com.neurovita.service;
+
+import java.util.Objects;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -44,22 +47,14 @@ public class ProntuarioService {
         validarVinculos(request);
 
         Prontuario prontuario = new Prontuario();
-        prontuario.setPacienteId(request.getPacienteId());
-        prontuario.setProfissionalId(request.getProfissionalId());
-        prontuario.setConsultaId(request.getConsultaId());
-        prontuario.setQueixaPrincipal(request.getQueixaPrincipal());
-        prontuario.setAvaliacao(request.getAvaliacao());
-        prontuario.setPlanoTratamento(request.getPlanoTratamento());
-        prontuario.setPrescricao(request.getPrescricao());
+        preencherProntuario(prontuario, request);
 
-        return new ProntuarioResponse(prontuarioRepository.save(prontuario));
+        return new ProntuarioResponse(
+                prontuarioRepository.save(prontuario));
     }
 
     public ProntuarioResponse buscarPorId(String id) {
-        Prontuario prontuario = prontuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Prontuário não encontrado"));
-
+        Prontuario prontuario = buscarProntuario(id);
         validarAcessoProfissional(prontuario.getProfissionalId());
 
         return new ProntuarioResponse(prontuario);
@@ -68,26 +63,29 @@ public class ProntuarioService {
     public ProntuarioResponse atualizar(
             String id, ProntuarioRequest request) {
 
-        Prontuario prontuario = prontuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Prontuário não encontrado"));
+        Prontuario prontuario = buscarProntuario(id);
 
         validarAcessoProfissional(prontuario.getProfissionalId());
+
+        if (ehProfissionalAutenticado()
+                && !Objects.equals(
+                        prontuario.getProfissionalId(),
+                        request.getProfissionalId())) {
+            throw new AccessDeniedException(
+                    "O profissional não pode alterar o vínculo "
+                            + "do prontuário para outro profissional.");
+        }
+
         validarVinculos(request);
+        preencherProntuario(prontuario, request);
 
-        prontuario.setPacienteId(request.getPacienteId());
-        prontuario.setProfissionalId(request.getProfissionalId());
-        prontuario.setConsultaId(request.getConsultaId());
-        prontuario.setQueixaPrincipal(request.getQueixaPrincipal());
-        prontuario.setAvaliacao(request.getAvaliacao());
-        prontuario.setPlanoTratamento(request.getPlanoTratamento());
-        prontuario.setPrescricao(request.getPrescricao());
-
-        return new ProntuarioResponse(prontuarioRepository.save(prontuario));
+        return new ProntuarioResponse(
+                prontuarioRepository.save(prontuario));
     }
 
     public ProntuarioResponse buscarPorPaciente(String pacienteId) {
-        Prontuario prontuario = prontuarioRepository.findByPacienteId(pacienteId)
+        Prontuario prontuario = prontuarioRepository
+                .findByPacienteId(pacienteId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Prontuário não encontrado para o paciente"));
@@ -97,20 +95,44 @@ public class ProntuarioService {
         return new ProntuarioResponse(prontuario);
     }
 
+    private Prontuario buscarProntuario(String id) {
+        return prontuarioRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Prontuário não encontrado"));
+    }
+
+    private void preencherProntuario(
+            Prontuario prontuario, ProntuarioRequest request) {
+
+        prontuario.setPacienteId(request.getPacienteId());
+        prontuario.setProfissionalId(request.getProfissionalId());
+        prontuario.setConsultaId(request.getConsultaId());
+        prontuario.setQueixaPrincipal(request.getQueixaPrincipal());
+        prontuario.setAvaliacao(request.getAvaliacao());
+        prontuario.setPlanoTratamento(request.getPlanoTratamento());
+        prontuario.setPrescricao(request.getPrescricao());
+    }
+
     private void validarVinculos(ProntuarioRequest request) {
-        if (request.getPacienteId() == null
-                || request.getPacienteId().isBlank()
-                || !pacienteRepository.existsById(request.getPacienteId())) {
-            throw new ResourceNotFoundException("Paciente não encontrado");
+        String pacienteId = request.getPacienteId();
+        String profissionalId = request.getProfissionalId();
+
+        if (pacienteId == null || pacienteId.isBlank()
+                || !pacienteRepository.existsById(pacienteId)) {
+            throw new ResourceNotFoundException(
+                    "Paciente não encontrado");
         }
 
-        if (request.getProfissionalId() == null
-                || request.getProfissionalId().isBlank()
-                || !profissionalRepository.existsById(request.getProfissionalId())) {
-            throw new ResourceNotFoundException("Profissional não encontrado");
+        if (profissionalId == null || profissionalId.isBlank()
+                || !profissionalRepository.existsById(profissionalId)) {
+            throw new ResourceNotFoundException(
+                    "Profissional não encontrado");
         }
 
-        validarAcessoProfissional(request.getProfissionalId());
+        validarAcessoProfissional(profissionalId);
+
+        boolean profissionalAutenticado = ehProfissionalAutenticado();
 
         if (request.getConsultaId() != null
                 && !request.getConsultaId().isBlank()) {
@@ -118,34 +140,62 @@ public class ProntuarioService {
             Consulta consulta = consultaRepository
                     .findById(request.getConsultaId())
                     .orElseThrow(() ->
-                            new ResourceNotFoundException("Consulta não encontrada"));
+                            new ResourceNotFoundException(
+                                    "Consulta não encontrada"));
 
-            if (!request.getPacienteId().equals(consulta.getPacienteId())
-                    || !request.getProfissionalId()
-                            .equals(consulta.getProfissionalId())) {
-                throw new IllegalArgumentException(
-                        "A consulta não corresponde ao paciente e profissional informados.");
+            validarConsulta(consulta, pacienteId, profissionalId);
+        } else if (profissionalAutenticado) {
+            boolean possuiVinculo = consultaRepository
+                    .findByPacienteIdAndProfissionalId(
+                            pacienteId, profissionalId)
+                    .stream()
+                    .findAny()
+                    .isPresent();
+
+            if (!possuiVinculo) {
+                throw new AccessDeniedException(
+                        "Não existe consulta vinculando este paciente "
+                                + "ao profissional autenticado.");
             }
         }
     }
 
-    private void validarAcessoProfissional(String profissionalId) {
-        Authentication autenticacao = SecurityContextHolder.getContext()
-                .getAuthentication();
+    private void validarConsulta(
+            Consulta consulta,
+            String pacienteId,
+            String profissionalId) {
 
-        if (autenticacao == null || !autenticacao.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
+        if (!Objects.equals(pacienteId, consulta.getPacienteId())
+                || !Objects.equals(
+                        profissionalId, consulta.getProfissionalId())) {
+            throw new IllegalArgumentException(
+                    "A consulta não corresponde ao paciente "
+                            + "e profissional informados.");
         }
+    }
+
+    private boolean ehProfissionalAutenticado() {
+        Authentication autenticacao = obterAutenticacao();
+
+        return autenticacao.getAuthorities().stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
+    }
+
+    private void validarAcessoProfissional(String profissionalId) {
+        Authentication autenticacao = obterAutenticacao();
 
         boolean administrador = autenticacao.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_ADMINISTRADOR"));
 
         if (administrador) {
             return;
         }
 
         boolean profissional = autenticacao.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
 
         if (!profissional) {
             throw new AccessDeniedException(
@@ -162,5 +212,16 @@ public class ProntuarioService {
             throw new AccessDeniedException(
                     "Acesso permitido somente aos próprios atendimentos");
         }
+    }
+
+    private Authentication obterAutenticacao() {
+        Authentication autenticacao =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (autenticacao == null || !autenticacao.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        return autenticacao;
     }
 }

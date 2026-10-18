@@ -1,5 +1,7 @@
+
 package com.neurovita.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +15,8 @@ import com.neurovita.dto.ProntuarioRequest;
 import com.neurovita.dto.ProntuarioResponse;
 import com.neurovita.service.ProntuarioService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/prontuarios")
 public class ProntuarioController {
@@ -24,41 +28,40 @@ public class ProntuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<ProntuarioResponse> salvar(@RequestBody ProntuarioRequest request) {
+    public ResponseEntity<ProntuarioResponse> salvar(
+        @Valid @RequestBody ProntuarioRequest request) {
+
         ProntuarioResponse response = prontuarioService.salvar(request);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProntuarioResponse> buscarPorId(@PathVariable String id) {
-        ProntuarioResponse response = prontuarioService.buscarPorId(id);
+    public ResponseEntity<ProntuarioResponse> buscarPorId(
+            @PathVariable String id) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
+        ProntuarioResponse response = prontuarioService.buscarPorId(id);
 
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProntuarioResponse> atualizar(@PathVariable String id, @RequestBody ProntuarioRequest request) {
-        ProntuarioResponse response = prontuarioService.atualizar(id, request);
+    public ResponseEntity<ProntuarioResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody ProntuarioRequest request) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
+        ProntuarioResponse response =
+                prontuarioService.atualizar(id, request);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<ProntuarioResponse> buscarPorPaciente(@PathVariable String pacienteId) {
-        ProntuarioResponse response = prontuarioService.buscarPorPaciente(pacienteId);
+    public ResponseEntity<ProntuarioResponse> buscarPorPaciente(
+            @PathVariable String pacienteId) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
+        ProntuarioResponse response =
+                prontuarioService.buscarPorPaciente(pacienteId);
 
         return ResponseEntity.ok(response);
     }

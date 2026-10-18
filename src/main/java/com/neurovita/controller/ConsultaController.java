@@ -2,7 +2,9 @@ package com.neurovita.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,8 +18,11 @@ import com.neurovita.dto.ConsultaRequest;
 import com.neurovita.dto.ConsultaResponse;
 import com.neurovita.service.ConsultaService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/consultas")
+@Validated
 public class ConsultaController {
 
     private final ConsultaService consultaService;
@@ -27,9 +32,12 @@ public class ConsultaController {
     }
 
     @PostMapping
-    public ResponseEntity<ConsultaResponse> salvar(@RequestBody ConsultaRequest request) {
+    public ResponseEntity<ConsultaResponse> salvar(
+            @Valid @RequestBody ConsultaRequest request) {
+
         ConsultaResponse response = consultaService.salvar(request);
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
@@ -38,35 +46,35 @@ public class ConsultaController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(@PathVariable String pacienteId) {
-        return ResponseEntity.ok(consultaService.listarPorPaciente(pacienteId));
+    public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(
+            @PathVariable String pacienteId) {
+
+        return ResponseEntity.ok(
+                consultaService.listarPorPaciente(pacienteId));
     }
 
     @GetMapping("/profissional/{profissionalId}")
-    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(@PathVariable String profissionalId) {
-        return ResponseEntity.ok(consultaService.listarPorProfissional(profissionalId));
+    public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(
+            @PathVariable String profissionalId) {
+
+        return ResponseEntity.ok(
+                consultaService.listarPorProfissional(profissionalId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ConsultaResponse> buscarPorId(@PathVariable String id) {
-        ConsultaResponse response = consultaService.buscarPorId(id);
+    public ResponseEntity<ConsultaResponse> buscarPorId(
+            @PathVariable String id) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(consultaService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ConsultaResponse> atualizar(@PathVariable String id, @RequestBody ConsultaRequest request) {
-        ConsultaResponse response = consultaService.atualizar(id, request);
+    public ResponseEntity<ConsultaResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody ConsultaRequest request) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                consultaService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

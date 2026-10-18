@@ -2,10 +2,13 @@
 package com.neurovita.config;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,10 +20,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neurovita.security.JwtAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -68,6 +74,18 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS))
 
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                escreverErro(
+                                        response,
+                                        HttpStatus.UNAUTHORIZED,
+                                        "Autenticação necessária ou token inválido."))
+                        .accessDeniedHandler((request, response, exception) ->
+                                escreverErro(
+                                        response,
+                                        HttpStatus.FORBIDDEN,
+                                        "Você não tem permissão para acessar este recurso.")))
+
                 .authorizeHttpRequests(auth -> auth
 
                         // Rotas públicas
@@ -106,8 +124,7 @@ public class SecurityConfig {
                                 "/api/profissionais"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
-                        // Permite chegar ao serviço para validar
-                        // se o profissional está consultando o próprio perfil.
+                        // A validação do próprio perfil ocorre no serviço
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/profissionais/{id}"
@@ -158,5 +175,21 @@ public class SecurityConfig {
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private void escreverErro(
+            jakarta.servlet.http.HttpServletResponse response,
+            HttpStatus status,
+            String mensagem) throws java.io.IOException {
+
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        objectMapper.writeValue(
+                response.getOutputStream(),
+                Map.of(
+                        "status", status.value(),
+                        "mensagem", mensagem));
     }
 }

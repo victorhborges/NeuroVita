@@ -2,17 +2,34 @@ package com.neurovita.dto;
 
 import java.time.LocalDateTime;
 
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class ConsultaRequest {
 
+    @NotBlank(message = "O ID do paciente é obrigatório.")
     private String pacienteId;
+
+    @NotBlank(message = "O ID do profissional é obrigatório.")
     private String profissionalId;
 
+    @NotNull(message = "A data e o horário da consulta são obrigatórios.")
+    @Future(message = "A consulta deve ser agendada para uma data futura.")
     private LocalDateTime dataHora;
 
+    @NotBlank(message = "O tipo de atendimento é obrigatório.")
     private String tipoAtendimento;
+
+    @NotBlank(message = "O local da consulta é obrigatório.")
     private String local;
+
+    @NotBlank(message = "A modalidade da consulta é obrigatória.")
     private String modalidade;
 
+    @NotNull(message = "A duração da consulta é obrigatória.")
+    @Min(value = 1, message = "A duração deve ser de pelo menos 1 minuto.")
     private Integer duracao;
 
     public ConsultaRequest() {
