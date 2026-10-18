@@ -32,16 +32,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("https://neurovita-frontend.onrender.com")
-        );
+                List.of("https://neurovita-frontend.onrender.com"));
 
         configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        );
+                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         configuration.setAllowedHeaders(
-                List.of("Authorization", "Content-Type", "Accept")
-        );
+                List.of("Authorization", "Content-Type", "Accept"));
 
         configuration.setAllowCredentials(false);
 
@@ -59,17 +56,13 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter)
             throws Exception {
 
-       
         http
                 .cors(cors ->
                         cors.configurationSource(corsConfigurationSource()))
 
                 .csrf(AbstractHttpConfigurer::disable)
-
                 .httpBasic(AbstractHttpConfigurer::disable)
-
                 .formLogin(AbstractHttpConfigurer::disable)
-
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -97,32 +90,38 @@ public class SecurityConfig {
                         .requestMatchers("/api/administradores/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Cadastro de pacientes: administrador ou secretaria
+                        // Cadastro de pacientes
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/pacientes"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
-                        // Demais operações com pacientes: somente administrador
+                        // Demais operações com pacientes
                         .requestMatchers("/api/pacientes/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Cadastro de profissionais: administrador ou secretaria
+                        // Cadastro de profissionais
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/profissionais"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
-                        // Gestão de disponibilidades vinculadas ao profissional
+                        // Permite chegar ao serviço para validar
+                        // se o profissional está consultando o próprio perfil.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/profissionais/{id}"
+                        ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
+
+                        // Disponibilidades vinculadas ao profissional
                         .requestMatchers(
                                 "/api/profissionais/*/disponibilidades/**"
                         ).hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
-                                "SECRETARIA"
-                        )
+                                "SECRETARIA")
 
-                        // Demais operações com profissionais: administrador
+                        // Demais operações com profissionais
                         .requestMatchers("/api/profissionais/**")
                         .hasRole("ADMINISTRADOR")
 
@@ -133,16 +132,14 @@ public class SecurityConfig {
                         ).hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
-                                "SECRETARIA"
-                        )
+                                "SECRETARIA")
 
                         // Disponibilidades
                         .requestMatchers("/api/disponibilidades/**")
                         .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
-                                "SECRETARIA"
-                        )
+                                "SECRETARIA")
 
                         // Dados clínicos
                         .requestMatchers(
@@ -152,14 +149,13 @@ public class SecurityConfig {
                                 "/api/exames/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
-                        // Outras rotas exigem autenticação
+                        // Demais rotas exigem autenticação
                         .anyRequest().authenticated()
                 )
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

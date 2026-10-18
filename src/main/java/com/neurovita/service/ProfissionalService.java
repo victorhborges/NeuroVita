@@ -102,7 +102,7 @@ public class ProfissionalService {
     }
 
     public ProfissionalResponse buscarPorId(String id) {
-        exigirAdministrador();
+        exigirAcessoAoPerfil(id);
 
         Profissional profissional = buscarProfissional(id);
         return new ProfissionalResponse(profissional);
@@ -284,6 +284,29 @@ public class ProfissionalService {
         exigirUmDosPerfis(PERFIL_ADMINISTRADOR);
     }
 
+    private void exigirAcessoAoPerfil(String profissionalId) {
+        Authentication autenticacao = obterAutenticacao();
+        String perfil = obterPerfil(autenticacao);
+
+        if (PERFIL_ADMINISTRADOR.equals(perfil)) {
+            return;
+        }
+
+        if (!PERFIL_PROFISSIONAL.equals(perfil)) {
+            throw new AccessDeniedException(
+                    "Você não tem permissão para consultar este perfil.");
+        }
+
+        Usuario usuario = buscarUsuarioAutenticado(autenticacao);
+
+        if (usuario.getEntidadeId() == null
+                || !usuario.getEntidadeId().equals(profissionalId)) {
+
+            throw new AccessDeniedException(
+                    "O profissional só pode consultar o próprio perfil.");
+        }
+    }
+
     private void exigirAcessoAoProfissional(String profissionalId) {
         Authentication autenticacao = obterAutenticacao();
         String perfil = obterPerfil(autenticacao);
@@ -302,6 +325,7 @@ public class ProfissionalService {
 
         if (usuario.getEntidadeId() == null
                 || !usuario.getEntidadeId().equals(profissionalId)) {
+
             throw new AccessDeniedException(
                     "O profissional só pode acessar as próprias disponibilidades.");
         }
@@ -321,39 +345,37 @@ public class ProfissionalService {
                 "Você não tem permissão para realizar esta operação.");
     }
 
-private Authentication obterAutenticacao() {
-    Authentication autenticacao =
-            SecurityContextHolder.getContext().getAuthentication();
+    private Authentication obterAutenticacao() {
+        Authentication autenticacao =
+                SecurityContextHolder.getContext().getAuthentication();
 
-    if (autenticacao == null || !autenticacao.isAuthenticated()) {
-        throw new AccessDeniedException("Usuário não autenticado");
+        if (autenticacao == null || !autenticacao.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        boolean usuarioAnonimo = autenticacao.getAuthorities()
+                .stream()
+                .anyMatch(grantedAuthority ->
+                        "ROLE_ANONYMOUS".equals(
+                                grantedAuthority.getAuthority()));
+
+        if (usuarioAnonimo) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        return autenticacao;
     }
 
-    boolean usuarioAnonimo = autenticacao.getAuthorities()
-            .stream()
-            .anyMatch(grantedAuthority ->
-                    "ROLE_ANONYMOUS".equals(
-                            grantedAuthority.getAuthority()));
-
-    if (usuarioAnonimo) {
-        throw new AccessDeniedException("Usuário não autenticado");
+    private String obterPerfil(Authentication autenticacao) {
+        return autenticacao.getAuthorities()
+                .stream()
+                .map(grantedAuthority ->
+                        grantedAuthority.getAuthority())
+                .filter(nome -> nome.startsWith("ROLE_"))
+                .map(nome -> nome.substring(5))
+                .findFirst()
+                .orElse("");
     }
-
-    return autenticacao;
-}
-
-
-
-private String obterPerfil(Authentication autenticacao) {
-    return autenticacao.getAuthorities()
-            .stream()
-            .map(grantedAuthority -> grantedAuthority.getAuthority())
-            .filter(nome -> nome.startsWith("ROLE_"))
-            .map(nome -> nome.substring(5))
-            .findFirst()
-            .orElse("");
-}
-
 
     private Usuario buscarUsuarioAutenticado(
             Authentication autenticacao) {

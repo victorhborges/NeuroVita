@@ -436,6 +436,8 @@ As permissões de todos os endpoints ainda precisam ser revisadas e validadas. A
 
 O acesso a prontuários, diagnósticos, exames e demais informações clínicas deverá respeitar as permissões de cada perfil e o vínculo entre profissionais e pacientes. Essas restrições devem ser verificadas no backend, e não apenas na interface do usuário.
 
+A consulta ao perfil individual de um profissional permite o acesso ao próprio perfil pelo usuário autenticado com perfil `PROFISSIONAL`, respeitando a validação do vínculo entre a conta e a entidade. O acesso administrativo permanece permitido. A validação dessa regra em produção está pendente.
+
 ### Tratamento de erros
 
 O tratamento de erros contempla exceções para recursos inexistentes e credenciais inválidas.
