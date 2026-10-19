@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.time.DayOfWeek;
@@ -192,6 +191,12 @@ public class ConsultaService {
 
         LocalDateTime inicio = request.getDataHora();
         LocalDateTime fim = inicio.plusMinutes(request.getDuracao());
+
+        if (!inicio.toLocalDate().equals(fim.toLocalDate())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A consulta deve terminar no mesmo dia em que começa.");
+        }
 
         validarDisponibilidade(request.getProfissionalId(), inicio, fim);
 

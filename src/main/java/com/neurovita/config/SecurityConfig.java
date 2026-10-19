@@ -108,6 +108,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/administradores/**")
                         .hasRole("ADMINISTRADOR")
 
+                        // Gerenciamento de secretarias
+                        .requestMatchers("/api/secretarias/**")
+                        .hasRole("ADMINISTRADOR")
+
                         // Cadastro de pacientes
                         .requestMatchers(
                                 HttpMethod.POST,
