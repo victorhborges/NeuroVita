@@ -8,21 +8,21 @@ A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, pr
 
 ## 🛠️ Tecnologias
 
-| Tecnologia                | Versão / uso                                        |
-| ------------------------- | --------------------------------------------------- |
-| ☕ Java                    | 21                                                  |
-| 🌱 Spring Boot            | 4.0.8                                               |
-| 🗄️ MongoDB               | Banco de dados NoSQL                                |
-| 🔗 Spring Data MongoDB    | Persistência de dados                               |
-| 🔐 Spring Security        | Autenticação e autorização                          |
-| 🎟️ JWT                   | Autenticação por token                              |
-| 🔑 BCrypt                 | Hash e verificação de senhas                        |
-| ✅ Jakarta Bean Validation | Validação de dados de entrada                       |
-| 📖 SpringDoc OpenAPI      | Documentação da API                                 |
-| 🐳 Docker                 | Containerização                                     |
-| ☁️ Render                 | Hospedagem                                          |
-| 📦 Maven                  | Gerenciamento e construção do projeto               |
-| 🧪 Maven Wrapper          | Execução do Maven sem instalação global obrigatória |
+| Tecnologia | Versão / uso |
+|---|---|
+| ☕ Java | 21 |
+| 🌱 Spring Boot | 4.0.8 |
+| 🗄️ MongoDB | Banco de dados NoSQL |
+| 🔗 Spring Data MongoDB | Persistência de dados |
+| 🔐 Spring Security | Autenticação e autorização |
+| 🎟️ JWT | Autenticação por token |
+| 🔑 BCrypt | Hash e verificação de senhas |
+| ✅ Jakarta Bean Validation | Validação de dados de entrada |
+| 📖 SpringDoc OpenAPI | Documentação da API |
+| 🐳 Docker | Containerização |
+| ☁️ Render | Hospedagem |
+| 📦 Maven | Gerenciamento e construção do projeto |
+| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
 
 ---
 
@@ -43,6 +43,7 @@ O backend possui os seguintes módulos:
 - 🔐 Autenticação e segurança
 - 👥 Modelo centralizado de usuários
 - ✅ Validação de dados de pacientes e profissionais
+- 🔄 Status e cancelamento de consultas, em implementação local
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -57,7 +58,7 @@ O projeto utiliza uma arquitetura em camadas:
 ```text
 Cliente / Frontend / Postman
              ↓
-        Controller
+         Controller
              ↓
           Service
              ↓
@@ -103,24 +104,24 @@ neurovita/
 │   │   │   │   ├── OpenApiConfig.java
 │   │   │   │   └── SecurityConfig.java
 │   │   │   ├── controller/
-│   │   │   ├── dto/
-│   │   │   ├── exception/
-│   │   │   │   ├── ResourceNotFoundException.java
-│   │   │   │   ├── InvalidCredentialsException.java
-│   │   │   │   └── GlobalExceptionHandler.java
-│   │   │   ├── model/
-│   │   │   │   └── Usuario.java
-│   │   │   ├── repository/
-│   │   │   │   └── UsuarioRepository.java
-│   │   │   ├── security/
-│   │   │   │   └── JwtAuthenticationFilter.java
-│   │   │   ├── service/
-│   │   │   │   ├── AuthService.java
-│   │   │   │   └── JwtService.java
-│   │   │   └── NeurovitaApplication.java
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
+│   │   ├── dto/
+│   │   ├── exception/
+│   │   │   ├── ResourceNotFoundException.java
+│   │   │   ├── InvalidCredentialsException.java
+│   │   │   └── GlobalExceptionHandler.java
+│   │   ├── model/
+│   │   │   └── Usuario.java
+│   │   ├── repository/
+│   │   │   └── UsuarioRepository.java
+│   │   ├── security/
+│   │   │   └── JwtAuthenticationFilter.java
+│   │   ├── service/
+│   │   │   ├── AuthService.java
+│   │   │   └── JwtService.java
+│   │   └── NeurovitaApplication.java
+│   └── resources/
+│       └── application.properties
+├── src/test/
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -216,7 +217,9 @@ O serviço possui validações para os dados obrigatórios e para a ordem dos ho
 
 ## 📅 Consultas
 
-Gerenciamento e consulta dos atendimentos.
+O módulo de consultas permite cadastrar, consultar, atualizar e excluir atendimentos. A implementação local também contempla status para representar a situação de cada consulta.
+
+### Endpoints
 
 ```text
 POST   /api/consultas
@@ -224,6 +227,7 @@ GET    /api/consultas
 GET    /api/consultas/{id}
 PUT    /api/consultas/{id}
 DELETE /api/consultas/{id}
+PATCH  /api/consultas/{id}/cancelar
 ```
 
 ### Consultas específicas
@@ -233,7 +237,41 @@ GET /api/consultas/paciente/{pacienteId}
 GET /api/consultas/profissional/{profissionalId}
 ```
 
-A validação das regras de agendamento, dos horários e das permissões de acesso deve ser confirmada durante os testes funcionais.
+### Status das consultas
+
+O modelo local utiliza os seguintes status:
+
+| Status | Significado |
+|---|---|
+| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta. |
+| `REMARCADA` | Consulta cuja data ou horário foi alterado. |
+| `CANCELADA` | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
+
+O status é controlado pelo backend e não deve ser definido livremente no corpo da requisição de cadastro ou atualização.
+
+### Cancelamento
+
+O endpoint `PATCH /api/consultas/{id}/cancelar` altera o status da consulta para `CANCELADA`, preservando o registro para consulta posterior.
+
+O endpoint `DELETE /api/consultas/{id}` permanece disponível para exclusão definitiva do registro.
+
+### Regras de agendamento
+
+A implementação local contempla validações relacionadas a:
+
+- Existência do paciente e do profissional.
+- Data, horário e duração da consulta.
+- Disponibilidade cadastrada para o profissional.
+- Conflitos de horário do profissional.
+- Conflitos de horário do paciente.
+- Permissões de acesso às consultas.
+- Desconsideração de consultas canceladas na verificação de conflitos.
+
+Consultas canceladas não devem bloquear o horário para novos agendamentos. Consultas antigas sem status explícito são tratadas como confirmadas na resposta e na verificação de conflitos.
+
+A alteração de data ou horário por meio do endpoint de atualização marca a consulta como `REMARCADA`. Consultas canceladas não podem ser atualizadas pela operação normal de alteração.
+
+**Atenção:** essas regras foram implementadas localmente e ainda precisam ser validadas funcionalmente, inclusive após a publicação no Render.
 
 ---
 
@@ -250,6 +288,8 @@ GET /api/agenda/profissional/{id}?data=2026-09-20
 
 GET /api/agenda/paciente/{id}
 ```
+
+A apresentação dos status e o tratamento das consultas canceladas na agenda devem ser conferidos durante a validação funcional.
 
 ---
 
@@ -523,7 +563,7 @@ GET /teste
 
 A resposta dos endpoints de verificação confirma que a rota está respondendo, mas não comprova, por si só, a conectividade com o MongoDB.
 
-A publicação das alterações locais de autenticação depende do commit, do push e da conclusão de um novo deploy.
+As alterações desenvolvidas localmente só estarão disponíveis no ambiente hospedado depois do commit, do push e da conclusão bem-sucedida do novo deploy.
 
 ---
 
@@ -627,11 +667,7 @@ A aplicação será iniciada na porta configurada, normalmente:
 GET /teste
 ```
 
-Resposta esperada:
-
-```text
-API NeuroVita funcionando!
-```
+A resposta esperada deve ser conferida na implementação atual do endpoint.
 
 A resposta desse endpoint confirma que a rota está respondendo, mas não comprova, por si só, a conectividade com o MongoDB.
 
@@ -653,7 +689,7 @@ mvnw.cmd test
 ./mvnw test
 ```
 
-A execução local mais recente informada terminou com `BUILD SUCCESS`.
+A execução local mais recente informada terminou com `BUILD SUCCESS`, com 14 testes executados e nenhuma falha ou erro reportado.
 
 Esse resultado indica que a execução dos testes Maven terminou sem falhas reportadas. Ele não comprova a conectividade real com o MongoDB Atlas nem a validação funcional de todos os endpoints, perfis e permissões.
 
@@ -692,39 +728,39 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 ## 📊 Status do projeto
 
-| Módulo / recurso                             | Status conhecido                                            |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Estrutura Java                               | 🟢 Implementada                                             |
-| Spring Boot                                  | 🟢 Implementado                                             |
-| Spring Web MVC                               | 🟢 Implementado                                             |
-| Spring Data MongoDB                          | 🟢 Configurado                                              |
-| Pacientes                                    | 🟢 CRUD implementado                                        |
-| Profissionais                                | 🟢 CRUD implementado                                        |
-| Validação de pacientes e profissionais       | 🟢 Implementada localmente                                  |
-| Disponibilidades                             | 🟢 Implementadas                                            |
-| Consultas                                    | 🟢 CRUD implementado                                        |
-| Agenda                                       | 🟢 Implementada                                             |
-| Prontuários                                  | 🟢 CRUD implementado                                        |
-| Diagnósticos                                 | 🟢 CRUD implementado                                        |
-| Tratamentos                                  | 🟢 CRUD implementado                                        |
-| Exames                                       | 🟢 CRUD implementado                                        |
-| Administradores                              | 🟢 CRUD implementado                                        |
-| Modelo centralizado `Usuario`                | 🟡 Implementado localmente, pendente de validação funcional |
-| Login centralizado                           | 🟡 Implementado localmente, pendente de validação funcional |
-| JWT                                          | 🟡 Implementação local em revisão                           |
-| BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                       |
-| Troca de senha no primeiro acesso            | 🟡 Implementada localmente, pendente de validação funcional |
-| Spring Security                              | 🟡 Configuração e permissões em revisão                     |
-| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento                                       |
-| Proteção por vínculo profissional-paciente   | ⚪ Pendente de validação                                     |
-| Swagger/OpenAPI                              | 🟢 Implementado                                             |
-| Tratamento global de exceções                | 🟢 Implementado, com melhorias pendentes                    |
-| Docker                                       | 🟢 Configurado                                              |
-| Deploy Render                                | 🟢 Implantação configurada                                  |
-| MongoDB Atlas em produção                    | 🟡 Conexão e operações reais pendentes de confirmação       |
-| Receitas                                     | ⚪ Aguardando requisitos                                     |
-| Testes completos                             | 🟡 Sob responsabilidade da equipe de testes                 |
-| Integração com frontend                      | ⚪ Planejada                                                 |
+| Módulo / recurso | Status conhecido |
+|---|---|
+| Estrutura Java | 🟢 Implementada |
+| Spring Boot | 🟢 Implementado |
+| Spring Web MVC | 🟢 Implementado |
+| Spring Data MongoDB | 🟢 Configurado |
+| Pacientes | 🟢 CRUD implementado |
+| Profissionais | 🟢 CRUD implementado |
+| Validação de pacientes e profissionais | 🟢 Implementada localmente |
+| Disponibilidades | 🟢 Implementadas |
+| Consultas | 🟡 CRUD e regras de agendamento implementados; status e cancelamento em validação local |
+| Agenda | 🟢 Implementada; comportamento dos status a validar |
+| Prontuários | 🟢 CRUD implementado |
+| Diagnósticos | 🟢 CRUD implementado |
+| Tratamentos | 🟢 CRUD implementado |
+| Exames | 🟢 CRUD implementado |
+| Administradores | 🟢 CRUD implementado |
+| Modelo centralizado `Usuario` | 🟡 Implementado localmente, pendente de validação funcional |
+| Login centralizado | 🟡 Implementado localmente, pendente de validação funcional |
+| JWT | 🟡 Implementação local em revisão |
+| BCrypt | 🟢 Utilizado no fluxo de autenticação |
+| Troca de senha no primeiro acesso | 🟡 Implementada localmente, pendente de validação funcional |
+| Spring Security | 🟡 Configuração e permissões em revisão |
+| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento |
+| Proteção por vínculo profissional-paciente | ⚪ Pendente de validação |
+| Swagger/OpenAPI | 🟢 Implementado |
+| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
+| Docker | 🟢 Configurado |
+| Deploy Render | 🟢 Implantação configurada |
+| MongoDB Atlas em produção | 🟡 Conexão e operações reais pendentes de confirmação |
+| Receitas | ⚪ Aguardando requisitos |
+| Testes completos | 🟡 Sob responsabilidade da equipe de testes |
+| Integração com frontend | ⚪ Planejada |
 
 Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação do ambiente de produção.
 
@@ -736,13 +772,14 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [x] Aplicar `@Valid` nos endpoints de cadastro e atualização desses módulos.
 - [x] Executar os testes Maven localmente com resultado `BUILD SUCCESS`.
 - [x] Preparar a implementação local de autenticação centralizada e troca de senha no primeiro acesso.
-- [ ] Revisar e atualizar a documentação antes de publicar as alterações.
-- [ ] Publicar as alterações locais no GitHub.
+- [x] Implementar localmente os status das consultas e o endpoint de cancelamento.
+- [ ] Validar as regras de status, remarcação, cancelamento e conflitos de horário.
+- [ ] Publicar as alterações locais no GitHub após revisar o diff.
 - [ ] Confirmar o deploy das alterações no Render.
 - [ ] Validar o login e a troca de senha no primeiro acesso.
 - [ ] Revisar as permissões dos endpoints para cada perfil.
 - [ ] Validar a criação e a associação das contas de usuários às entidades de domínio.
-- [ ] Validar a conexão com o MongoDB Atlas em produção.
+- [ ] Confirmar a conexão com o MongoDB Atlas em produção.
 - [ ] Validar operações reais de leitura e gravação no banco de produção.
 - [ ] Padronizar as respostas de erro de validação.
 - [ ] Implementar e validar as restrições de acesso aos dados clínicos.
@@ -762,14 +799,18 @@ O projeto utiliza Git e GitHub para controle de versão.
 ```bash
 git status
 
-git add README.md src/main/java/com/neurovita/config/SecurityConfig.java src/main/java/com/neurovita/repository/ConsultaRepository.java src/main/java/com/neurovita/service/
+git diff
 
-git diff --cached --stat
+git add README.md
 
-git commit -m "refactor: revisa serviços e segurança"
+git diff --cached
+
+git commit -m "docs: atualiza README"
 
 git push origin main
 ```
+
+Esse é um exemplo de fluxo para uma alteração exclusivamente documental. Para commits que incluem código, adicione também os arquivos específicos da funcionalidade revisada.
 
 Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
 

@@ -18,6 +18,7 @@ import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Consulta;
 import com.neurovita.model.Disponibilidade;
 import com.neurovita.model.Profissional;
+import com.neurovita.model.StatusConsulta;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DisponibilidadeRepository;
@@ -55,6 +56,7 @@ public class ConsultaService {
 
         Consulta consulta = new Consulta();
         preencherConsulta(consulta, request);
+        consulta.setStatus(StatusConsulta.CONFIRMADA);
 
         return new ConsultaResponse(consultaRepository.save(consulta));
     }
@@ -84,20 +86,48 @@ public class ConsultaService {
         return new ConsultaResponse(consulta);
     }
 
-    public ConsultaResponse atualizar(
-            String id,
-            ConsultaRequest request) {
-
+    public ConsultaResponse atualizar(String id, ConsultaRequest request) {
         Consulta consulta = buscarConsulta(id);
-
         validarAcessoConsulta(consulta);
+
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Consultas canceladas não podem ser alteradas.");
+        }
+
         validarEntidades(request);
         validarProfissionalSolicitante(request.getProfissionalId());
+
         validarDisponibilidadeEConflitos(request, id);
+
+        LocalDateTime dataHoraAnterior = consulta.getDataHora();
+        boolean dataHoraAlterada = dataHoraAnterior != null
+                && !dataHoraAnterior.equals(request.getDataHora());
 
         preencherConsulta(consulta, request);
 
+        if (consulta.getStatus() == null) {
+            consulta.setStatus(StatusConsulta.CONFIRMADA);
+        }
+
+        if (dataHoraAlterada) {
+            consulta.setStatus(StatusConsulta.REMARCADA);
+        }
+
         return new ConsultaResponse(consultaRepository.save(consulta));
+    }
+
+    public ConsultaResponse cancelar(String id) {
+        Consulta consulta = buscarConsulta(id);
+        validarAcessoConsulta(consulta);
+
+        if (consulta.getStatus() != StatusConsulta.CANCELADA) {
+            consulta.setStatus(StatusConsulta.CANCELADA);
+            consultaRepository.save(consulta);
+        }
+
+        return new ConsultaResponse(consulta);
     }
 
     public void deletar(String id) {
@@ -113,9 +143,8 @@ public class ConsultaService {
         }
 
         if (ehProfissional()) {
-            return consultaRepository
-                    .findByPacienteIdAndProfissionalId(
-                            pacienteId, obterProfissionalId())
+            return consultaRepository.findByPacienteIdAndProfissionalId(
+                    pacienteId, obterProfissionalId())
                     .stream()
                     .map(ConsultaResponse::new)
                     .toList();
@@ -129,12 +158,9 @@ public class ConsultaService {
                 .toList();
     }
 
-    public List<ConsultaResponse> listarPorProfissional(
-            String profissionalId) {
-
+    public List<ConsultaResponse> listarPorProfissional(String profissionalId) {
         if (!profissionalRepository.existsById(profissionalId)) {
-            throw new ResourceNotFoundException(
-                    "Profissional não encontrado");
+            throw new ResourceNotFoundException("Profissional não encontrado");
         }
 
         validarProfissionalSolicitante(profissionalId);
@@ -159,17 +185,13 @@ public class ConsultaService {
         if (request.getPacienteId() == null
                 || request.getPacienteId().isBlank()
                 || !pacienteRepository.existsById(request.getPacienteId())) {
-
             throw new ResourceNotFoundException("Paciente não encontrado");
         }
 
         if (request.getProfissionalId() == null
                 || request.getProfissionalId().isBlank()
-                || !profissionalRepository.existsById(
-                        request.getProfissionalId())) {
-
-            throw new ResourceNotFoundException(
-                    "Profissional não encontrado");
+                || !profissionalRepository.existsById(request.getProfissionalId())) {
+            throw new ResourceNotFoundException("Profissional não encontrado");
         }
 
         if (request.getDataHora() == null) {
@@ -201,8 +223,7 @@ public class ConsultaService {
         validarDisponibilidade(request.getProfissionalId(), inicio, fim);
 
         List<Consulta> consultasProfissional =
-                consultaRepository.findByProfissionalId(
-                        request.getProfissionalId());
+                consultaRepository.findByProfissionalId(request.getProfissionalId());
 
         for (Consulta existente : consultasProfissional) {
             if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
@@ -217,8 +238,7 @@ public class ConsultaService {
         }
 
         List<Consulta> consultasPaciente =
-                consultaRepository.findByPacienteId(
-                        request.getPacienteId());
+                consultaRepository.findByPacienteId(request.getPacienteId());
 
         for (Consulta existente : consultasPaciente) {
             if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
@@ -238,15 +258,12 @@ public class ConsultaService {
             LocalDateTime inicio,
             LocalDateTime fim) {
 
-        Profissional profissional = profissionalRepository
-                .findById(profissionalId)
+        Profissional profissional = profissionalRepository.findById(profissionalId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Profissional não encontrado"));
+                        new ResourceNotFoundException("Profissional não encontrado"));
 
         if (profissional.getDisponibilidadeIds() == null
                 || profissional.getDisponibilidadeIds().isEmpty()) {
-
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "O profissional não possui disponibilidades cadastradas.");
@@ -254,24 +271,18 @@ public class ConsultaService {
 
         String diaConsulta = obterDiaSemana(inicio.getDayOfWeek());
 
-        boolean horarioDisponivel =
-                profissional.getDisponibilidadeIds()
-                        .stream()
-                        .map(disponibilidadeRepository::findById)
-                        .filter(java.util.Optional::isPresent)
-                        .map(java.util.Optional::get)
-                        .anyMatch(disponibilidade ->
-                                disponibilidadeEstaDentroDoHorario(
-                                        disponibilidade,
-                                        diaConsulta,
-                                        inicio,
-                                        fim));
+        boolean horarioDisponivel = profissional.getDisponibilidadeIds().stream()
+                .map(disponibilidadeRepository::findById)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .anyMatch(disponibilidade ->
+                        disponibilidadeEstaDentroDoHorario(
+                                disponibilidade, diaConsulta, inicio, fim));
 
         if (!horarioDisponivel) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "A consulta deve ocorrer dentro de uma disponibilidade "
-                    + "ativa do profissional.");
+                    "A consulta deve ocorrer dentro de uma disponibilidade ativa do profissional.");
         }
     }
 
@@ -289,10 +300,8 @@ public class ConsultaService {
                         .equals(diaConsulta)
                 && disponibilidade.getHoraInicio() != null
                 && disponibilidade.getHoraFim() != null
-                && !inicio.toLocalTime()
-                        .isBefore(disponibilidade.getHoraInicio())
-                && !fim.toLocalTime()
-                        .isAfter(disponibilidade.getHoraFim());
+                && !inicio.toLocalTime().isBefore(disponibilidade.getHoraInicio())
+                && !fim.toLocalTime().isAfter(disponibilidade.getHoraFim());
     }
 
     private String obterDiaSemana(DayOfWeek dia) {
@@ -311,6 +320,10 @@ public class ConsultaService {
             Consulta existente,
             LocalDateTime novoInicio,
             LocalDateTime novoFim) {
+
+        if (existente.getStatus() == StatusConsulta.CANCELADA) {
+            return false;
+        }
 
         if (existente.getDataHora() == null
                 || existente.getDuracao() == null
@@ -350,15 +363,12 @@ public class ConsultaService {
     private Consulta buscarConsulta(String id) {
         return consultaRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Consulta não encontrada"));
+                        new ResourceNotFoundException("Consulta não encontrada"));
     }
 
     private void validarAcessoConsulta(Consulta consulta) {
         if (ehProfissional()
-                && !obterProfissionalId()
-                        .equals(consulta.getProfissionalId())) {
-
+                && !obterProfissionalId().equals(consulta.getProfissionalId())) {
             throw new AccessDeniedException(
                     "Acesso permitido somente às próprias consultas");
         }
@@ -371,7 +381,6 @@ public class ConsultaService {
     private void validarProfissionalSolicitante(String profissionalId) {
         if (ehProfissional()
                 && !obterProfissionalId().equals(profissionalId)) {
-
             throw new AccessDeniedException(
                     "Não é permitido agendar consultas para outro profissional");
         }
@@ -387,7 +396,7 @@ public class ConsultaService {
         boolean autorizado = obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_ADMINISTRADOR")
-                        || a.getAuthority().equals("ROLE_SECRETARIA"));
+                                || a.getAuthority().equals("ROLE_SECRETARIA"));
 
         if (!autorizado) {
             throw new AccessDeniedException(
@@ -405,7 +414,6 @@ public class ConsultaService {
 
         if (usuario.getEntidadeId() == null
                 || usuario.getEntidadeId().isBlank()) {
-
             throw new AccessDeniedException(
                     "Usuário sem vínculo com um profissional");
         }

@@ -22,6 +22,8 @@ public class Consulta {
 
     private Integer duracao;
 
+    private StatusConsulta status = StatusConsulta.CONFIRMADA;
+
     public Consulta() {
     }
 
@@ -87,5 +89,13 @@ public class Consulta {
 
     public void setDuracao(Integer duracao) {
         this.duracao = duracao;
+    }
+
+    public StatusConsulta getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusConsulta status) {
+        this.status = status;
     }
 }
