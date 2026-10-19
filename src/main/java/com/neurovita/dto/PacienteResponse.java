@@ -1,8 +1,10 @@
 package com.neurovita.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import com.neurovita.model.Paciente;
+import com.neurovita.model.VinculoResponsavel;
 
 public class PacienteResponse {
 
@@ -13,15 +15,17 @@ public class PacienteResponse {
     private String cpf;
     private String telefone;
 
-    private String responsavel;
-    private String grauParentesco;
+    private List<VinculoResponsavelResponse> responsaveis;
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
     private String numeroCarteirinha;
     private LocalDate validadePlano;
 
-    public PacienteResponse(Paciente paciente) {
+    public PacienteResponse(
+            Paciente paciente,
+            List<VinculoResponsavel> vinculos) {
+
         this.id = paciente.getId();
         this.nome = paciente.getNome();
         this.dataNascimento = paciente.getDataNascimento();
@@ -29,8 +33,9 @@ public class PacienteResponse {
         this.cpf = paciente.getCpf();
         this.telefone = paciente.getTelefone();
 
-        this.responsavel = paciente.getResponsavel();
-        this.grauParentesco = paciente.getGrauParentesco();
+        this.responsaveis = vinculos.stream()
+                .map(VinculoResponsavelResponse::new)
+                .toList();
 
         this.possuiPlanoSaude = paciente.getPossuiPlanoSaude();
         this.planoSaude = paciente.getPlanoSaude();
@@ -62,12 +67,8 @@ public class PacienteResponse {
         return telefone;
     }
 
-    public String getResponsavel() {
-        return responsavel;
-    }
-
-    public String getGrauParentesco() {
-        return grauParentesco;
+    public List<VinculoResponsavelResponse> getResponsaveis() {
+        return responsaveis;
     }
 
     public Boolean getPossuiPlanoSaude() {

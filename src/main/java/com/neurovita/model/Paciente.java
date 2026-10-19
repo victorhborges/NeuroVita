@@ -1,3 +1,4 @@
+
 package com.neurovita.model;
 
 import java.time.LocalDate;
@@ -16,9 +17,6 @@ public class Paciente {
     private String email;
     private String cpf;
     private String telefone;
-
-    private String responsavel;
-    private String grauParentesco;
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
@@ -74,22 +72,6 @@ public class Paciente {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
-    }
-
-    public String getResponsavel() {
-        return responsavel;
-    }
-
-    public void setResponsavel(String responsavel) {
-        this.responsavel = responsavel;
-    }
-
-    public String getGrauParentesco() {
-        return grauParentesco;
-    }
-
-    public void setGrauParentesco(String grauParentesco) {
-        this.grauParentesco = grauParentesco;
     }
 
     public Boolean getPossuiPlanoSaude() {

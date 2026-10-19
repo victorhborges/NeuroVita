@@ -2,9 +2,9 @@
 
 Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
-A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
+A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
 
-> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. A autenticação, as permissões de acesso e a integração com o banco de dados continuam em validação.
+> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. A autenticação, as permissões de acesso, a integração com o banco de dados e as novas operações de responsáveis e vínculos com pacientes continuam em validação.
 
 ## 🛠️ Tecnologias
 
@@ -28,9 +28,11 @@ A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, pr
 
 ## 📌 Funcionalidades
 
-O backend possui os seguintes módulos:
+O backend possui os seguintes módulos e recursos:
 
 - 👤 Pacientes
+- 👥 Responsáveis
+- 🔗 Vínculos entre pacientes e responsáveis
 - 🧑‍⚕️ Profissionais
 - ⏰ Disponibilidades
 - 📅 Consultas
@@ -41,9 +43,9 @@ O backend possui os seguintes módulos:
 - 🧪 Exames
 - 👨‍💼 Administradores
 - 🔐 Autenticação e segurança
-- 👥 Modelo centralizado de usuários
-- ✅ Validação de dados de pacientes e profissionais
-- 🔄 Status e cancelamento de consultas, em implementação local
+- 👤 Modelo centralizado de usuários
+- ✅ Validação de dados de entrada
+- 🔄 Status e cancelamento de consultas, em validação local
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -60,16 +62,18 @@ Cliente / Frontend / Postman
              ↓
          Controller
              ↓
-          Service
+           Service
              ↓
          Repository
              ↓
-          MongoDB
+           Model
+             ↓
+           MongoDB
 ```
 
 ### Controller
 
-Recebe as requisições HTTP, valida as entradas quando aplicável e retorna as respostas da API.
+Recebe as requisições HTTP, aplica as validações de entrada quando configuradas e retorna as respostas da API.
 
 ### Service
 
@@ -104,24 +108,25 @@ neurovita/
 │   │   │   │   ├── OpenApiConfig.java
 │   │   │   │   └── SecurityConfig.java
 │   │   │   ├── controller/
-│   │   ├── dto/
-│   │   ├── exception/
-│   │   │   ├── ResourceNotFoundException.java
-│   │   │   ├── InvalidCredentialsException.java
-│   │   │   └── GlobalExceptionHandler.java
-│   │   ├── model/
-│   │   │   └── Usuario.java
-│   │   ├── repository/
-│   │   │   └── UsuarioRepository.java
-│   │   ├── security/
-│   │   │   └── JwtAuthenticationFilter.java
-│   │   ├── service/
-│   │   │   ├── AuthService.java
-│   │   │   └── JwtService.java
-│   │   └── NeurovitaApplication.java
-│   └── resources/
-│       └── application.properties
-├── src/test/
+│   │   │   │   └── Controllers dos módulos
+│   │   │   ├── dto/
+│   │   │   │   └── DTOs de requisição e resposta
+│   │   │   ├── exception/
+│   │   │   │   ├── ResourceNotFoundException.java
+│   │   │   │   ├── InvalidCredentialsException.java
+│   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   ├── model/
+│   │   │   │   └── Modelos dos documentos MongoDB
+│   │   │   ├── repository/
+│   │   │   │   └── Repositórios dos módulos
+│   │   │   ├── security/
+│   │   │   │   └── JwtAuthenticationFilter.java
+│   │   │   ├── service/
+│   │   │   │   └── Serviços dos módulos
+│   │   │   └── NeurovitaApplication.java
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -130,13 +135,15 @@ neurovita/
 └── README.md
 ```
 
-A estrutura apresenta os principais componentes. Outros arquivos de controllers, DTOs, models, repositories e services foram omitidos para facilitar a leitura.
+A estrutura apresenta os principais componentes. Os arquivos específicos de cada módulo foram omitidos para facilitar a leitura.
 
 ---
 
 ## 👤 Pacientes
 
-CRUD de pacientes com operações de cadastro, consulta, atualização e exclusão.
+O módulo de pacientes oferece operações de cadastro, consulta, atualização e exclusão.
+
+### Endpoints
 
 ```text
 POST   /api/pacientes
@@ -160,13 +167,114 @@ Entre as validações implementadas estão:
 
 As validações de formato de CPF e telefone não substituem a verificação completa dos dígitos nem a confirmação da existência desses dados.
 
-O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação local em revisão.
+O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação do serviço.
+
+### Responsáveis vinculados
+
+O cadastro e a atualização de pacientes recebem uma lista de responsáveis. Cada item contém o identificador do responsável já cadastrado e o grau de parentesco.
+
+Exemplo ilustrativo de requisição:
+
+```json
+{
+  "nome": "Paciente Exemplo",
+  "dataNascimento": "2015-05-20",
+  "email": "paciente.exemplo@email.com",
+  "cpf": "123.456.789-00",
+  "telefone": "(61) 99999-0000",
+  "possuiPlanoSaude": false,
+  "planoSaude": null,
+  "numeroCarteirinha": null,
+  "validadePlano": null,
+  "responsaveis": [
+    {
+      "responsavelId": "ID_DO_RESPONSAVEL_CADASTRADO",
+      "grauParentesco": "Mãe"
+    }
+  ]
+}
+```
+
+Os valores são exemplos para ilustrar a estrutura esperada. O identificador precisa corresponder a um responsável existente no banco de dados.
+
+O campo `responsaveis` é uma lista, permitindo representar mais de um responsável para o mesmo paciente.
+
+---
+
+## 👥 Responsáveis
+
+O módulo de responsáveis permite cadastrar, consultar, atualizar e excluir os dados pessoais e de contato dos responsáveis pelos pacientes.
+
+### Endpoints
+
+```text
+POST   /api/responsaveis
+GET    /api/responsaveis
+GET    /api/responsaveis/{id}
+PUT    /api/responsaveis/{id}
+DELETE /api/responsaveis/{id}
+```
+
+### Dados do responsável
+
+O modelo contempla os seguintes campos:
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador do responsável |
+| `nome` | Nome do responsável |
+| `cpf` | CPF, quando informado |
+| `email` | E-mail, quando informado |
+| `telefone` | Telefone, quando informado |
+
+O nome é obrigatório. CPF e e-mail possuem verificações de duplicidade quando informados, de acordo com as regras implementadas no serviço.
+
+### Vínculos com pacientes
+
+Os dados pessoais do responsável são armazenados separadamente dos dados do paciente. A associação entre eles é registrada na coleção `vinculosResponsaveis`.
+
+Cada vínculo contém:
+
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador do vínculo |
+| `pacienteId` | Identificador do paciente |
+| `responsavelId` | Identificador do responsável |
+| `grauParentesco` | Relação entre o paciente e o responsável |
+
+Essa estrutura permite:
+
+- Um paciente possuir vários responsáveis.
+- Um responsável estar associado a vários pacientes.
+- O grau de parentesco ser definido individualmente em cada vínculo.
+- Evitar a duplicação dos dados pessoais do responsável dentro do documento do paciente.
+
+### Regras implementadas localmente
+
+- O nome do responsável é obrigatório.
+- CPF e e-mail são normalizados antes das verificações de duplicidade.
+- Não é permitido excluir um responsável que ainda possua vínculos com pacientes.
+- Cada vínculo precisa apontar para um responsável existente.
+- Não são permitidos vínculos duplicados para o mesmo responsável e paciente.
+- O grau de parentesco é obrigatório.
+- O cadastro de pacientes menores de idade exige pelo menos um responsável.
+- Na atualização do paciente, a lista recebida é utilizada para reconciliar os vínculos existentes.
+
+As regras e a persistência dos dados ainda precisam ser verificadas por meio de requisições reais após a publicação da implementação.
+
+### Permissões
+
+As operações de responsáveis estão configuradas para os perfis `ADMINISTRADOR` e `SECRETARIA`. A autorização efetiva deve ser confirmada com requisições autenticadas e com os diferentes perfis.
+
+**Importante:** o vínculo com um responsável não concede automaticamente acesso a prontuários ou a outras informações clínicas do paciente. Essa autorização deve ser tratada separadamente.
 
 ---
 
 ## 🧑‍⚕️ Profissionais
 
 Gerenciamento de profissionais e suas disponibilidades.
+
+### Endpoints
 
 ```text
 POST   /api/profissionais
@@ -197,11 +305,13 @@ GET    /api/profissionais/{profissionalId}/disponibilidades
 DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
 ```
 
-O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação local em revisão.
+O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação do serviço.
 
 ---
 
 ## ⏰ Disponibilidades
+
+### Endpoints
 
 ```text
 POST   /api/disponibilidades
@@ -239,8 +349,6 @@ GET /api/consultas/profissional/{profissionalId}
 
 ### Status das consultas
 
-O modelo local utiliza os seguintes status:
-
 | Status | Significado |
 |---|---|
 | `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta. |
@@ -277,7 +385,9 @@ A alteração de data ou horário por meio do endpoint de atualização marca a 
 
 ## 🗓️ Agenda
 
-A agenda é construída a partir das consultas cadastradas e **não possui um documento próprio no MongoDB**, conforme a arquitetura atual.
+A agenda é construída a partir das consultas cadastradas e não possui um documento próprio no MongoDB, conforme a arquitetura atual.
+
+### Endpoints
 
 ```text
 GET /api/agenda
@@ -296,6 +406,8 @@ A apresentação dos status e o tratamento das consultas canceladas na agenda de
 ## 📋 Prontuários
 
 Armazenam informações relacionadas ao acompanhamento clínico.
+
+### Endpoints
 
 ```text
 POST /api/prontuarios
@@ -353,6 +465,8 @@ GET    /api/exames/paciente/{pacienteId}
 ## 👨‍💼 Administradores
 
 Gerenciamento de administradores.
+
+### Endpoints
 
 ```text
 POST   /api/administradores
@@ -470,11 +584,13 @@ Os perfis previstos no modelo de autenticação são:
 - **Secretaria:** operações administrativas e de agendamento, respeitando as restrições de informações clínicas.
 - **Paciente:** acesso aos próprios dados e informações de atendimento, conforme as regras do sistema.
 
-A configuração local contém regras específicas para rotas de administradores, cadastro e exclusão de pacientes e profissionais, além da troca de senha no primeiro acesso.
+A configuração local contém regras específicas para rotas de administradores, cadastro e consulta de pacientes e profissionais, além da troca de senha no primeiro acesso e das operações de responsáveis.
 
 As permissões de todos os endpoints ainda precisam ser revisadas e validadas. A existência de um perfil no modelo centralizado não significa, por si só, que todas as suas permissões já estejam implementadas.
 
 O acesso a prontuários, diagnósticos, exames e demais informações clínicas deverá respeitar as permissões de cada perfil e o vínculo entre profissionais e pacientes. Essas restrições devem ser verificadas no backend, e não apenas na interface do usuário.
+
+O vínculo entre um paciente e um responsável não concede automaticamente acesso aos dados clínicos.
 
 A consulta ao perfil individual de um profissional permite o acesso ao próprio perfil pelo usuário autenticado com perfil `PROFISSIONAL`, respeitando a validação do vínculo entre a conta e a entidade. O acesso administrativo permanece permitido. A validação dessa regra em produção está pendente.
 
@@ -571,6 +687,20 @@ As alterações desenvolvidas localmente só estarão disponíveis no ambiente h
 
 O projeto utiliza **MongoDB** com Spring Data MongoDB.
 
+### Coleções principais
+
+A aplicação utiliza documentos MongoDB para persistir as entidades dos módulos. A estrutura final depende da configuração e da migração coordenada com a equipe responsável pelo banco.
+
+As coleções relacionadas à funcionalidade de responsáveis são:
+
+| Coleção | Finalidade |
+|---|---|
+| `responsaveis` | Dados pessoais e de contato dos responsáveis |
+| `vinculosResponsaveis` | Relação entre pacientes e responsáveis, incluindo o grau de parentesco |
+| `pacientes` | Dados cadastrais dos pacientes |
+
+O relacionamento entre paciente e responsável é armazenado separadamente, evitando duplicar os dados pessoais do responsável em cada paciente.
+
 ### Configuração da conexão
 
 A aplicação utiliza a variável de ambiente:
@@ -601,6 +731,8 @@ A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usad
 A configuração da integração com MongoDB está presente no projeto. A conectividade com o MongoDB Atlas, bem como a leitura e a gravação de documentos em produção, deve ser confirmada por meio de verificações específicas.
 
 Um teste automatizado de contexto aprovado localmente não comprova, isoladamente, a conexão real com o banco de dados.
+
+A estrutura de responsáveis e vínculos precisa ser compatibilizada com a migração do MongoDB coordenada pela equipe responsável pelo banco antes de considerar a funcionalidade validada em produção.
 
 ---
 
@@ -680,6 +812,12 @@ Os testes são executados por meio do Maven.
 ### Windows
 
 ```cmd
+mvn test
+```
+
+Ou, utilizando o Maven Wrapper:
+
+```cmd
 mvnw.cmd test
 ```
 
@@ -689,7 +827,7 @@ mvnw.cmd test
 ./mvnw test
 ```
 
-A execução local mais recente informada terminou com `BUILD SUCCESS`, com 14 testes executados e nenhuma falha ou erro reportado.
+A execução local mais recente informada terminou com `BUILD SUCCESS`.
 
 Esse resultado indica que a execução dos testes Maven terminou sem falhas reportadas. Ele não comprova a conectividade real com o MongoDB Atlas nem a validação funcional de todos os endpoints, perfis e permissões.
 
@@ -734,7 +872,9 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 | Spring Boot | 🟢 Implementado |
 | Spring Web MVC | 🟢 Implementado |
 | Spring Data MongoDB | 🟢 Configurado |
-| Pacientes | 🟢 CRUD implementado |
+| Pacientes | 🟡 CRUD implementado; novos vínculos em validação |
+| Responsáveis | 🟡 CRUD implementado localmente; aguardando validação funcional |
+| Vínculos entre pacientes e responsáveis | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco |
 | Profissionais | 🟢 CRUD implementado |
 | Validação de pacientes e profissionais | 🟢 Implementada localmente |
 | Disponibilidades | 🟢 Implementadas |
@@ -773,14 +913,21 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [x] Executar os testes Maven localmente com resultado `BUILD SUCCESS`.
 - [x] Preparar a implementação local de autenticação centralizada e troca de senha no primeiro acesso.
 - [x] Implementar localmente os status das consultas e o endpoint de cancelamento.
-- [ ] Validar as regras de status, remarcação, cancelamento e conflitos de horário.
-- [ ] Publicar as alterações locais no GitHub após revisar o diff.
+- [x] Implementar localmente o CRUD de responsáveis.
+- [x] Implementar localmente os vínculos entre pacientes e responsáveis.
+- [ ] Revisar o diff e publicar as alterações no GitHub.
 - [ ] Confirmar o deploy das alterações no Render.
-- [ ] Validar o login e a troca de senha no primeiro acesso.
-- [ ] Revisar as permissões dos endpoints para cada perfil.
+- [ ] Validar o CRUD de responsáveis pelo Swagger.
+- [ ] Validar o cadastro de pacientes com um ou mais responsáveis.
+- [ ] Validar a atualização e a remoção de vínculos.
+- [ ] Validar as regras de menores de idade sem responsável.
+- [ ] Compatibilizar a funcionalidade com a estrutura final do MongoDB Atlas.
 - [ ] Validar a criação e a associação das contas de usuários às entidades de domínio.
 - [ ] Confirmar a conexão com o MongoDB Atlas em produção.
-- [ ] Validar operações reais de leitura e gravação no banco de produção.
+- [ ] Validar operações reais de leitura e gravação no banco.
+- [ ] Validar as regras de status, remarcação, cancelamento e conflitos de horário.
+- [ ] Validar o login e a troca de senha no primeiro acesso.
+- [ ] Revisar as permissões dos endpoints para cada perfil.
 - [ ] Padronizar as respostas de erro de validação.
 - [ ] Implementar e validar as restrições de acesso aos dados clínicos.
 - [ ] Definir o módulo de Receitas após a especificação no Figma.

@@ -170,6 +170,10 @@ public class SecurityConfig {
                                 "/api/exames/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
+                        // Gerenciamento de responsáveis
+                        .requestMatchers("/api/responsaveis/**")
+                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
                         // Demais rotas exigem autenticação
                         .anyRequest().authenticated()
                 )

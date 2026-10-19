@@ -1,7 +1,10 @@
 package com.neurovita.dto;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,8 +35,8 @@ public class PacienteRequest {
     )
     private String telefone;
 
-    private String responsavel;
-    private String grauParentesco;
+    @Valid
+    private List<VinculoResponsavelRequest> responsaveis = new ArrayList<>();
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
@@ -83,20 +86,15 @@ public class PacienteRequest {
         this.telefone = telefone;
     }
 
-    public String getResponsavel() {
-        return responsavel;
+    public List<VinculoResponsavelRequest> getResponsaveis() {
+        return responsaveis;
     }
 
-    public void setResponsavel(String responsavel) {
-        this.responsavel = responsavel;
-    }
-
-    public String getGrauParentesco() {
-        return grauParentesco;
-    }
-
-    public void setGrauParentesco(String grauParentesco) {
-        this.grauParentesco = grauParentesco;
+    public void setResponsaveis(
+            List<VinculoResponsavelRequest> responsaveis) {
+        this.responsaveis = responsaveis == null
+                ? new ArrayList<>()
+                : responsaveis;
     }
 
     public Boolean getPossuiPlanoSaude() {
