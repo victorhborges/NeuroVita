@@ -1,6 +1,6 @@
-
 package com.neurovita.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 
@@ -38,18 +38,23 @@ public class AdministradorService {
 
     public AdministradorResponse criar(AdministradorRequest request) {
         validarDados(request, true);
-        validarEmailDisponivel(request.getEmail(), null);
+        validarEmailDisponivel(request.getEmail(), null, null);
 
         Administrador administrador = new Administrador();
         administrador.setNome(request.getNome().trim());
         administrador.setEmail(request.getEmail().trim());
-        administrador.setSenha(passwordEncoder.encode(request.getSenha()));
         administrador.setPerfil(PERFIL_ADMINISTRADOR);
+        administrador.setCpf(normalizarOpcional(request.getCpf()));
+        administrador.setTelefone(normalizarOpcional(request.getTelefone()));
+        administrador.setCriadoEm(Instant.now());
+
+        // A senha é protegida e armazenada somente em usuarios.
+        String senhaHash = passwordEncoder.encode(request.getSenha());
 
         Administrador salvo = administradorRepository.save(administrador);
 
         try {
-            sincronizarUsuario(salvo, null);
+            sincronizarUsuario(salvo, null, null, senhaHash);
         } catch (RuntimeException e) {
             try {
                 administradorRepository.deleteById(salvo.getId());
@@ -87,22 +92,67 @@ public class AdministradorService {
         Administrador administrador = buscarAdministrador(id);
         String emailAnterior = administrador.getEmail();
 
-        validarEmailDisponivel(request.getEmail(), emailAnterior);
+        Usuario usuarioAnterior = buscarUsuarioVinculado(
+                administrador.getId(),
+                emailAnterior);
+
+        validarEmailDisponivel(
+                request.getEmail(),
+                emailAnterior,
+                administrador.getId());
+
+        /*
+         * A senha pertence a usuarios.
+         * Só geramos um novo hash quando uma nova senha é informada.
+         */
+        String novaSenhaHash = null;
+
+        if (request.getSenha() != null && !request.getSenha().isBlank()) {
+            novaSenhaHash = passwordEncoder.encode(request.getSenha());
+        }
+
+        /*
+         * Não permitimos uma atualização que deixe a conta sem senha.
+         * Se não foi informada uma nova senha, preservamos a existente.
+         */
+        String senhaExistente = usuarioAnterior != null
+                ? usuarioAnterior.getSenha()
+                : null;
+
+        if ((novaSenhaHash == null || novaSenhaHash.isBlank())
+                && (senhaExistente == null || senhaExistente.isBlank())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Não foi possível localizar uma senha válida para este administrador em usuarios.");
+        }
 
         administrador.setNome(request.getNome().trim());
         administrador.setEmail(request.getEmail().trim());
+        administrador.setPerfil(PERFIL_ADMINISTRADOR);
 
-        if (request.getSenha() != null && !request.getSenha().isBlank()) {
-            administrador.setSenha(
-                    passwordEncoder.encode(request.getSenha()));
+        // Campos opcionais: se não forem enviados, preservamos os valores.
+        if (request.getCpf() != null) {
+            administrador.setCpf(normalizarOpcional(request.getCpf()));
         }
 
-        administrador.setPerfil(PERFIL_ADMINISTRADOR);
+        if (request.getTelefone() != null) {
+            administrador.setTelefone(
+                    normalizarOpcional(request.getTelefone()));
+        }
+
+        if (administrador.getCriadoEm() == null) {
+            administrador.setCriadoEm(Instant.now());
+        }
 
         Administrador atualizado = administradorRepository.save(administrador);
 
         try {
-            sincronizarUsuario(atualizado, emailAnterior);
+            sincronizarUsuario(
+                    atualizado,
+                    emailAnterior,
+                    usuarioAnterior,
+                    novaSenhaHash);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
@@ -155,6 +205,7 @@ public class AdministradorService {
         if (senhaObrigatoria
                 && (request.getSenha() == null
                         || request.getSenha().isBlank())) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "A senha é obrigatória para criar um administrador.");
@@ -163,7 +214,8 @@ public class AdministradorService {
 
     private void validarEmailDisponivel(
             String email,
-            String emailAnterior) {
+            String emailAnterior,
+            String entidadeId) {
 
         String emailNormalizado = email.trim();
 
@@ -174,16 +226,27 @@ public class AdministradorService {
             return;
         }
 
-        boolean emailEmUso =
-                usuarioRepository
-                        .findByEmailIgnoreCase(emailNormalizado)
-                        .isPresent()
-                || administradorRepository.findAll()
-                        .stream()
-                        .anyMatch(administradorExistente ->
-                                administradorExistente.getEmail() != null
-                                && administradorExistente.getEmail()
-                                        .equalsIgnoreCase(emailNormalizado));
+        boolean emailEmUso = usuarioRepository
+                .findByEmailIgnoreCase(emailNormalizado)
+                .filter(usuario -> {
+                    boolean pertenceAoMesmoAdministrador =
+                            entidadeId != null
+                                    && entidadeId.equals(usuario.getEntidadeId())
+                                    && ehAdministrador(usuario);
+
+                    return !pertenceAoMesmoAdministrador;
+                })
+                .isPresent();
+
+        if (!emailEmUso) {
+            emailEmUso = administradorRepository.findAll()
+                    .stream()
+                    .anyMatch(existente ->
+                            existente.getEmail() != null
+                                    && existente.getEmail()
+                                            .equalsIgnoreCase(emailNormalizado)
+                                    && !existente.getId().equals(entidadeId));
+        }
 
         if (emailEmUso) {
             throw new ResponseStatusException(
@@ -192,13 +255,36 @@ public class AdministradorService {
         }
     }
 
-    private void sincronizarUsuario(
-            Administrador administrador,
+    private Usuario buscarUsuarioVinculado(
+            String entidadeId,
             String emailAnterior) {
 
-        Usuario usuario = null;
+        Usuario usuario = usuarioRepository.findByEntidadeId(entidadeId)
+                .filter(this::ehAdministrador)
+                .orElse(null);
 
-        if (emailAnterior != null) {
+        if (usuario == null && emailAnterior != null) {
+            usuario = usuarioRepository
+                    .findByEmailIgnoreCase(emailAnterior)
+                    .filter(this::ehAdministrador)
+                    .orElse(null);
+        }
+
+        return usuario;
+    }
+
+    private void sincronizarUsuario(
+            Administrador administrador,
+            String emailAnterior,
+            Usuario usuarioAnterior,
+            String novaSenhaHash) {
+
+        Usuario usuario = usuarioRepository
+                .findByEntidadeId(administrador.getId())
+                .filter(this::ehAdministrador)
+                .orElse(null);
+
+        if (usuario == null && emailAnterior != null) {
             usuario = usuarioRepository
                     .findByEmailIgnoreCase(emailAnterior)
                     .filter(this::ehAdministrador)
@@ -206,19 +292,32 @@ public class AdministradorService {
         }
 
         if (usuario == null) {
-            usuario = usuarioRepository
-                    .findByEntidadeId(administrador.getId())
-                    .filter(this::ehAdministrador)
-                    .orElse(null);
+            usuario = usuarioAnterior;
         }
 
         if (usuario == null) {
             usuario = new Usuario();
         }
 
+        /*
+         * Uma senha nova substitui o hash anterior.
+         * Sem senha nova, preservamos o hash que já existe em usuarios.
+         */
+        String senhaHash = novaSenhaHash;
+
+        if (senhaHash == null || senhaHash.isBlank()) {
+            senhaHash = usuario.getSenha();
+        }
+
+        if (senhaHash == null || senhaHash.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Não foi possível sincronizar o usuário sem uma senha válida.");
+        }
+
         usuario.setNome(administrador.getNome());
         usuario.setEmail(administrador.getEmail());
-        usuario.setSenha(administrador.getSenha());
+        usuario.setSenha(senhaHash);
         usuario.setPerfil(PERFIL_ADMINISTRADOR);
         usuario.setSenhaProvisoria(false);
         usuario.setAtivo(true);
@@ -231,5 +330,13 @@ public class AdministradorService {
         return usuario.getPerfil() != null
                 && PERFIL_ADMINISTRADOR.equals(
                         usuario.getPerfil().toUpperCase(Locale.ROOT));
+    }
+
+    private String normalizarOpcional(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+
+        return valor.trim();
     }
 }

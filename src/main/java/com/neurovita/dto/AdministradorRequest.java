@@ -6,6 +6,11 @@ public class AdministradorRequest {
     private String email;
     private String senha;
     private String perfil;
+    private String cpf;
+    private String telefone;
+
+    public AdministradorRequest() {
+    }
 
     public String getNome() {
         return nome;
@@ -37,5 +42,21 @@ public class AdministradorRequest {
 
     public void setPerfil(String perfil) {
         this.perfil = perfil;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
     }
 }

@@ -1,5 +1,7 @@
 package com.neurovita.dto;
 
+import java.time.Instant;
+
 import com.neurovita.model.Administrador;
 
 public class AdministradorResponse {
@@ -8,6 +10,9 @@ public class AdministradorResponse {
     private String nome;
     private String email;
     private String perfil;
+    private String cpf;
+    private String telefone;
+    private Instant criadoEm;
 
     public AdministradorResponse() {
     }
@@ -17,6 +22,9 @@ public class AdministradorResponse {
         this.nome = administrador.getNome();
         this.email = administrador.getEmail();
         this.perfil = administrador.getPerfil();
+        this.cpf = administrador.getCpf();
+        this.telefone = administrador.getTelefone();
+        this.criadoEm = administrador.getCriadoEm();
     }
 
     public String getId() {
@@ -49,5 +57,29 @@ public class AdministradorResponse {
 
     public void setPerfil(String perfil) {
         this.perfil = perfil;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public Instant getCriadoEm() {
+        return criadoEm;
+    }
+
+    public void setCriadoEm(Instant criadoEm) {
+        this.criadoEm = criadoEm;
     }
 }

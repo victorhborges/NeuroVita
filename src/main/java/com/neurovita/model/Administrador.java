@@ -1,9 +1,11 @@
 package com.neurovita.model;
 
+import java.time.Instant;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "Administradores")
+@Document(collection = "administradores")
 public class Administrador {
 
     @Id
@@ -11,8 +13,11 @@ public class Administrador {
 
     private String nome;
     private String email;
-    private String senha;
     private String perfil;
+
+    private String cpf;
+    private String telefone;
+    private Instant criadoEm;
 
     public Administrador() {
     }
@@ -41,14 +46,6 @@ public class Administrador {
         this.email = email;
     }
 
-    public String getSenha() {
-        return senha;
-    }
-
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
-
     public String getPerfil() {
         return perfil;
     }
@@ -56,5 +53,28 @@ public class Administrador {
     public void setPerfil(String perfil) {
         this.perfil = perfil;
     }
-}
 
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public Instant getCriadoEm() {
+        return criadoEm;
+    }
+
+    public void setCriadoEm(Instant criadoEm) {
+        this.criadoEm = criadoEm;
+    }
+}
