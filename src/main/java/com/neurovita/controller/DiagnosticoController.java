@@ -16,6 +16,8 @@ import com.neurovita.dto.DiagnosticoRequest;
 import com.neurovita.dto.DiagnosticoResponse;
 import com.neurovita.service.DiagnosticoService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/diagnosticos")
 public class DiagnosticoController {
@@ -27,7 +29,9 @@ public class DiagnosticoController {
     }
 
     @PostMapping
-    public ResponseEntity<DiagnosticoResponse> salvar(@RequestBody DiagnosticoRequest request) {
+    public ResponseEntity<DiagnosticoResponse> salvar(
+            @Valid @RequestBody DiagnosticoRequest request) {
+
         DiagnosticoResponse response = diagnosticoService.salvar(request);
 
         return ResponseEntity.ok(response);
@@ -35,31 +39,23 @@ public class DiagnosticoController {
 
     @GetMapping
     public ResponseEntity<List<DiagnosticoResponse>> listarTodos() {
-
-        return ResponseEntity.ok(diagnosticoService.listarTodos()
-        );
+        return ResponseEntity.ok(diagnosticoService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DiagnosticoResponse> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<DiagnosticoResponse> buscarPorId(
+            @PathVariable String id) {
 
-        DiagnosticoResponse response = diagnosticoService.buscarPorId(id);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(diagnosticoService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DiagnosticoResponse> atualizar(@PathVariable String id, @RequestBody DiagnosticoRequest request) {
+    public ResponseEntity<DiagnosticoResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody DiagnosticoRequest request) {
 
-        DiagnosticoResponse response = diagnosticoService.atualizar(id, request);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
+        DiagnosticoResponse response =
+                diagnosticoService.atualizar(id, request);
 
         return ResponseEntity.ok(response);
     }
@@ -72,8 +68,10 @@ public class DiagnosticoController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<DiagnosticoResponse>> listarPorPaciente(@PathVariable String pacienteId) {
-        return ResponseEntity.ok(diagnosticoService.listarPorPaciente(pacienteId)
-        );
+    public ResponseEntity<List<DiagnosticoResponse>> listarPorPaciente(
+            @PathVariable String pacienteId) {
+
+        return ResponseEntity.ok(
+                diagnosticoService.listarPorPaciente(pacienteId));
     }
 }
