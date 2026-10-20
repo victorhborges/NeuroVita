@@ -431,7 +431,15 @@ DELETE /api/diagnosticos/{id}
 
 GET    /api/diagnosticos/paciente/{pacienteId}
 ```
+### Validação dos dados
 
+O cadastro e a atualização de diagnósticos utilizam Jakarta Bean Validation para validar os campos obrigatórios:
+
+- ID do paciente.
+- ID do profissional.
+- Descrição do diagnóstico.
+
+As validações são aplicadas pelo controller com `@Valid`. O serviço continua responsável por verificar as regras de negócio, incluindo os vínculos necessários entre paciente e profissional.
 ---
 
 ## 💊 Tratamentos
