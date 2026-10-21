@@ -155,12 +155,39 @@ public class SecurityConfig {
                                 "PROFISSIONAL",
                                 "SECRETARIA")
 
-                        // Disponibilidades
-                        .requestMatchers("/api/disponibilidades/**")
+                        // Cadastro, alteração e exclusão de disponibilidades
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/disponibilidades/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/disponibilidades/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/disponibilidades/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/disponibilidades/**")
+                        .hasRole("ADMINISTRADOR")
+
+                        // Consulta de disponibilidades
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/disponibilidades/**")
                         .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
                                 "SECRETARIA")
+
+                        // Outros métodos não previstos: somente administrador
+                        .requestMatchers("/api/disponibilidades/**")
+                        .hasRole("ADMINISTRADOR")
 
                         // Dados clínicos
                         .requestMatchers(

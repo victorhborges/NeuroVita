@@ -2,12 +2,19 @@ package com.neurovita.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class ExameRequest {
 
+    @NotBlank(message = "O ID do paciente é obrigatório.")
     private String pacienteId;
+
+    @NotBlank(message = "O ID do profissional é obrigatório.")
     private String profissionalId;
 
+    @NotBlank(message = "O nome do exame é obrigatório.")
     private String nome;
+
     private String tipo;
     private LocalDate dataRealizacao;
     private String resultado;

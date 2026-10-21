@@ -98,7 +98,6 @@ public class ConsultaService {
 
         validarEntidades(request);
         validarProfissionalSolicitante(request.getProfissionalId());
-
         validarDisponibilidadeEConflitos(request, id);
 
         LocalDateTime dataHoraAnterior = consulta.getDataHora();
@@ -292,16 +291,23 @@ public class ConsultaService {
             LocalDateTime inicio,
             LocalDateTime fim) {
 
+        String diaDisponibilidade = disponibilidade.getDiaSemana();
+
+        if (diaDisponibilidade != null) {
+            diaDisponibilidade = diaDisponibilidade.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace("-", "_")
+                    .replace(" ", "_");
+        }
+
         return Boolean.TRUE.equals(disponibilidade.getAtivo())
-                && disponibilidade.getDiaSemana() != null
-                && disponibilidade.getDiaSemana()
-                        .trim()
-                        .toUpperCase(Locale.ROOT)
-                        .equals(diaConsulta)
+                && diaConsulta.equals(diaDisponibilidade)
                 && disponibilidade.getHoraInicio() != null
                 && disponibilidade.getHoraFim() != null
-                && !inicio.toLocalTime().isBefore(disponibilidade.getHoraInicio())
-                && !fim.toLocalTime().isAfter(disponibilidade.getHoraFim());
+                && !inicio.toLocalTime()
+                        .isBefore(disponibilidade.getHoraInicio())
+                && !fim.toLocalTime()
+                        .isAfter(disponibilidade.getHoraFim());
     }
 
     private String obterDiaSemana(DayOfWeek dia) {

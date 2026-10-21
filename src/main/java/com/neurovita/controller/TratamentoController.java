@@ -2,6 +2,7 @@ package com.neurovita.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,8 @@ import com.neurovita.dto.TratamentoRequest;
 import com.neurovita.dto.TratamentoResponse;
 import com.neurovita.service.TratamentoService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/tratamentos")
 public class TratamentoController {
@@ -27,39 +30,33 @@ public class TratamentoController {
     }
 
     @PostMapping
-    public ResponseEntity<TratamentoResponse> salvar(@RequestBody TratamentoRequest request) {
+    public ResponseEntity<TratamentoResponse> salvar(
+            @Valid @RequestBody TratamentoRequest request) {
+
         TratamentoResponse response = tratamentoService.salvar(request);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     public ResponseEntity<List<TratamentoResponse>> listarTodos() {
-        return ResponseEntity.ok(tratamentoService.listarTodos()
-        );
+        return ResponseEntity.ok(tratamentoService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TratamentoResponse> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<TratamentoResponse> buscarPorId(
+            @PathVariable String id) {
 
-        TratamentoResponse response = tratamentoService.buscarPorId(id);
-
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(tratamentoService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TratamentoResponse> atualizar(@PathVariable String id, @RequestBody TratamentoRequest request) {
-        TratamentoResponse response = tratamentoService.atualizar(id, request);
+    public ResponseEntity<TratamentoResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody TratamentoRequest request) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                tratamentoService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -70,7 +67,10 @@ public class TratamentoController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<TratamentoResponse>> listarPorPaciente(@PathVariable String pacienteId) {
-        return ResponseEntity.ok(tratamentoService.listarPorPaciente(pacienteId));
+    public ResponseEntity<List<TratamentoResponse>> listarPorPaciente(
+            @PathVariable String pacienteId) {
+
+        return ResponseEntity.ok(
+                tratamentoService.listarPorPaciente(pacienteId));
     }
 }

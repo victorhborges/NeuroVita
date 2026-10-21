@@ -2,6 +2,7 @@ package com.neurovita.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,8 @@ import com.neurovita.dto.ExameRequest;
 import com.neurovita.dto.ExameResponse;
 import com.neurovita.service.ExameService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/exames")
 public class ExameController {
@@ -27,40 +30,32 @@ public class ExameController {
     }
 
     @PostMapping
-    public ResponseEntity<ExameResponse> salvar(@RequestBody ExameRequest request) {
+    public ResponseEntity<ExameResponse> salvar(
+            @Valid @RequestBody ExameRequest request) {
+
         ExameResponse response = exameService.salvar(request);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     public ResponseEntity<List<ExameResponse>> listarTodos() {
-
-        return ResponseEntity.ok(exameService.listarTodos()
-        );
+        return ResponseEntity.ok(exameService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExameResponse> buscarPorId(@PathVariable String id) {
+    public ResponseEntity<ExameResponse> buscarPorId(
+            @PathVariable String id) {
 
-        ExameResponse response = exameService.buscarPorId(id);
-
-        if (response == null) {
-        return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(exameService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ExameResponse> atualizar(@PathVariable String id, @RequestBody ExameRequest request) {
-        ExameResponse response = exameService.atualizar(id, request);
+    public ResponseEntity<ExameResponse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody ExameRequest request) {
 
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(exameService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -71,7 +66,10 @@ public class ExameController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<ExameResponse>> listarPorPaciente(@PathVariable String pacienteId) {
-        return ResponseEntity.ok(exameService.listarPorPaciente(pacienteId));
+    public ResponseEntity<List<ExameResponse>> listarPorPaciente(
+            @PathVariable String pacienteId) {
+
+        return ResponseEntity.ok(
+                exameService.listarPorPaciente(pacienteId));
     }
 }

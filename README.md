@@ -4,25 +4,25 @@ Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **F
 
 A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
 
-> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. A autenticação, as permissões de acesso, a integração com o banco de dados e as novas operações de responsáveis e vínculos com pacientes continuam em validação.
+> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. O login com JWT e as consultas autenticadas de administradores e pacientes foram verificados em produção. A integração com o MongoDB Atlas está estabelecida, e o backend continua recebendo melhorias de validação, regras de negócio e autorização. A validação funcional completa é responsabilidade da equipe designada para os testes.
 
 ## 🛠️ Tecnologias
 
-| Tecnologia | Versão / uso |
-|---|---|
-| ☕ Java | 21 |
-| 🌱 Spring Boot | 4.0.8 |
-| 🗄️ MongoDB | Banco de dados NoSQL |
-| 🔗 Spring Data MongoDB | Persistência de dados |
-| 🔐 Spring Security | Autenticação e autorização |
-| 🎟️ JWT | Autenticação por token |
-| 🔑 BCrypt | Hash e verificação de senhas |
-| ✅ Jakarta Bean Validation | Validação de dados de entrada |
-| 📖 SpringDoc OpenAPI | Documentação da API |
-| 🐳 Docker | Containerização |
-| ☁️ Render | Hospedagem |
-| 📦 Maven | Gerenciamento e construção do projeto |
-| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
+| Tecnologia                | Versão / uso                                        |
+| ------------------------- | --------------------------------------------------- |
+| ☕ Java                    | 21                                                  |
+| 🌱 Spring Boot            | 4.0.8                                               |
+| 🗄️ MongoDB               | Banco de dados NoSQL                                |
+| 🔗 Spring Data MongoDB    | Persistência de dados                               |
+| 🔐 Spring Security        | Autenticação e autorização                          |
+| 🎟️ JWT                   | Autenticação por token                              |
+| 🔑 BCrypt                 | Hash e verificação de senhas                        |
+| ✅ Jakarta Bean Validation | Validação de dados de entrada                       |
+| 📖 SpringDoc OpenAPI      | Documentação da API                                 |
+| 🐳 Docker                 | Containerização                                     |
+| ☁️ Render                 | Hospedagem                                          |
+| 📦 Maven                  | Gerenciamento e construção do projeto               |
+| 🧪 Maven Wrapper          | Execução do Maven sem instalação global obrigatória |
 
 ---
 
@@ -45,11 +45,11 @@ O backend possui os seguintes módulos e recursos:
 - 🔐 Autenticação e segurança
 - 👤 Modelo centralizado de usuários
 - ✅ Validação de dados de entrada
-- 🔄 Status e cancelamento de consultas, em validação local
+- 🔄 Status, remarcação e cancelamento de consultas
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
-A existência dos módulos não substitui a validação funcional de cada operação, das permissões e da integração com o banco de dados.
+A existência dos módulos não substitui a validação funcional de cada operação, das permissões e das regras de negócio.
 
 ---
 
@@ -73,7 +73,7 @@ Cliente / Frontend / Postman
 
 ### Controller
 
-Recebe as requisições HTTP, aplica as validações de entrada quando configuradas e retorna as respostas da API.
+Recebe as requisições HTTP, aplica as validações de entrada configuradas e retorna as respostas da API.
 
 ### Service
 
@@ -217,17 +217,15 @@ DELETE /api/responsaveis/{id}
 
 ### Dados do responsável
 
-O modelo contempla os seguintes campos:
+| Campo      | Descrição                    |
+| ---------- | ---------------------------- |
+| `id`       | Identificador do responsável |
+| `nome`     | Nome do responsável          |
+| `cpf`      | CPF, quando informado        |
+| `email`    | E-mail, quando informado     |
+| `telefone` | Telefone, quando informado   |
 
-| Campo | Descrição |
-|---|---|
-| `id` | Identificador do responsável |
-| `nome` | Nome do responsável |
-| `cpf` | CPF, quando informado |
-| `email` | E-mail, quando informado |
-| `telefone` | Telefone, quando informado |
-
-O nome é obrigatório. CPF e e-mail possuem verificações de duplicidade quando informados, de acordo com as regras implementadas no serviço.
+O nome é obrigatório. O DTO utiliza validações para os campos aplicáveis, incluindo e-mail, CPF e telefone. CPF e e-mail também são verificados quanto à duplicidade, conforme as regras implementadas no serviço.
 
 ### Vínculos com pacientes
 
@@ -235,11 +233,11 @@ Os dados pessoais do responsável são armazenados separadamente dos dados do pa
 
 Cada vínculo contém:
 
-| Campo | Descrição |
-|---|---|
-| `id` | Identificador do vínculo |
-| `pacienteId` | Identificador do paciente |
-| `responsavelId` | Identificador do responsável |
+| Campo            | Descrição                                |
+| ---------------- | ---------------------------------------- |
+| `id`             | Identificador do vínculo                 |
+| `pacienteId`     | Identificador do paciente                |
+| `responsavelId`  | Identificador do responsável             |
 | `grauParentesco` | Relação entre o paciente e o responsável |
 
 Essa estrutura permite:
@@ -260,7 +258,7 @@ Essa estrutura permite:
 - O cadastro de pacientes menores de idade exige pelo menos um responsável.
 - Na atualização do paciente, a lista recebida é utilizada para reconciliar os vínculos existentes.
 
-As regras e a persistência dos dados ainda precisam ser verificadas por meio de requisições reais após a publicação da implementação.
+Essas regras precisam ser validadas funcionalmente por meio de requisições reais.
 
 ### Permissões
 
@@ -272,7 +270,7 @@ As operações de responsáveis estão configuradas para os perfis `ADMINISTRADO
 
 ## 🧑‍⚕️ Profissionais
 
-Gerenciamento de profissionais e suas disponibilidades.
+O módulo permite gerenciar profissionais e suas disponibilidades.
 
 ### Endpoints
 
@@ -311,6 +309,8 @@ O cadastro também participa do fluxo de criação de credenciais de acesso, con
 
 ## ⏰ Disponibilidades
 
+O módulo permite cadastrar, consultar, atualizar e excluir disponibilidades.
+
 ### Endpoints
 
 ```text
@@ -321,13 +321,21 @@ PUT    /api/disponibilidades/{id}
 DELETE /api/disponibilidades/{id}
 ```
 
-O serviço possui validações para os dados obrigatórios e para a ordem dos horários. As regras funcionais completas ainda devem ser verificadas.
+### Validações implementadas
+
+O serviço valida os campos obrigatórios de horário e verifica se o horário final é posterior ao horário inicial.
+
+O dia da semana é normalizado para padronizar a comparação dos valores. A normalização remove espaços nas extremidades, converte o texto para letras maiúsculas e substitui espaços e hífens por sublinhados.
+
+### Permissões
+
+As permissões das rotas globais de disponibilidades ainda precisam ser revisadas para garantir que cada perfil possa executar somente as operações autorizadas. As rotas vinculadas ao profissional também precisam respeitar as regras de acesso correspondentes.
 
 ---
 
 ## 📅 Consultas
 
-O módulo de consultas permite cadastrar, consultar, atualizar e excluir atendimentos. A implementação local também contempla status para representar a situação de cada consulta.
+O módulo de consultas permite cadastrar, consultar, atualizar e excluir atendimentos. A implementação local contempla status, regras de agendamento e cancelamento.
 
 ### Endpoints
 
@@ -349,11 +357,11 @@ GET /api/consultas/profissional/{profissionalId}
 
 ### Status das consultas
 
-| Status | Significado |
-|---|---|
-| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta. |
-| `REMARCADA` | Consulta cuja data ou horário foi alterado. |
-| `CANCELADA` | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
+| Status       | Significado                                                                           |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta.            |
+| `REMARCADA`  | Consulta cuja data ou horário foi alterado.                                           |
+| `CANCELADA`  | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
 
 O status é controlado pelo backend e não deve ser definido livremente no corpo da requisição de cadastro ou atualização.
 
@@ -379,7 +387,9 @@ Consultas canceladas não devem bloquear o horário para novos agendamentos. Con
 
 A alteração de data ou horário por meio do endpoint de atualização marca a consulta como `REMARCADA`. Consultas canceladas não podem ser atualizadas pela operação normal de alteração.
 
-**Atenção:** essas regras foram implementadas localmente e ainda precisam ser validadas funcionalmente, inclusive após a publicação no Render.
+A comparação dos dias da semana das disponibilidades foi normalizada no serviço de consultas, para reduzir inconsistências causadas por diferenças de espaços, maiúsculas, minúsculas e separadores.
+
+**Atenção:** as regras foram implementadas localmente e precisam ser validadas funcionalmente, inclusive após a publicação no Render.
 
 ---
 
@@ -416,11 +426,13 @@ PUT  /api/prontuarios/{id}
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
-O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes. A validação completa dessas restrições permanece necessária.
+Os DTOs possuem validações para campos obrigatórios. O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes. A validação completa dessas restrições permanece necessária.
 
 ---
 
 ## 🧠 Diagnósticos
+
+### Endpoints
 
 ```text
 POST   /api/diagnosticos
@@ -431,6 +443,7 @@ DELETE /api/diagnosticos/{id}
 
 GET    /api/diagnosticos/paciente/{pacienteId}
 ```
+
 ### Validação dos dados
 
 O cadastro e a atualização de diagnósticos utilizam Jakarta Bean Validation para validar os campos obrigatórios:
@@ -440,9 +453,14 @@ O cadastro e a atualização de diagnósticos utilizam Jakarta Bean Validation p
 - Descrição do diagnóstico.
 
 As validações são aplicadas pelo controller com `@Valid`. O serviço continua responsável por verificar as regras de negócio, incluindo os vínculos necessários entre paciente e profissional.
+
 ---
 
 ## 💊 Tratamentos
+
+O módulo permite gerenciar tratamentos relacionados aos pacientes e profissionais.
+
+### Endpoints
 
 ```text
 POST   /api/tratamentos
@@ -454,9 +472,29 @@ DELETE /api/tratamentos/{id}
 GET    /api/tratamentos/paciente/{pacienteId}
 ```
 
+### Validação dos dados
+
+O DTO de requisição possui validações para os campos obrigatórios:
+
+- ID do paciente.
+- ID do profissional.
+- Descrição do tratamento.
+
+Os endpoints de cadastro e atualização aplicam `@Valid` para executar as validações de entrada.
+
+O cadastro retorna `201 Created` quando a operação é concluída com sucesso.
+
+O serviço mantém as verificações de existência do paciente e do profissional e as regras de associação com a consulta correspondente, conforme a implementação do módulo.
+
+As regras de negócio e as permissões ainda precisam ser validadas funcionalmente.
+
 ---
 
 ## 🧪 Exames
+
+O módulo permite gerenciar exames associados a pacientes e profissionais.
+
+### Endpoints
 
 ```text
 POST   /api/exames
@@ -468,11 +506,27 @@ DELETE /api/exames/{id}
 GET    /api/exames/paciente/{pacienteId}
 ```
 
+### Validação dos dados
+
+O DTO de requisição possui validações para os campos obrigatórios:
+
+- ID do paciente.
+- ID do profissional.
+- Nome do exame.
+
+Os endpoints de cadastro e atualização aplicam `@Valid` para executar as validações de entrada.
+
+O cadastro retorna `201 Created` quando a operação é concluída com sucesso.
+
+Os demais campos do exame, como tipo, data de realização, resultado e observações, são tratados conforme a estrutura do DTO.
+
+As regras de negócio, as permissões e a persistência devem ser verificadas funcionalmente.
+
 ---
 
 ## 👨‍💼 Administradores
 
-Gerenciamento de administradores.
+O módulo permite gerenciar administradores.
 
 ### Endpoints
 
@@ -484,11 +538,17 @@ PUT    /api/administradores/{id}
 DELETE /api/administradores/{id}
 ```
 
-As senhas não devem ser retornadas pelos DTOs de resposta e são armazenadas utilizando BCrypt.
+### Credenciais e modelo centralizado de usuários
+
+A autenticação utiliza o modelo centralizado `Usuario` para armazenar as credenciais.
+
+As senhas são armazenadas utilizando BCrypt e não devem ser retornadas pelos DTOs de resposta de administradores.
+
+O serviço de administradores foi ajustado para centralizar as credenciais no modelo `Usuario`, sincronizando os dados necessários entre o administrador e a conta de acesso relacionada.
 
 O perfil `ADMINISTRADOR` é utilizado nas regras de autorização da API.
 
-A integração entre o cadastro de administradores e o modelo centralizado de usuários faz parte da implementação de autenticação em revisão.
+A consistência entre o administrador e sua conta de usuário precisa ser preservada durante as operações de cadastro e atualização.
 
 ---
 
@@ -572,7 +632,7 @@ Exemplo de corpo:
 }
 ```
 
-A implementação local contempla:
+A implementação contempla:
 
 - Token com validade reduzida para o primeiro acesso.
 - Restrição do token de primeiro acesso ao endpoint de troca de senha.
@@ -592,7 +652,7 @@ Os perfis previstos no modelo de autenticação são:
 - **Secretaria:** operações administrativas e de agendamento, respeitando as restrições de informações clínicas.
 - **Paciente:** acesso aos próprios dados e informações de atendimento, conforme as regras do sistema.
 
-A configuração local contém regras específicas para rotas de administradores, cadastro e consulta de pacientes e profissionais, além da troca de senha no primeiro acesso e das operações de responsáveis.
+A configuração do Spring Security contém regras específicas para as rotas de administradores, pacientes, profissionais, consultas, agenda, disponibilidades, prontuários, diagnósticos, tratamentos, exames e responsáveis.
 
 As permissões de todos os endpoints ainda precisam ser revisadas e validadas. A existência de um perfil no modelo centralizado não significa, por si só, que todas as suas permissões já estejam implementadas.
 
@@ -600,7 +660,7 @@ O acesso a prontuários, diagnósticos, exames e demais informações clínicas 
 
 O vínculo entre um paciente e um responsável não concede automaticamente acesso aos dados clínicos.
 
-A consulta ao perfil individual de um profissional permite o acesso ao próprio perfil pelo usuário autenticado com perfil `PROFISSIONAL`, respeitando a validação do vínculo entre a conta e a entidade. O acesso administrativo permanece permitido. A validação dessa regra em produção está pendente.
+A revisão das permissões específicas das rotas globais de disponibilidades permanece entre as próximas etapas.
 
 ### Tratamento de erros
 
@@ -648,7 +708,7 @@ O endpoint `POST /api/auth/login` não exige um token prévio. Os demais endpoin
 
 > **Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
 
-A presença do botão Authorize confirma a configuração da documentação OpenAPI, mas o funcionamento do login e das permissões deve ser validado por meio de requisições reais.
+A configuração OpenAPI está disponível, e o login com JWT já foi verificado em produção. A autorização de todos os perfis e endpoints ainda precisa ser validada.
 
 ---
 
@@ -685,7 +745,7 @@ GET /teste
 
 [https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
 
-A resposta dos endpoints de verificação confirma que a rota está respondendo, mas não comprova, por si só, a conectividade com o MongoDB.
+O login autenticado e as consultas de administradores e pacientes foram verificados em produção. As operações retornaram respostas HTTP `200` nos cenários verificados.
 
 As alterações desenvolvidas localmente só estarão disponíveis no ambiente hospedado depois do commit, do push e da conclusão bem-sucedida do novo deploy.
 
@@ -693,19 +753,35 @@ As alterações desenvolvidas localmente só estarão disponíveis no ambiente h
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza **MongoDB** com Spring Data MongoDB.
+O projeto utiliza **MongoDB** com Spring Data MongoDB e MongoDB Atlas.
 
-### Coleções principais
+### Coleções
 
-A aplicação utiliza documentos MongoDB para persistir as entidades dos módulos. A estrutura final depende da configuração e da migração coordenada com a equipe responsável pelo banco.
+A aplicação utiliza coleções MongoDB para persistir os documentos dos módulos, incluindo:
 
-As coleções relacionadas à funcionalidade de responsáveis são:
+- `administradores`
+- `consultas`
+- `diagnosticos`
+- `disponibilidades`
+- `exames`
+- `pacientes`
+- `profissionais`
+- `prontuarios`
+- `responsaveis`
+- `secretarias`
+- `tratamentos`
+- `usuarios`
+- `vinculosResponsaveis`
 
-| Coleção | Finalidade |
-|---|---|
-| `responsaveis` | Dados pessoais e de contato dos responsáveis |
+A estrutura efetivamente utilizada depende dos modelos e repositórios implementados e da configuração do banco.
+
+### Responsáveis e vínculos
+
+| Coleção                | Finalidade                                                             |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `responsaveis`         | Dados pessoais e de contato dos responsáveis                           |
 | `vinculosResponsaveis` | Relação entre pacientes e responsáveis, incluindo o grau de parentesco |
-| `pacientes` | Dados cadastrais dos pacientes |
+| `pacientes`            | Dados cadastrais dos pacientes                                         |
 
 O relacionamento entre paciente e responsável é armazenado separadamente, evitando duplicar os dados pessoais do responsável em cada paciente.
 
@@ -723,6 +799,8 @@ A propriedade configurada em `application.properties` é:
 spring.mongodb.uri=${MONGODB_URI}
 ```
 
+A URI precisa incluir o nome do banco de dados, além dos parâmetros de conexão necessários.
+
 Em produção, a URI de conexão é fornecida pela variável `MONGODB_URI`, configurada no ambiente do Render.
 
 A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usada para assinar e validar os tokens JWT.
@@ -736,11 +814,11 @@ A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usad
 
 ### Status da conexão
 
-A configuração da integração com MongoDB está presente no projeto. A conectividade com o MongoDB Atlas, bem como a leitura e a gravação de documentos em produção, deve ser confirmada por meio de verificações específicas.
+A conexão com o MongoDB Atlas foi estabelecida em produção. Os logs do Render indicaram a conexão com o cluster, e consultas autenticadas de administradores e pacientes retornaram dados reais pela API.
 
-Um teste automatizado de contexto aprovado localmente não comprova, isoladamente, a conexão real com o banco de dados.
+Esses resultados confirmam a conectividade e a leitura de dados nos cenários verificados. **Ainda não comprovam que todas as operações de cadastro, atualização e exclusão de todos os módulos estejam funcionando corretamente.**
 
-A estrutura de responsáveis e vínculos precisa ser compatibilizada com a migração do MongoDB coordenada pela equipe responsável pelo banco antes de considerar a funcionalidade validada em produção.
+A compatibilidade da funcionalidade de responsáveis e vínculos com a estrutura definitiva do banco deve ser confirmada em conjunto com a equipe responsável pelo banco de dados.
 
 ---
 
@@ -779,7 +857,7 @@ cd NeuroVita
 
 Configure `MONGODB_URI` com uma URI válida do MongoDB e `JWT_SECRET` com uma chave secreta forte.
 
-A chave JWT deve atender ao tamanho mínimo exigido pela implementação de autenticação.
+A URI deve conter o nome do banco de dados. A chave JWT deve atender ao tamanho mínimo exigido pela implementação de autenticação.
 
 Não inclua os valores reais dessas variáveis em arquivos versionados ou em exemplos públicos.
 
@@ -813,11 +891,29 @@ A resposta desse endpoint confirma que a rota está respondendo, mas não compro
 
 ---
 
-## 🧪 Testes
+## 🧪 Verificação e testes
 
-Os testes são executados por meio do Maven.
+A compilação e os testes Maven podem ser executados localmente.
 
-### Windows
+### Compilação
+
+Para verificar se as classes do projeto compilam:
+
+**Windows**
+
+```cmd
+mvn compile
+```
+
+**Linux/macOS**
+
+```bash
+./mvnw compile
+```
+
+### Testes Maven
+
+**Windows**
 
 ```cmd
 mvn test
@@ -829,17 +925,19 @@ Ou, utilizando o Maven Wrapper:
 mvnw.cmd test
 ```
 
-### Linux/macOS
+**Linux/macOS**
 
 ```bash
 ./mvnw test
 ```
 
-A execução local mais recente informada terminou com `BUILD SUCCESS`.
+A execução local mais recente informada terminou com `BUILD SUCCESS` nas verificações realizadas.
 
-Esse resultado indica que a execução dos testes Maven terminou sem falhas reportadas. Ele não comprova a conectividade real com o MongoDB Atlas nem a validação funcional de todos os endpoints, perfis e permissões.
+O resultado da compilação confirma que as classes foram compiladas sem falhas reportadas. O resultado dos testes Maven se limita aos testes executados nessa execução.
 
-Os testes funcionais completos são responsabilidade da equipe designada para essa atividade. A cobertura de testes poderá ser ampliada conforme a evolução do projeto e o planejamento da equipe.
+Nenhum desses resultados, isoladamente, comprova a validação funcional de todos os endpoints, perfis, regras de negócio e operações com o MongoDB Atlas.
+
+Os testes funcionais completos são responsabilidade da equipe designada para essa atividade. As verificações de compilação e as correções do backend são realizadas durante o desenvolvimento.
 
 ---
 
@@ -874,73 +972,82 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 
 ## 📊 Status do projeto
 
-| Módulo / recurso | Status conhecido |
-|---|---|
-| Estrutura Java | 🟢 Implementada |
-| Spring Boot | 🟢 Implementado |
-| Spring Web MVC | 🟢 Implementado |
-| Spring Data MongoDB | 🟢 Configurado |
-| Pacientes | 🟡 CRUD implementado; novos vínculos em validação |
-| Responsáveis | 🟡 CRUD implementado localmente; aguardando validação funcional |
-| Vínculos entre pacientes e responsáveis | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco |
-| Profissionais | 🟢 CRUD implementado |
-| Validação de pacientes e profissionais | 🟢 Implementada localmente |
-| Disponibilidades | 🟢 Implementadas |
-| Consultas | 🟡 CRUD e regras de agendamento implementados; status e cancelamento em validação local |
-| Agenda | 🟢 Implementada; comportamento dos status a validar |
-| Prontuários | 🟢 CRUD implementado |
-| Diagnósticos | 🟢 CRUD implementado |
-| Tratamentos | 🟢 CRUD implementado |
-| Exames | 🟢 CRUD implementado |
-| Administradores | 🟢 CRUD implementado |
-| Modelo centralizado `Usuario` | 🟡 Implementado localmente, pendente de validação funcional |
-| Login centralizado | 🟡 Implementado localmente, pendente de validação funcional |
-| JWT | 🟡 Implementação local em revisão |
-| BCrypt | 🟢 Utilizado no fluxo de autenticação |
-| Troca de senha no primeiro acesso | 🟡 Implementada localmente, pendente de validação funcional |
-| Spring Security | 🟡 Configuração e permissões em revisão |
-| Autorização por perfil para todos os módulos | 🟡 Em desenvolvimento |
-| Proteção por vínculo profissional-paciente | ⚪ Pendente de validação |
-| Swagger/OpenAPI | 🟢 Implementado |
-| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
-| Docker | 🟢 Configurado |
-| Deploy Render | 🟢 Implantação configurada |
-| MongoDB Atlas em produção | 🟡 Conexão e operações reais pendentes de confirmação |
-| Receitas | ⚪ Aguardando requisitos |
-| Testes completos | 🟡 Sob responsabilidade da equipe de testes |
-| Integração com frontend | ⚪ Planejada |
+| Módulo / recurso                             | Status conhecido                                                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Estrutura Java                               | 🟢 Implementada                                                                                                                         |
+| Spring Boot                                  | 🟢 Implementado                                                                                                                         |
+| Spring Web MVC                               | 🟢 Implementado                                                                                                                         |
+| Spring Data MongoDB                          | 🟢 Configurado                                                                                                                          |
+| Pacientes                                    | 🟡 CRUD implementado; vínculos e regras precisam de validação funcional                                                                 |
+| Responsáveis                                 | 🟡 CRUD implementado localmente; aguardando validação funcional                                                                         |
+| Vínculos entre pacientes e responsáveis      | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco                                               |
+| Profissionais                                | 🟢 CRUD implementado                                                                                                                    |
+| Validação de pacientes e profissionais       | 🟢 Implementada                                                                                                                         |
+| Disponibilidades                             | 🟡 Validações de horários e normalização do dia implementadas; permissões globais em revisão                                            |
+| Consultas                                    | 🟡 Regras de agendamento, normalização de disponibilidade, status e cancelamento implementados localmente; validação funcional pendente |
+| Agenda                                       | 🟢 Implementada; comportamento dos status a validar                                                                                     |
+| Prontuários                                  | 🟡 Implementados; validação das permissões e regras de acesso pendente                                                                  |
+| Diagnósticos                                 | 🟢 Validação de campos obrigatórios com `@NotBlank` e aplicação de `@Valid` no cadastro e na atualização                                |
+| Tratamentos                                  | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro                         |
+| Exames                                       | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro                         |
+| Administradores                              | 🟢 Credenciais centralizadas no modelo `Usuario`; senhas armazenadas com BCrypt                                                         |
+| Modelo centralizado `Usuario`                | 🟢 Implementado; validação funcional completa pendente                                                                                  |
+| Login centralizado                           | 🟢 Login com JWT verificado em produção                                                                                                 |
+| JWT                                          | 🟢 Utilizado na autenticação; revisão das permissões pendente                                                                           |
+| BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                                                                                                   |
+| Troca de senha no primeiro acesso            | 🟡 Implementada; validação funcional pendente                                                                                           |
+| Spring Security                              | 🟡 Configurado; revisão das permissões por endpoint em andamento                                                                        |
+| Autorização por perfil para todos os módulos | 🟡 Em revisão e validação                                                                                                               |
+| Proteção por vínculo profissional-paciente   | 🟡 Regras existentes precisam de validação funcional completa                                                                           |
+| Swagger/OpenAPI                              | 🟢 Implementado                                                                                                                         |
+| Tratamento global de exceções                | 🟢 Implementado, com melhorias pendentes                                                                                                |
+| Docker                                       | 🟢 Configurado                                                                                                                          |
+| Deploy Render                                | 🟢 Implantação configurada                                                                                                              |
+| MongoDB Atlas em produção                    | 🟢 Conexão e leitura verificadas; demais operações precisam de validação por módulo                                                     |
+| Receitas                                     | ⚪ Aguardando requisitos                                                                                                                 |
+| Testes funcionais completos                  | 🟡 Sob responsabilidade da equipe designada                                                                                             |
+| Integração com frontend                      | ⚪ Pendente de validação integrada                                                                                                       |
 
-Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação do ambiente de produção.
+Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação de todas as operações no ambiente de produção.
 
 ---
 
 ## 🗺️ Próximas etapas
 
-- [x] Adicionar validações iniciais aos DTOs de pacientes e profissionais.
+- [x] Implementar validações iniciais nos DTOs de pacientes e profissionais.
 - [x] Aplicar `@Valid` nos endpoints de cadastro e atualização desses módulos.
-- [x] Executar os testes Maven localmente com resultado `BUILD SUCCESS`.
-- [x] Preparar a implementação local de autenticação centralizada e troca de senha no primeiro acesso.
-- [x] Implementar localmente os status das consultas e o endpoint de cancelamento.
 - [x] Implementar localmente o CRUD de responsáveis.
 - [x] Implementar localmente os vínculos entre pacientes e responsáveis.
-- [ ] Revisar o diff e publicar as alterações no GitHub.
-- [ ] Confirmar o deploy das alterações no Render.
+- [x] Implementar localmente status, remarcação e cancelamento de consultas.
+- [x] Normalizar os dias da semana na comparação de disponibilidades durante o agendamento.
+- [x] Aplicar validações com `@NotBlank` e `@Valid` aos diagnósticos.
+- [x] Aplicar validações com `@NotBlank` e `@Valid` aos tratamentos.
+- [x] Aplicar validações com `@NotBlank` e `@Valid` aos exames.
+- [x] Configurar o cadastro de tratamentos e exames para retornar `201 Created`.
+- [x] Centralizar as credenciais de administradores no modelo `Usuario`.
+- [x] Verificar o login com JWT em produção.
+- [x] Verificar consultas autenticadas de administradores e pacientes em produção.
+- [x] Confirmar a conexão com o MongoDB Atlas e a leitura de dados nos cenários verificados.
+- [ ] Revisar o diff das alterações locais e publicar o código no GitHub.
+- [ ] Confirmar o deploy das alterações locais no Render.
+- [ ] Revisar as permissões das rotas globais de disponibilidades.
+- [ ] Validar o CRUD de disponibilidades e suas regras de horário.
+- [ ] Validar o CRUD de tratamentos e exames.
 - [ ] Validar o CRUD de responsáveis pelo Swagger.
 - [ ] Validar o cadastro de pacientes com um ou mais responsáveis.
 - [ ] Validar a atualização e a remoção de vínculos.
 - [ ] Validar as regras de menores de idade sem responsável.
-- [ ] Compatibilizar a funcionalidade com a estrutura final do MongoDB Atlas.
+- [ ] Compatibilizar a funcionalidade de responsáveis com a estrutura final do MongoDB Atlas.
 - [ ] Validar a criação e a associação das contas de usuários às entidades de domínio.
-- [ ] Confirmar a conexão com o MongoDB Atlas em produção.
-- [ ] Validar operações reais de leitura e gravação no banco.
+- [ ] Validar operações de leitura, cadastro, atualização e exclusão no banco para os módulos aplicáveis.
 - [ ] Validar as regras de status, remarcação, cancelamento e conflitos de horário.
 - [ ] Validar o login e a troca de senha no primeiro acesso.
 - [ ] Revisar as permissões dos endpoints para cada perfil.
-- [ ] Padronizar as respostas de erro de validação.
-- [ ] Implementar e validar as restrições de acesso aos dados clínicos.
+- [ ] Padronizar e validar as respostas de erro.
+- [ ] Validar as restrições de acesso aos dados clínicos.
 - [ ] Definir o módulo de Receitas após a especificação no Figma.
-- [ ] Validar a API em produção com a equipe responsável.
-- [ ] Integrar com o frontend.
+- [ ] Disponibilizar a API para a validação funcional da equipe responsável.
+- [ ] Integrar e validar o backend com o frontend.
 - [ ] Ampliar a cobertura de testes conforme o planejamento da equipe.
 
 ---
@@ -949,23 +1056,31 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 
 O projeto utiliza Git e GitHub para controle de versão.
 
-### Fluxo básico
+### Fluxo de revisão
+
+Antes de publicar as alterações:
 
 ```bash
 git status
 
 git diff
 
+git diff -- README.md
+```
+
+Para publicar somente o README:
+
+```bash
 git add README.md
 
 git diff --cached
 
-git commit -m "docs: atualiza README"
+git commit -m "docs: atualiza README com progresso do backend"
 
 git push origin main
 ```
 
-Esse é um exemplo de fluxo para uma alteração exclusivamente documental. Para commits que incluem código, adicione também os arquivos específicos da funcionalidade revisada.
+Se as alterações de código também estiverem prontas para publicação, adicione os arquivos correspondentes às funcionalidades revisadas, após conferir o diff de cada um.
 
 Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
 
