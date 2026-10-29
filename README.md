@@ -749,6 +749,20 @@ O login autenticado e as consultas de administradores e pacientes foram verifica
 
 As alterações desenvolvidas localmente só estarão disponíveis no ambiente hospedado depois do commit, do push e da conclusão bem-sucedida do novo deploy.
 
+### Integração com o frontend
+
+O backend utiliza configuração de CORS no Spring Security para controlar quais origens podem realizar requisições à API por meio do navegador.
+
+O frontend Angular está hospedado no Render:
+
+- **Frontend:** https://frontend-neurovita-lz6o.onrender.com/
+- **Backend:** https://neurovita.onrender.com
+- **Swagger:** https://neurovita.onrender.com/swagger-ui/index.html
+
+A origem do frontend deve estar incluída na lista de origens permitidas do CORS em `SecurityConfig.java`. Alterações nessa configuração precisam ser publicadas no backend e ter seu funcionamento confirmado no ambiente hospedado.
+
+A permissão de CORS não substitui a autenticação JWT nem as regras de autorização dos endpoints.
+
 ---
 
 ## 🗄️ Banco de dados
@@ -1006,7 +1020,7 @@ A implementação utiliza o backend anterior como referência, mas reorganiza a 
 | MongoDB Atlas em produção                    | 🟢 Conexão e leitura verificadas; demais operações precisam de validação por módulo                                                     |
 | Receitas                                     | ⚪ Aguardando requisitos                                                                                                                 |
 | Testes funcionais completos                  | 🟡 Sob responsabilidade da equipe designada                                                                                             |
-| Integração com frontend                      | ⚪ Pendente de validação integrada                                                                                                       |
+| Integração com frontend | 🟡 Frontend hospedado no Render, integração com a API em andamento |
 
 Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação de todas as operações no ambiente de produção.
 

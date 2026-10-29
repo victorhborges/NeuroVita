@@ -26,19 +26,19 @@ import com.neurovita.security.JwtAuthenticationFilter;
 @Configuration
 public class SecurityConfig {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+        private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+        @Bean
+        public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("https://neurovita-frontend.onrender.com"));
+                List.of("https://frontend-neurovita-lz6o.onrender.com"));
 
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -54,13 +54,13 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
-    }
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter)
-            throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                HttpSecurity http,
+                JwtAuthenticationFilter jwtAuthenticationFilter)
+                throws Exception {
 
         http
                 .cors(cors ->
@@ -210,12 +210,12 @@ public class SecurityConfig {
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
+        }
 
-    private void escreverErro(
-            jakarta.servlet.http.HttpServletResponse response,
-            HttpStatus status,
-            String mensagem) throws java.io.IOException {
+        private void escreverErro(
+        jakarta.servlet.http.HttpServletResponse response,
+        HttpStatus status,
+        String mensagem) throws java.io.IOException {
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -226,5 +226,5 @@ public class SecurityConfig {
                 Map.of(
                         "status", status.value(),
                         "mensagem", mensagem));
-    }
+        }
 }
