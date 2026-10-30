@@ -1,0 +1,111 @@
+@if (edicao() && !existente()) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Paciente não encontrado" subtitulo="Esse paciente não existe ou foi removido." [voltarPara]="voltar()" />
+  </div>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina
+      [titulo]="edicao() ? 'Editar Paciente' : 'Cadastrar Novo Paciente'"
+      [subtitulo]="edicao() ? 'Altere as informações necessárias e salve o cadastro' : 'Preencha as informações para realizar o cadastro do paciente'"
+      [voltarPara]="voltar()"
+    />
+
+    <form class="cartao form-pac" novalidate (submit)="$event.preventDefault(); cadastrar()">
+      <div class="form-pac-grade">
+        <section class="form-pac-bloco" aria-labelledby="t-dados">
+          <h2 id="t-dados" class="form-pac-titulo"><app-icone nome="usuario" /> Dados Pessoais</h2>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('nome')">
+            <input type="text" placeholder="Nome completo" autocomplete="off" [value]="f().nome" (input)="digitar('nome', $event)" [attr.aria-invalid]="!!mostrarErro('nome')" />
+            @if (mostrarErro('nome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('nascimento')">
+            <input type="date" [max]="hoje" aria-label="Data de nascimento" [value]="f().nascimento" (input)="digitar('nascimento', $event)" [class.campo-vazio]="!f().nascimento" />
+            @if (!f().nascimento) { <span class="campo-falso">Data de nascimento</span> }
+            @if (mostrarErro('nascimento'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('email')">
+            <input type="email" placeholder="E-mail" autocomplete="off" [value]="f().email" (input)="digitar('email', $event)" />
+            @if (mostrarErro('email'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('cpf')">
+            <input type="text" inputmode="numeric" placeholder="CPF" autocomplete="off" [value]="f().cpf" (input)="digitar('cpf', $event)" />
+            @if (mostrarErro('cpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('telefone')">
+            <input type="tel" inputmode="tel" placeholder="Telefone" autocomplete="off" [value]="f().telefone" (input)="digitar('telefone', $event)" />
+            @if (mostrarErro('telefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+        </section>
+
+        <section class="form-pac-bloco" aria-labelledby="t-plano">
+          <h2 id="t-plano" class="form-pac-titulo">Plano de Saúde</h2>
+          <fieldset class="radios">
+            <legend>Possui plano de saúde?</legend>
+            <label class="radio"><input type="radio" name="plano" [checked]="f().possuiPlano" (change)="definir('possuiPlano', true)" /><span class="radio-bolinha"></span> Sim</label>
+            <label class="radio"><input type="radio" name="plano" [checked]="!f().possuiPlano" (change)="definir('possuiPlano', false)" /><span class="radio-bolinha"></span> Não</label>
+          </fieldset>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('plano')">
+            <input type="text" placeholder="Plano de saúde" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().plano" (input)="digitar('plano', $event)" />
+            @if (mostrarErro('plano'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form" [class.campo-form-erro]="mostrarErro('carteirinha')">
+            <input type="text" placeholder="Número de carteirinha" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().carteirinha" (input)="digitar('carteirinha', $event)" />
+            @if (mostrarErro('carteirinha'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+          </label>
+          <label class="campo-form">
+            <input type="date" aria-label="Validade" [disabled]="!f().possuiPlano" [value]="f().validade" (input)="digitar('validade', $event)" [class.campo-vazio]="!f().validade" />
+            @if (!f().validade) { <span class="campo-falso">Validade</span> }
+          </label>
+          <fieldset class="radios radios-status">
+            <legend>Status do paciente</legend>
+            <label class="radio"><input type="radio" name="status" [checked]="f().ativo" (change)="definir('ativo', true)" /><span class="radio-bolinha"></span> Ativo</label>
+            <label class="radio"><input type="radio" name="status" [checked]="!f().ativo" (change)="definir('ativo', false)" /><span class="radio-bolinha"></span> Inativo</label>
+          </fieldset>
+        </section>
+
+        <section class="form-pac-bloco form-pac-largo" aria-labelledby="t-resp">
+          <h2 id="t-resp" class="form-pac-titulo">
+            <app-icone nome="usuario" /> Responsável
+            @if (menorDeIdade()) { <small class="form-pac-aviso">obrigatório para menores de 18 anos</small> }
+          </h2>
+          <div class="form-pac-duas">
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('rNome')">
+              <input type="text" placeholder="Nome completo" autocomplete="off" [value]="f().rNome" (input)="digitar('rNome', $event)" />
+              @if (mostrarErro('rNome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('rParentesco')">
+              <input type="text" placeholder="Grau de Parentesco" autocomplete="off" [value]="f().rParentesco" (input)="digitar('rParentesco', $event)" />
+              @if (mostrarErro('rParentesco'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form">
+              <input type="date" aria-label="Data de nascimento do responsável" [max]="hoje" [value]="f().rNascimento" (input)="digitar('rNascimento', $event)" [class.campo-vazio]="!f().rNascimento" />
+              @if (!f().rNascimento) { <span class="campo-falso">Data de nascimento</span> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('rTelefone')">
+              <input type="tel" inputmode="tel" placeholder="Telefone" autocomplete="off" [value]="f().rTelefone" (input)="digitar('rTelefone', $event)" />
+              @if (mostrarErro('rTelefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('rEmail')">
+              <input type="email" placeholder="E-mail" autocomplete="off" [value]="f().rEmail" (input)="digitar('rEmail', $event)" />
+              @if (mostrarErro('rEmail'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('rCpf')">
+              <input type="text" inputmode="numeric" placeholder="CPF" autocomplete="off" [value]="f().rCpf" (input)="digitar('rCpf', $event)" />
+              @if (mostrarErro('rCpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <div class="form-pac-botoes">
+        <button type="button" class="botao-claro" (click)="cancelar()">Cancelar</button>
+        <button type="submit" class="botao-escuro">{{ edicao() ? 'Salvar' : 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <app-dialogo
+    [aberto]="confirmando()" [titulo]="edicao() ? 'Salvar alterações?' : 'Confirmar Cadastro?'"
+    (cancelar)="confirmando.set(false)" (confirmar)="confirmar()"
+  />
+}

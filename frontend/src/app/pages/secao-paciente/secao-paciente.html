@@ -1,0 +1,102 @@
+@if (!paciente() || !secaoValida()) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Página não encontrada" subtitulo="Esse paciente ou essa seção não existe." [voltarPara]="raiz() + '/pacientes'" />
+  </div>
+} @else if (cfg().modo === 'leitura') {
+  <app-documento-leitura [id]="id()" [secao]="cfg().id" [perfil]="perfil()" />
+} @else {
+  <div class="pg">
+    <app-titulo-pagina [titulo]="cfg().rotulo" subtitulo="Histórico e informações do paciente" [voltarPara]="raiz() + '/pacientes/' + id()">
+      @if (cfg().id === 'laudos') {
+        <div class="novo-menu" #menuCaixa>
+          <button type="button" class="botao-escuro" aria-haspopup="menu" [attr.aria-expanded]="menuNovo()" (click)="menuNovo.set(!menuNovo())">{{ cfg().botaoNovo }}</button>
+          @if (menuNovo()) {
+            <div class="novo-menu-caixa" role="menu">
+              <p class="novo-menu-titulo">Novos laudos</p>
+              <button type="button" role="menuitem" class="novo-opcao" (click)="criarEmBranco()">
+                <span class="novo-opcao-icone novo-opcao-verde"><app-icone nome="prancheta" /></span>
+                <span><strong>Criar laudos em branco</strong><small>Abre o editor vazio para o profissional escrever manualmente</small></span>
+              </button>
+              <button type="button" role="menuitem" class="novo-opcao" (click)="escolherArquivo()">
+                <span class="novo-opcao-icone novo-opcao-azul"><app-icone nome="nuvem-upload" /></span>
+                <span><strong>Usar o modelo padrão</strong><small>Faça Upload dos seus arquivos</small></span>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, 'novo']">{{ cfg().botaoNovo }}</a>
+      }
+    </app-titulo-pagina>
+
+    <app-faixa-paciente [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()" />
+
+    <div class="doc-grade">
+      <section class="cartao doc-principal">
+        <h2 class="doc-titulo">{{ cfg().tituloCartao }}</h2>
+
+        @if (cfg().filtros === 'data-busca') {
+          <div class="doc-filtros">
+            <label class="campo-mini">Data da sessão
+              <input type="date" [max]="hoje" [value]="dataFiltro()" (input)="dataFiltro.set($any($event.target).value)" />
+            </label>
+            <label class="campo-busca-mini">
+              <input type="search" [placeholder]="'Buscar ' + cfg().rotulo.toLowerCase() + '...'" [attr.aria-label]="'Buscar ' + cfg().rotulo.toLowerCase()" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+              <app-icone nome="busca" />
+            </label>
+          </div>
+        } @else {
+          <div class="doc-campos cartao">
+            <label class="campo-mini">Data da sessão
+              <input type="date" [max]="hoje" [value]="dataFiltro()" (input)="dataFiltro.set($any($event.target).value)" />
+            </label>
+            <label class="campo-mini">Tipo de atendimento
+              <select [value]="tipoFiltro()" (change)="tipoFiltro.set($any($event.target).value)">
+                <option value="">Todos</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Online">Online</option>
+              </select>
+            </label>
+            <div class="campo-mini">Anexar arquivos
+              <button type="button" class="botao-upload" (click)="escolherArquivo()">Fazer Upload de arquivos</button>
+            </div>
+          </div>
+        }
+
+        <input #arquivo type="file" multiple class="oculto" aria-label="Enviar arquivos" (change)="aoEnviar($event)" />
+
+        <ul class="doc-lista">
+          @for (item of itens(); track item.doc.id) {
+            <li class="doc-item">
+              <app-icone nome="prancheta" class="doc-item-icone" />
+              <a class="doc-item-nome" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]">{{ item.doc.titulo }}</a>
+              <span class="doc-item-data">{{ item.dataBR }}</span>
+              <span class="doc-item-acoes">
+                <button type="button" aria-label="Compartilhar" title="Compartilhar" (click)="compartilhar(item.doc)"><app-icone nome="compartilhar" /></button>
+                <button type="button" aria-label="Baixar" title="Baixar" (click)="baixar(item.doc)"><app-icone nome="baixar" /></button>
+                <a aria-label="Visualizar" title="Visualizar" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]"><app-icone nome="olho" /></a>
+              </span>
+            </li>
+          } @empty {
+            <li class="tabela-vazio">{{ cfg().vazioLista }}</li>
+          }
+        </ul>
+      </section>
+
+      <aside class="doc-lateral">
+        <section class="cartao doc-dados">
+          <h2 class="doc-lateral-titulo"><app-icone nome="usuario" /> Dados do Paciente</h2>
+          <ul>
+            @for (d of dados(); track d.rotulo) {
+              <li><app-icone [nome]="d.icone" /><span><strong>{{ d.rotulo }}</strong><small>{{ d.valor }}</small></span></li>
+            }
+          </ul>
+        </section>
+        <div class="doc-info">
+          <p class="doc-info-titulo"><app-icone nome="relogio" /> Informações importantes</p>
+          <p class="doc-info-texto">{{ cfg().informacao }}</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+}

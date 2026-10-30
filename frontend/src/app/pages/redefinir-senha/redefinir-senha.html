@@ -1,0 +1,41 @@
+<app-auth-card>
+  <h1 class="auth-titulo redefinir-titulo">Redefinir senha</h1>
+  <p class="auth-texto">
+    Crie uma nova senha. Ela deve ter no mínimo 8 caracteres, incluindo letras e números.
+  </p>
+
+  <form class="redefinir-form" (submit)="redefinir($event)">
+    <app-campo-senha
+      nome="nova"
+      placeholder="Nova senha"
+      corIcone="muted"
+      [(valor)]="novaSenha"
+    />
+    <app-campo-senha
+      nome="confirmar"
+      placeholder="Confirmar nova senha"
+      corIcone="muted"
+      [(valor)]="confirmarSenha"
+    />
+
+    @if (erro()) {
+      <p class="erro" role="alert">{{ erro() }}</p>
+    }
+
+    <button type="submit" class="btn-action btn-redefinir">
+      <svg class="icon icon-md" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      Redefinir senha
+    </button>
+  </form>
+
+  <a routerLink="/" class="back-link">
+    <svg class="icon h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </svg>
+    Voltar para o login
+  </a>
+</app-auth-card>

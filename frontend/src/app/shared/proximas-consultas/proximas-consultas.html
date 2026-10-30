@@ -1,0 +1,44 @@
+<section class="cartao proximas">
+  <header class="cartao-topo">
+    <h2 class="cartao-titulo">Próximas consultas</h2>
+    @if (rota(); as destino) {
+      <a class="proximas-ver-todas" [routerLink]="destino">
+        Ver todas
+        <app-icone nome="seta-longa" />
+      </a>
+    } @else {
+      <!-- TODO: ligar à lista completa de consultas deste perfil. -->
+      <button type="button" class="proximas-ver-todas">
+        Ver todas
+        <app-icone nome="seta-longa" />
+      </button>
+    }
+  </header>
+
+  <ul class="proximas-lista">
+    @for (consulta of consultas(); track $index) {
+      <li class="proximas-linha" [class.proximas-linha-com-menu]="menuAcoes()">
+        <app-avatar [nome]="consulta.paciente" [foto]="consulta.foto" />
+        <div class="proximas-info">
+          <span class="linha-nome">{{ consulta.paciente }}</span>
+          <span class="linha-tipo">{{ consulta.tipo }}</span>
+        </div>
+        <div class="proximas-quando">
+          <span><app-icone nome="calendario" /> {{ consulta.data }}</span>
+          <span><app-icone nome="relogio" /> {{ consulta.hora }}</span>
+        </div>
+        @if (consulta.status) {
+          <app-chip-status [status]="consulta.status" />
+        } @else if (consulta.tag) {
+          <app-tag-diagnostico [tag]="consulta.tag" />
+        }
+        @if (menuAcoes()) {
+          <!-- TODO: abrir as ações da consulta (editar, remarcar, cancelar). -->
+          <button type="button" class="botao-pontinhos" aria-label="Mais ações">
+            <app-icone nome="pontinhos" />
+          </button>
+        }
+      </li>
+    }
+  </ul>
+</section>

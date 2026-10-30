@@ -1,0 +1,76 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Profissionais" subtitulo="Visualize e gerencie todos os profissionais cadastrados">
+    <label class="pg-busca">
+      <input type="search" placeholder="Buscar profissional..." aria-label="Buscar profissional" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+      <app-icone nome="busca" />
+    </label>
+    @if (gerencia()) {
+      <a class="botao-escuro botao-com-icone" [routerLink]="base() + '/novo'"><app-icone nome="usuario-mais" /> Novo Profissional</a>
+    }
+  </app-titulo-pagina>
+
+  <section class="prof-cards" aria-label="Resumo dos profissionais">
+    @for (card of cards(); track card.rotulo) {
+      <div class="cartao prof-card">
+        <span class="pac-card-icone"><app-icone nome="usuarios" /></span>
+        @if (gerencia()) {
+          <div>
+            <p class="pac-card-valor">{{ card.valor }}</p>
+            <p class="pac-card-rotulo">{{ card.rotulo }}</p>
+          </div>
+        } @else {
+          <div>
+            <p class="prof-card-rotulo">{{ card.rotulo }}</p>
+            <p class="pac-card-valor">{{ card.valor }}</p>
+            <p class="prof-card-rotulo">{{ card.legenda }}</p>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="cartao tabela" aria-label="Lista de profissionais">
+    <div class="tabela-cab tabela-linha-prof" [class.tabela-linha-prof-adm]="gerencia()" role="row">
+      <span>Profissional</span><span>Data de nascimento</span><span>Telefone</span><span>Registro</span><span class="centro">Status</span>
+      @if (gerencia()) { <span class="centro">Ações</span> }
+    </div>
+    @for (item of lista(); track item.p.id) {
+      <div class="tabela-linha tabela-linha-prof" [class.tabela-linha-prof-adm]="gerencia()">
+        <div class="pac-nome">
+          <app-avatar [nome]="item.p.nome" />
+          <div>
+            <p class="linha-nome">{{ item.p.nome }}</p>
+            <p class="linha-tipo">ID: {{ item.p.codigo }} - {{ item.idade }} anos</p>
+          </div>
+        </div>
+        <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
+        <span class="pac-texto">{{ item.p.telefone }}</span>
+        <span class="pac-texto pac-texto-forte">{{ item.p.registro }}</span>
+        <span class="centro"><span class="status" [class.status-acompanhamento]="item.p.ativo" [class.status-inativo]="!item.p.ativo">{{ item.p.ativo ? 'Ativo' : 'Inativo' }}</span></span>
+        @if (gerencia()) {
+          <span class="acoes-linha centro">
+            <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>
+            <button type="button" class="acao-excluir" [attr.aria-label]="'Excluir ' + item.p.nome" title="Excluir" (click)="pedirExclusao(item.p)"><app-icone nome="lixeira" /></button>
+          </span>
+        }
+      </div>
+    } @empty {
+      <p class="tabela-vazio">Nenhum profissional encontrado.</p>
+    }
+  </section>
+</div>
+
+<app-dialogo [aberto]="!!excluindo()" titulo="Confirmar Exclusão?" textoConfirmar="Sim" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
+  <p class="dialogo-texto">O cadastro de <strong>{{ excluindo()?.nome }}</strong> será removido. Essa ação não pode ser desfeita.</p>
+</app-dialogo>
+
+<app-dialogo
+  [aberto]="!!bloqueado()" titulo="Não é possível excluir" [textoConfirmar]="bloqueado()?.prof?.ativo ? 'Inativar profissional' : 'Entendi'"
+  (cancelar)="bloqueado.set(null)" (confirmar)="inativarBloqueado()"
+>
+  <p class="dialogo-texto">
+    <strong>{{ bloqueado()?.prof?.nome }}</strong> tem {{ bloqueado()?.consultas }}
+    {{ bloqueado()?.consultas === 1 ? 'consulta marcada' : 'consultas marcadas' }} na agenda.
+    Para não perder o histórico, {{ bloqueado()?.prof?.ativo ? 'inative o profissional em vez de excluir.' : 'cancele ou remarque as consultas antes de excluir.' }}
+  </p>
+</app-dialogo>

@@ -1,34 +1,40 @@
-# 🧠 NeuroVita - Backend
+# 🧠 NeuroVita — Plataforma Integrada
 
-Backend da plataforma **NeuroVita**, desenvolvido como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
+Plataforma **NeuroVita**, desenvolvida como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
-A aplicação disponibiliza uma **API REST** para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico.
+O projeto possui uma arquitetura integrada, composta por frontend Angular, backend Java com Spring Boot e banco de dados MongoDB Atlas.
 
-> 🚧 **Status:** Em desenvolvimento. A API está hospedada no Render. O login com JWT e as consultas autenticadas de administradores e pacientes foram verificados em produção. A integração com o MongoDB Atlas está estabelecida, e o backend continua recebendo melhorias de validação, regras de negócio e autorização. A validação funcional completa é responsabilidade da equipe designada para os testes.
+O backend disponibiliza uma API REST para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico. O frontend Angular é compilado e servido pela própria aplicação Spring Boot.
+
+> 🚧 **Status:** Integração frontend e backend em desenvolvimento. A aplicação integrada foi compilada e executada localmente em Docker, com conexão ao MongoDB Atlas. O login JWT e a consulta autenticada de profissionais foram verificados localmente. A versão atualmente publicada no Render ainda corresponde à estrutura anterior. A validação funcional completa permanece sob responsabilidade da equipe designada para os testes.
+
+---
 
 ## 🛠️ Tecnologias
 
-| Tecnologia                | Versão / uso                                        |
-| ------------------------- | --------------------------------------------------- |
-| ☕ Java                    | 21                                                  |
-| 🌱 Spring Boot            | 4.0.8                                               |
-| 🗄️ MongoDB               | Banco de dados NoSQL                                |
-| 🔗 Spring Data MongoDB    | Persistência de dados                               |
-| 🔐 Spring Security        | Autenticação e autorização                          |
-| 🎟️ JWT                   | Autenticação por token                              |
-| 🔑 BCrypt                 | Hash e verificação de senhas                        |
-| ✅ Jakarta Bean Validation | Validação de dados de entrada                       |
-| 📖 SpringDoc OpenAPI      | Documentação da API                                 |
-| 🐳 Docker                 | Containerização                                     |
-| ☁️ Render                 | Hospedagem                                          |
-| 📦 Maven                  | Gerenciamento e construção do projeto               |
-| 🧪 Maven Wrapper          | Execução do Maven sem instalação global obrigatória |
+| Tecnologia | Versão / uso |
+|---|---|
+| ☕ Java | 21 |
+| 🌱 Spring Boot | 4.0.8 |
+| 🅰️ Angular | 21 |
+| 🟢 Node.js / npm | Dependências e compilação do frontend |
+| 🗄️ MongoDB | Banco de dados NoSQL |
+| 🔗 Spring Data MongoDB | Persistência de dados |
+| 🔐 Spring Security | Autenticação e autorização |
+| 🎟️ JWT | Autenticação por token |
+| 🔑 BCrypt | Hash e verificação de senhas |
+| ✅ Jakarta Bean Validation | Validação de dados de entrada |
+| 📖 SpringDoc OpenAPI | Documentação da API |
+| 🐳 Docker | Containerização e build multi-stage |
+| ☁️ Render | Hospedagem |
+| 📦 Maven | Gerenciamento e construção do projeto |
+| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
 
 ---
 
 ## 📌 Funcionalidades
 
-O backend possui os seguintes módulos e recursos:
+O projeto possui os seguintes módulos e recursos:
 
 - 👤 Pacientes
 - 👥 Responsáveis
@@ -46,6 +52,7 @@ O backend possui os seguintes módulos e recursos:
 - 👤 Modelo centralizado de usuários
 - ✅ Validação de dados de entrada
 - 🔄 Status, remarcação e cancelamento de consultas
+- 🖥️ Frontend Angular integrado à aplicação Spring Boot
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -55,21 +62,44 @@ A existência dos módulos não substitui a validação funcional de cada opera�
 
 ## 🏗️ Arquitetura
 
-O projeto utiliza uma arquitetura em camadas:
+O NeuroVita utiliza uma arquitetura integrada, na qual o Spring Boot disponibiliza a API REST e também serve os arquivos estáticos compilados do Angular.
+
+### Visão geral
 
 ```text
-Cliente / Frontend / Postman
-             ↓
-         Controller
-             ↓
-           Service
-             ↓
-         Repository
-             ↓
-           Model
-             ↓
-           MongoDB
+                  Usuário / Navegador
+                          |
+                          v
+                   Frontend Angular
+                          |
+                          v
+                  Aplicação Spring Boot
+                          |
+             +------------+------------+
+             |                         |
+             v                         v
+       Arquivos estáticos          API REST
+             |                         |
+             |                    Controller
+             |                         |
+             |                      Service
+             |                         |
+             |                    Repository
+             |                         |
+             |                       Model
+             |                         |
+             |                      MongoDB
+             |                    MongoDB Atlas
+             |
+             v
+          Interface
 ```
+
+### Frontend
+
+Desenvolvido em Angular, responsável pela interface utilizada pelos administradores, profissionais, secretarias e pacientes.
+
+O frontend é compilado durante a construção da imagem Docker. Os arquivos gerados são incorporados aos recursos estáticos do Spring Boot.
 
 ### Controller
 
@@ -101,32 +131,35 @@ Contém os componentes responsáveis pela autenticação e pela aplicação das 
 
 ```text
 neurovita/
+├── frontend/
+│   ├── src/
+│   │   └── app/
+│   ├── package.json
+│   ├── package-lock.json
+│   └── angular.json
+│
 ├── src/
 │   ├── main/
 │   │   ├── java/com/neurovita/
 │   │   │   ├── config/
 │   │   │   │   ├── OpenApiConfig.java
-│   │   │   │   └── SecurityConfig.java
+│   │   │   │   ├── SecurityConfig.java
+│   │   │   │   └── SpaRoutingConfig.java
 │   │   │   ├── controller/
-│   │   │   │   └── Controllers dos módulos
 │   │   │   ├── dto/
-│   │   │   │   └── DTOs de requisição e resposta
 │   │   │   ├── exception/
-│   │   │   │   ├── ResourceNotFoundException.java
-│   │   │   │   ├── InvalidCredentialsException.java
-│   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   ├── model/
-│   │   │   │   └── Modelos dos documentos MongoDB
 │   │   │   ├── repository/
-│   │   │   │   └── Repositórios dos módulos
 │   │   │   ├── security/
-│   │   │   │   └── JwtAuthenticationFilter.java
 │   │   │   ├── service/
-│   │   │   │   └── Serviços dos módulos
 │   │   │   └── NeurovitaApplication.java
 │   │   └── resources/
+│   │       ├── static/
 │   │       └── application.properties
+│   │
 │   └── test/
+│
+├── .dockerignore
 ├── .gitignore
 ├── Dockerfile
 ├── mvnw
@@ -136,6 +169,10 @@ neurovita/
 ```
 
 A estrutura apresenta os principais componentes. Os arquivos específicos de cada módulo foram omitidos para facilitar a leitura.
+
+O diretório `frontend/` contém o projeto Angular. O diretório `src/` contém a aplicação Java Spring Boot.
+
+Os arquivos compilados do Angular são incorporados aos recursos estáticos do Spring Boot durante a construção da imagem Docker.
 
 ---
 
@@ -217,13 +254,13 @@ DELETE /api/responsaveis/{id}
 
 ### Dados do responsável
 
-| Campo      | Descrição                    |
-| ---------- | ---------------------------- |
-| `id`       | Identificador do responsável |
-| `nome`     | Nome do responsável          |
-| `cpf`      | CPF, quando informado        |
-| `email`    | E-mail, quando informado     |
-| `telefone` | Telefone, quando informado   |
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador do responsável |
+| `nome` | Nome do responsável |
+| `cpf` | CPF, quando informado |
+| `email` | E-mail, quando informado |
+| `telefone` | Telefone, quando informado |
 
 O nome é obrigatório. O DTO utiliza validações para os campos aplicáveis, incluindo e-mail, CPF e telefone. CPF e e-mail também são verificados quanto à duplicidade, conforme as regras implementadas no serviço.
 
@@ -233,11 +270,11 @@ Os dados pessoais do responsável são armazenados separadamente dos dados do pa
 
 Cada vínculo contém:
 
-| Campo            | Descrição                                |
-| ---------------- | ---------------------------------------- |
-| `id`             | Identificador do vínculo                 |
-| `pacienteId`     | Identificador do paciente                |
-| `responsavelId`  | Identificador do responsável             |
+| Campo | Descrição |
+|---|---|
+| `id` | Identificador do vínculo |
+| `pacienteId` | Identificador do paciente |
+| `responsavelId` | Identificador do responsável |
 | `grauParentesco` | Relação entre o paciente e o responsável |
 
 Essa estrutura permite:
@@ -357,11 +394,11 @@ GET /api/consultas/profissional/{profissionalId}
 
 ### Status das consultas
 
-| Status       | Significado                                                                           |
-| ------------ | ------------------------------------------------------------------------------------- |
-| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta.            |
-| `REMARCADA`  | Consulta cuja data ou horário foi alterado.                                           |
-| `CANCELADA`  | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
+| Status | Significado |
+|---|---|
+| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta. |
+| `REMARCADA` | Consulta cuja data ou horário foi alterado. |
+| `CANCELADA` | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
 
 O status é controlado pelo backend e não deve ser definido livremente no corpo da requisição de cadastro ou atualização.
 
@@ -684,13 +721,13 @@ A API possui documentação interativa por meio do Swagger/OpenAPI, permitindo c
 
 ### Localmente
 
-- **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-- **Documentação OpenAPI:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
+- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
 
 ### Em produção
 
-- **Swagger UI:** [https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
-- **API:** [https://neurovita.onrender.com](https://neurovita.onrender.com)
+- **Swagger UI:** https://neurovita.onrender.com/swagger-ui/index.html
+- **API:** https://neurovita.onrender.com
 
 ### Autenticação no Swagger
 
@@ -708,58 +745,120 @@ O endpoint `POST /api/auth/login` não exige um token prévio. Os demais endpoin
 
 > **Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
 
-A configuração OpenAPI está disponível, e o login com JWT já foi verificado em produção. A autorização de todos os perfis e endpoints ainda precisa ser validada.
+A configuração OpenAPI está disponível, e o login com JWT já foi verificado em produção na versão anterior do backend. A autorização de todos os perfis e endpoints ainda precisa ser validada.
 
 ---
 
 ## 🐳 Docker
 
-O projeto possui um `Dockerfile` para preparar a aplicação para execução em um container com Java 21.
+O projeto utiliza um Dockerfile multi-stage para compilar e executar o frontend Angular e o backend Java na mesma aplicação.
 
-A aplicação utiliza a variável de ambiente `PORT`, com `8080` como valor padrão:
+O processo possui três etapas:
 
-```text
-PORT=8080
+1. **Frontend:** utiliza Node.js para instalar as dependências e compilar o Angular.
+2. **Backend:** utiliza Java 21 e Maven para compilar o Spring Boot e incorporar os arquivos gerados pelo Angular em `src/main/resources/static/`.
+3. **Execução:** utiliza uma imagem Java 21 JRE para executar a aplicação integrada.
+
+A aplicação utiliza a variável de ambiente `PORT`, com `8080` como valor padrão.
+
+As configurações sensíveis são fornecidas por variáveis de ambiente, incluindo:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `PORT`
+
+O arquivo `.env` é utilizado somente no ambiente local e não deve ser versionado.
+
+O arquivo `.dockerignore` exclui dependências, arquivos gerados, configurações locais e informações sensíveis do contexto de build.
+
+### Construção da imagem
+
+```bash
+docker build -t neurovita-integrado .
 ```
 
-O Dockerfile é utilizado na configuração de hospedagem em serviços compatíveis com containers.
+### Execução local
+
+```bash
+docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-integrado
+```
+
+A aplicação estará disponível em:
+
+http://localhost:8080
 
 ---
 
-## ☁️ Deploy
+## ☁️ Deploy e ambientes
 
-O backend está hospedado no **Render**, utilizando Docker.
+O projeto está sendo organizado em quatro ambientes de desenvolvimento e entrega, conforme a organização definida para o projeto acadêmico.
 
-### URL da API
+### Estrutura dos repositórios
 
-[https://neurovita.onrender.com](https://neurovita.onrender.com)
+| Repositório | Finalidade |
+|---|---|
+| `victorhborges/NeuroVita` | Desenvolvimento |
+| `victorhborges/NeuroVita-Testes` | Testes |
+| `victorhborges/NeuroVita-Homologacao` | Homologação |
+| `victorhborges/NeuroVita-Producao` | Produção |
 
-### Endpoints públicos de verificação
+Os três últimos repositórios serão criados posteriormente.
+
+### Fluxo de promoção
 
 ```text
-GET /
-GET /teste
+DESENVOLVIMENTO
+       |
+       v
+     TESTES
+       |
+       v
+  HOMOLOGAÇÃO
+       |
+       v
+    PRODUÇÃO
 ```
 
-### Swagger
+Cada etapa deverá receber uma versão revisada e identificável.
 
-[https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
+A promoção entre ambientes deverá preservar o histórico de alterações e ocorrer após a aprovação da etapa anterior.
 
-O login autenticado e as consultas de administradores e pacientes foram verificados em produção. As operações retornaram respostas HTTP `200` nos cenários verificados.
+### Ambiente de desenvolvimento
 
-As alterações desenvolvidas localmente só estarão disponíveis no ambiente hospedado depois do commit, do push e da conclusão bem-sucedida do novo deploy.
+O repositório de desenvolvimento será utilizado para implementar novas funcionalidades, corrigir problemas e integrar o frontend e o backend.
+
+### Ambiente de testes
+
+Receberá versões disponibilizadas para a equipe responsável pela validação funcional.
+
+### Ambiente de homologação
+
+Receberá versões aprovadas nos testes para validação final antes da publicação.
+
+### Ambiente de produção
+
+Receberá somente versões aprovadas para disponibilização aos usuários.
+
+### Produção atual
+
+A versão anterior do backend está hospedada no Render, utilizando Docker.
+
+- **URL atual:** https://neurovita.onrender.com
+- **Swagger:** https://neurovita.onrender.com/swagger-ui/index.html
+
+O login autenticado e as consultas de administradores e pacientes foram verificados na versão anterior em produção. As operações retornaram respostas HTTP `200` nos cenários verificados.
+
+A nova arquitetura integrada ainda precisa ser publicada e validada no ambiente de produção.
 
 ### Integração com o frontend
 
-O backend utiliza configuração de CORS no Spring Security para controlar quais origens podem realizar requisições à API por meio do navegador.
+Na arquitetura integrada, o frontend Angular será servido pela própria aplicação Spring Boot.
 
-O frontend Angular está hospedado no Render:
+Assim, a interface e a API poderão utilizar a mesma origem, reduzindo a necessidade de manter serviços separados para frontend e backend.
 
-- **Frontend:** https://frontend-neurovita-lz6o.onrender.com/
-- **Backend:** https://neurovita.onrender.com
-- **Swagger:** https://neurovita.onrender.com/swagger-ui/index.html
+O Spring Security possui configuração específica para permitir o acesso aos arquivos estáticos e às rotas do frontend sem remover as regras de segurança aplicáveis às rotas `/api/**`.
 
-A origem do frontend deve estar incluída na lista de origens permitidas do CORS em `SecurityConfig.java`. Alterações nessa configuração precisam ser publicadas no backend e ter seu funcionamento confirmado no ambiente hospedado.
+A configuração de CORS permanece disponível para origens externas autorizadas.
 
 A permissão de CORS não substitui a autenticação JWT nem as regras de autorização dos endpoints.
 
@@ -791,11 +890,11 @@ A estrutura efetivamente utilizada depende dos modelos e repositórios implement
 
 ### Responsáveis e vínculos
 
-| Coleção                | Finalidade                                                             |
-| ---------------------- | ---------------------------------------------------------------------- |
-| `responsaveis`         | Dados pessoais e de contato dos responsáveis                           |
+| Coleção | Finalidade |
+|---|---|
+| `responsaveis` | Dados pessoais e de contato dos responsáveis |
 | `vinculosResponsaveis` | Relação entre pacientes e responsáveis, incluindo o grau de parentesco |
-| `pacientes`            | Dados cadastrais dos pacientes                                         |
+| `pacientes` | Dados cadastrais dos pacientes |
 
 O relacionamento entre paciente e responsável é armazenado separadamente, evitando duplicar os dados pessoais do responsável em cada paciente.
 
@@ -825,10 +924,14 @@ A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usad
 - Não versionar URIs do MongoDB que contenham credenciais.
 - Não publicar os valores reais de `MONGODB_URI` ou `JWT_SECRET`.
 - Configurar as variáveis no ambiente de execução.
+- Manter o arquivo `.env` fora do Git.
+- Não incluir arquivos de configuração sensíveis nas imagens ou publicações do projeto.
 
 ### Status da conexão
 
-A conexão com o MongoDB Atlas foi estabelecida em produção. Os logs do Render indicaram a conexão com o cluster, e consultas autenticadas de administradores e pacientes retornaram dados reais pela API.
+A conexão com o MongoDB Atlas foi estabelecida em produção na versão anterior do backend. Os logs do Render indicaram a conexão com o cluster, e consultas autenticadas de administradores e pacientes retornaram dados reais pela API.
+
+Na nova estrutura integrada, a conexão também foi verificada localmente por meio do Docker. O login JWT e a consulta autenticada de profissionais retornaram resultados esperados.
 
 Esses resultados confirmam a conectividade e a leitura de dados nos cenários verificados. **Ainda não comprovam que todas as operações de cadastro, atualização e exclusão de todos os módulos estejam funcionando corretamente.**
 
@@ -841,7 +944,9 @@ A compatibilidade da funcionalidade de responsáveis e vínculos com a estrutura
 ### Pré-requisitos
 
 - Java JDK 21, compatível com a versão configurada no projeto.
+- Node.js e npm, para trabalhar diretamente com o frontend.
 - Git.
+- Docker Desktop, para executar a aplicação integrada em container.
 - MongoDB Atlas ou outra instância MongoDB acessível.
 - Variáveis de ambiente necessárias configuradas.
 
@@ -859,6 +964,13 @@ mvn -version
 
 O Maven Wrapper incluído no projeto também pode ser utilizado sem depender de uma instalação global do Maven.
 
+### Verificar Node.js e npm
+
+```bash
+node -v
+npm -v
+```
+
 ### Clonar o repositório
 
 ```bash
@@ -875,7 +987,7 @@ A URI deve conter o nome do banco de dados. A chave JWT deve atender ao tamanho 
 
 Não inclua os valores reais dessas variáveis em arquivos versionados ou em exemplos públicos.
 
-### Executar a aplicação
+### Executar somente o backend
 
 **Windows**
 
@@ -889,19 +1001,55 @@ mvnw.cmd spring-boot:run
 ./mvnw spring-boot:run
 ```
 
-A aplicação será iniciada na porta configurada, normalmente:
+### Compilar o frontend
 
-[http://localhost:8080](http://localhost:8080)
+Acesse o diretório do frontend:
 
-### Endpoint de teste
-
-```text
-GET /teste
+```bash
+cd frontend
 ```
 
-A resposta esperada deve ser conferida na implementação atual do endpoint.
+Instale as dependências:
 
-A resposta desse endpoint confirma que a rota está respondendo, mas não comprova, por si só, a conectividade com o MongoDB.
+```bash
+npm ci
+```
+
+Compile a aplicação:
+
+```bash
+npm run build
+```
+
+O resultado da compilação é gerado em:
+
+```text
+frontend/dist/neurovita/browser/
+```
+
+### Executar a aplicação integrada com Docker
+
+Na raiz do projeto:
+
+```bash
+docker build -t neurovita-integrado .
+```
+
+Depois:
+
+```bash
+docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-integrado
+```
+
+A aplicação integrada estará disponível em:
+
+http://localhost:8080
+
+### Endpoints locais
+
+- **Frontend:** http://localhost:8080
+- **Swagger:** http://localhost:8080/swagger-ui/index.html
+- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
 
 ---
 
@@ -916,7 +1064,7 @@ Para verificar se as classes do projeto compilam:
 **Windows**
 
 ```cmd
-mvn compile
+mvnw.cmd compile
 ```
 
 **Linux/macOS**
@@ -930,12 +1078,6 @@ mvn compile
 **Windows**
 
 ```cmd
-mvn test
-```
-
-Ou, utilizando o Maven Wrapper:
-
-```cmd
 mvnw.cmd test
 ```
 
@@ -945,7 +1087,11 @@ mvnw.cmd test
 ./mvnw test
 ```
 
-A execução local mais recente informada terminou com `BUILD SUCCESS` nas verificações realizadas.
+A execução local mais recente informada terminou com `BUILD SUCCESS` nas verificações realizadas antes da integração.
+
+A integração também foi compilada em Docker e executada localmente com conexão ao MongoDB Atlas.
+
+O login JWT e a consulta autenticada de profissionais foram verificados nessa execução.
 
 O resultado da compilação confirma que as classes foram compiladas sem falhas reportadas. O resultado dos testes Maven se limita aos testes executados nessa execução.
 
@@ -982,45 +1128,51 @@ Jakarta Bean Validation
 
 A implementação utiliza o backend anterior como referência, mas reorganiza a aplicação de acordo com a arquitetura e o ecossistema Java/Spring Boot.
 
+A integração atual incorpora o frontend Angular à aplicação Java, mantendo as responsabilidades separadas entre interface, API e persistência.
+
 ---
 
 ## 📊 Status do projeto
 
-| Módulo / recurso                             | Status conhecido                                                                                                                        |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Estrutura Java                               | 🟢 Implementada                                                                                                                         |
-| Spring Boot                                  | 🟢 Implementado                                                                                                                         |
-| Spring Web MVC                               | 🟢 Implementado                                                                                                                         |
-| Spring Data MongoDB                          | 🟢 Configurado                                                                                                                          |
-| Pacientes                                    | 🟡 CRUD implementado; vínculos e regras precisam de validação funcional                                                                 |
-| Responsáveis                                 | 🟡 CRUD implementado localmente; aguardando validação funcional                                                                         |
-| Vínculos entre pacientes e responsáveis      | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco                                               |
-| Profissionais                                | 🟢 CRUD implementado                                                                                                                    |
-| Validação de pacientes e profissionais       | 🟢 Implementada                                                                                                                         |
-| Disponibilidades                             | 🟡 Validações de horários e normalização do dia implementadas; permissões globais em revisão                                            |
-| Consultas                                    | 🟡 Regras de agendamento, normalização de disponibilidade, status e cancelamento implementados localmente; validação funcional pendente |
-| Agenda                                       | 🟢 Implementada; comportamento dos status a validar                                                                                     |
-| Prontuários                                  | 🟡 Implementados; validação das permissões e regras de acesso pendente                                                                  |
-| Diagnósticos                                 | 🟢 Validação de campos obrigatórios com `@NotBlank` e aplicação de `@Valid` no cadastro e na atualização                                |
-| Tratamentos                                  | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro                         |
-| Exames                                       | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro                         |
-| Administradores                              | 🟢 Credenciais centralizadas no modelo `Usuario`; senhas armazenadas com BCrypt                                                         |
-| Modelo centralizado `Usuario`                | 🟢 Implementado; validação funcional completa pendente                                                                                  |
-| Login centralizado                           | 🟢 Login com JWT verificado em produção                                                                                                 |
-| JWT                                          | 🟢 Utilizado na autenticação; revisão das permissões pendente                                                                           |
-| BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                                                                                                   |
-| Troca de senha no primeiro acesso            | 🟡 Implementada; validação funcional pendente                                                                                           |
-| Spring Security                              | 🟡 Configurado; revisão das permissões por endpoint em andamento                                                                        |
-| Autorização por perfil para todos os módulos | 🟡 Em revisão e validação                                                                                                               |
-| Proteção por vínculo profissional-paciente   | 🟡 Regras existentes precisam de validação funcional completa                                                                           |
-| Swagger/OpenAPI                              | 🟢 Implementado                                                                                                                         |
-| Tratamento global de exceções                | 🟢 Implementado, com melhorias pendentes                                                                                                |
-| Docker                                       | 🟢 Configurado                                                                                                                          |
-| Deploy Render                                | 🟢 Implantação configurada                                                                                                              |
-| MongoDB Atlas em produção                    | 🟢 Conexão e leitura verificadas; demais operações precisam de validação por módulo                                                     |
-| Receitas                                     | ⚪ Aguardando requisitos                                                                                                                 |
-| Testes funcionais completos                  | 🟡 Sob responsabilidade da equipe designada                                                                                             |
-| Integração com frontend | 🟡 Frontend hospedado no Render, integração com a API em andamento |
+| Módulo / recurso | Status conhecido |
+|---|---|
+| Estrutura Java | 🟢 Implementada |
+| Spring Boot | 🟢 Implementado |
+| Spring Web MVC | 🟢 Implementado |
+| Spring Data MongoDB | 🟢 Configurado |
+| Pacientes | 🟡 CRUD implementado; vínculos e regras precisam de validação funcional |
+| Responsáveis | 🟡 CRUD implementado localmente; aguardando validação funcional |
+| Vínculos entre pacientes e responsáveis | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco |
+| Profissionais | 🟢 CRUD implementado |
+| Validação de pacientes e profissionais | 🟢 Implementada |
+| Disponibilidades | 🟡 Validações de horários e normalização do dia implementadas; permissões globais em revisão |
+| Consultas | 🟡 Regras de agendamento, normalização de disponibilidade, status e cancelamento implementados localmente; validação funcional pendente |
+| Agenda | 🟢 Implementada; comportamento dos status a validar |
+| Prontuários | 🟡 Implementados; validação das permissões e regras de acesso pendente |
+| Diagnósticos | 🟢 Validação de campos obrigatórios com `@NotBlank` e aplicação de `@Valid` no cadastro e na atualização |
+| Tratamentos | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro |
+| Exames | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro |
+| Administradores | 🟢 Credenciais centralizadas no modelo `Usuario`; senhas armazenadas com BCrypt |
+| Modelo centralizado `Usuario` | 🟢 Implementado; validação funcional completa pendente |
+| Login centralizado | 🟢 Login com JWT verificado em produção na versão anterior |
+| JWT | 🟢 Utilizado na autenticação; revisão das permissões pendente |
+| BCrypt | 🟢 Utilizado no fluxo de autenticação |
+| Troca de senha no primeiro acesso | 🟡 Implementada; validação funcional pendente |
+| Spring Security | 🟡 Configurado; revisão das permissões por endpoint em andamento |
+| Autorização por perfil para todos os módulos | 🟡 Em revisão e validação |
+| Proteção por vínculo profissional-paciente | 🟡 Regras existentes precisam de validação funcional completa |
+| Swagger/OpenAPI | 🟢 Implementado |
+| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
+| Frontend Angular | 🟢 Compilação local realizada |
+| Integração Angular + Spring Boot | 🟢 Aplicação executada localmente em Docker |
+| Navegação Angular e rotas SPA | 🟢 Verificadas localmente |
+| Docker multi-stage | 🟢 Configurado e compilado |
+| Login JWT na aplicação integrada | 🟢 Verificado localmente |
+| MongoDB Atlas na aplicação integrada | 🟢 Conexão e consulta verificadas localmente |
+| Deploy Render da nova arquitetura | ⚪ Pendente |
+| MongoDB Atlas em produção | 🟢 Conexão e leitura verificadas na versão anterior |
+| Receitas | ⚪ Aguardando requisitos |
+| Testes funcionais completos | 🟡 Sob responsabilidade da equipe designada |
 
 Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação de todas as operações no ambiente de produção.
 
@@ -1039,11 +1191,23 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [x] Aplicar validações com `@NotBlank` e `@Valid` aos exames.
 - [x] Configurar o cadastro de tratamentos e exames para retornar `201 Created`.
 - [x] Centralizar as credenciais de administradores no modelo `Usuario`.
-- [x] Verificar o login com JWT em produção.
-- [x] Verificar consultas autenticadas de administradores e pacientes em produção.
+- [x] Verificar o login com JWT em produção na versão anterior.
+- [x] Verificar consultas autenticadas de administradores e pacientes em produção na versão anterior.
 - [x] Confirmar a conexão com o MongoDB Atlas e a leitura de dados nos cenários verificados.
-- [ ] Revisar o diff das alterações locais e publicar o código no GitHub.
-- [ ] Confirmar o deploy das alterações locais no Render.
+- [x] Compilar o frontend Angular localmente.
+- [x] Configurar o Docker multi-stage para frontend e backend.
+- [x] Incorporar os arquivos compilados do Angular aos recursos estáticos do Spring Boot.
+- [x] Configurar o tratamento de rotas SPA.
+- [x] Executar a aplicação integrada localmente em Docker.
+- [x] Verificar o login JWT na aplicação integrada.
+- [x] Verificar a conexão com MongoDB Atlas na aplicação integrada.
+- [ ] Revisar o diff das alterações locais e preparar o primeiro commit da integração.
+- [ ] Atualizar e revisar a documentação antes da publicação.
+- [ ] Publicar a branch de integração no repositório de desenvolvimento.
+- [ ] Validar a integração Angular com a API, incluindo o login real pelo frontend.
+- [ ] Implementar o envio e o armazenamento do token JWT no frontend.
+- [ ] Implementar o envio do token nas requisições protegidas.
+- [ ] Validar o redirecionamento conforme o perfil autenticado.
 - [ ] Revisar as permissões das rotas globais de disponibilidades.
 - [ ] Validar o CRUD de disponibilidades e suas regras de horário.
 - [ ] Validar o CRUD de tratamentos e exames.
@@ -1060,15 +1224,69 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [ ] Padronizar e validar as respostas de erro.
 - [ ] Validar as restrições de acesso aos dados clínicos.
 - [ ] Definir o módulo de Receitas após a especificação no Figma.
-- [ ] Disponibilizar a API para a validação funcional da equipe responsável.
-- [ ] Integrar e validar o backend com o frontend.
-- [ ] Ampliar a cobertura de testes conforme o planejamento da equipe.
+- [ ] Disponibilizar a aplicação para a validação funcional da equipe responsável.
+- [ ] Criar e configurar o repositório de testes.
+- [ ] Criar e configurar o repositório de homologação.
+- [ ] Criar e configurar o repositório de produção.
+- [ ] Definir o processo de promoção de versões entre os quatro ambientes.
+- [ ] Configurar os serviços Render correspondentes aos ambientes.
+- [ ] Validar a nova arquitetura no ambiente de testes.
+- [ ] Promover uma versão aprovada para homologação.
+- [ ] Publicar em produção somente após aprovação da homologação.
 
 ---
 
 ## 🌿 Git e GitHub
 
-O projeto utiliza Git e GitHub para controle de versão.
+O projeto utiliza Git e GitHub para controle de versão, revisão de código e organização das entregas.
+
+### Organização dos repositórios
+
+O projeto será organizado em quatro repositórios independentes, conforme a exigência acadêmica:
+
+| Repositório | Responsabilidade |
+|---|---|
+| `victorhborges/NeuroVita` | Desenvolvimento |
+| `victorhborges/NeuroVita-Testes` | Testes |
+| `victorhborges/NeuroVita-Homologacao` | Homologação |
+| `victorhborges/NeuroVita-Producao` | Produção |
+
+Os repositórios de testes, homologação e produção serão criados durante a organização dos ambientes.
+
+### Estratégia de branches
+
+No repositório de desenvolvimento, será adotada uma organização baseada em branches:
+
+| Branch | Finalidade |
+|---|---|
+| `main` | Versão integrada e estável do desenvolvimento |
+| `develop` | Integração contínua das funcionalidades |
+| `feature/*` | Desenvolvimento de funcionalidades |
+| `fix/*` | Correções de problemas |
+| `release/*` | Preparação de versões para entrega |
+
+Nos repositórios de testes, homologação e produção, a branch `main` deverá representar a versão promovida e aprovada para aquele ambiente.
+
+As regras definitivas de proteção e promoção serão configuradas durante a criação dos repositórios.
+
+### Fluxo de promoção
+
+```text
+Desenvolvimento
+      |
+      v
+Testes
+      |
+      v
+Homologação
+      |
+      v
+Produção
+```
+
+A promoção deverá preservar o histórico Git e identificar as versões entregues.
+
+Uma versão somente deverá ser promovida após a aprovação da etapa anterior.
 
 ### Fluxo de revisão
 
@@ -1082,23 +1300,15 @@ git diff
 git diff -- README.md
 ```
 
-Para publicar somente o README:
+Antes de realizar um commit:
 
-```bash
-git add README.md
-
-git diff --cached
-
-git commit -m "docs: atualiza README com progresso do backend"
-
-git push origin main
-```
-
-Se as alterações de código também estiverem prontas para publicação, adicione os arquivos correspondentes às funcionalidades revisadas, após conferir o diff de cada um.
-
-Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
-
-Atualize o README quando houver alterações relevantes na arquitetura, nas funcionalidades, nos endpoints ou na configuração do projeto.
+1. Conferir os arquivos modificados.
+2. Revisar as diferenças.
+3. Confirmar que não existem credenciais ou arquivos temporários.
+4. Atualizar o README quando houver alterações relevantes.
+5. Adicionar somente os arquivos relacionados à alteração.
+6. Criar o commit com uma mensagem descritiva.
+7. Enviar para a branch correspondente.
 
 ### Padrão de commits
 
@@ -1115,6 +1325,12 @@ refactor: melhoria estrutural
 
 chore: configuração ou manutenção
 ```
+
+Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
+
+O arquivo `.env` não deve ser versionado.
+
+Atualize o README quando houver alterações relevantes na arquitetura, nas funcionalidades, nos endpoints ou na configuração do projeto.
 
 ---
 
@@ -1133,6 +1349,9 @@ Durante o desenvolvimento são priorizados:
 - Código legível.
 - Documentação.
 - Controle de versão.
+- Revisão de código.
+- Separação dos ambientes de desenvolvimento, testes, homologação e produção.
+- Preservação do histórico de alterações.
 
 ---
 
@@ -1143,7 +1362,7 @@ Durante o desenvolvimento são priorizados:
 **Curso:** Análise e Desenvolvimento de Sistemas
 **Área:** Desenvolvimento de Software
 
-O projeto possui finalidade acadêmica e prática, aplicando conhecimentos de programação, desenvolvimento backend, APIs REST, banco de dados, arquitetura de software, segurança e boas práticas de desenvolvimento.
+O projeto possui finalidade acadêmica e prática, aplicando conhecimentos de programação, desenvolvimento backend, APIs REST, frontend, banco de dados, arquitetura de software, segurança, integração e boas práticas de desenvolvimento.
 
 ---
 

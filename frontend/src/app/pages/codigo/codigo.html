@@ -1,0 +1,46 @@
+<app-auth-card>
+  <h1 class="auth-titulo codigo-titulo">Digite o código</h1>
+  <p class="auth-texto codigo-texto">
+    Enviamos um código de recuperação para o seu e-mail. Digite-o abaixo para continuar.
+  </p>
+
+  <form class="codigo-form" (submit)="verificar($event)">
+    <div class="digits">
+      @for (i of posicoes; track i) {
+        <input
+          #digito
+          class="digit"
+          inputmode="numeric"
+          maxlength="2"
+          autocomplete="one-time-code"
+          [attr.aria-label]="'Dígito ' + (i + 1)"
+          (input)="aoDigitar(i)"
+          (keydown)="aoPressionarTecla($event, i)"
+        />
+      }
+    </div>
+
+    <button type="submit" class="btn-action btn-codigo">
+      <svg class="icon icon-lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+        <path d="m21.854 2.147-10.94 10.939" />
+      </svg>
+      Verificar código
+    </button>
+  </form>
+
+  <p class="codigo-reenviar">
+    Não recebeu o código?
+    <button type="button" class="link-navy" (click)="reenviar()">Reenviar código</button>
+  </p>
+
+  <div class="codigo-voltar">
+    <a routerLink="/" class="back-link">
+      <svg class="icon h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+      </svg>
+      Voltar para o login
+    </a>
+  </div>
+</app-auth-card>

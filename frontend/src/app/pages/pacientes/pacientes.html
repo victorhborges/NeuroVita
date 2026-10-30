@@ -1,0 +1,60 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Pacientes" subtitulo="Visualize e gerencie todos os pacientes cadastrados">
+    <label class="pg-busca">
+      <input type="search" placeholder="Buscar pacientes..." aria-label="Buscar pacientes" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+      <app-icone nome="busca" />
+    </label>
+    <button type="button" class="botao-escuro" (click)="abrirNovo()">+ Novo paciente</button>
+  </app-titulo-pagina>
+
+  <section class="pac-cards" aria-label="Resumo dos pacientes">
+    @for (card of cards(); track card.rotulo) {
+      <div class="cartao pac-card">
+        <span class="pac-card-icone"><app-icone [nome]="card.icone" /></span>
+        <div>
+          <p class="pac-card-valor">{{ card.valor }}</p>
+          <p class="pac-card-rotulo">{{ card.rotulo }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="cartao tabela" aria-label="Lista de pacientes">
+    <div class="tabela-cab tabela-linha-pac" role="row">
+      <span>Paciente</span><span class="centro">Última consulta</span><span class="centro">Status</span><span class="centro">Prontuário</span>
+    </div>
+    @for (p of lista(); track p.id) {
+      <div class="tabela-linha tabela-linha-pac">
+        <div class="pac-nome">
+          <app-avatar [nome]="p.nome" [foto]="p.foto" />
+          <div>
+            <p class="linha-nome">{{ p.nome }}</p>
+            <p class="linha-tipo">ID: {{ p.codigo }} - {{ p.idade }} anos</p>
+          </div>
+        </div>
+        <span class="pac-data centro"><app-icone nome="calendario" /> {{ p.ultima }}</span>
+        <span class="centro"><span class="status status-{{ p.status }}">{{ p.rotuloStatus }}</span></span>
+        <span class="centro">
+          <a class="botao-prontuario" [routerLink]="[raiz(), 'pacientes', p.id]">
+            <app-icone nome="prancheta" /> Ver prontuário
+          </a>
+        </span>
+      </div>
+    } @empty {
+      <p class="tabela-vazio">Nenhum paciente encontrado.</p>
+    }
+  </section>
+</div>
+
+<app-dialogo [aberto]="novoAberto()" titulo="Novo paciente" textoConfirmar="Cadastrar" (cancelar)="novoAberto.set(false)" (confirmar)="salvarNovo()">
+  <div class="form-dialogo">
+    <label>Nome completo *<input type="text" [value]="nome()" (input)="digitar(nome, $event)" autocomplete="off" /></label>
+    <label>Data de nascimento *<input type="date" [max]="hoje" [value]="nascimento()" (input)="digitar(nascimento, $event)" /></label>
+    <label>Telefone<input type="tel" [value]="telefone()" (input)="digitar(telefone, $event)" autocomplete="off" /></label>
+    <label>E-mail<input type="email" [value]="email()" (input)="digitar(email, $event)" autocomplete="off" /></label>
+    <label>Endereço<input type="text" [value]="endereco()" (input)="digitar(endereco, $event)" autocomplete="off" /></label>
+    @if (erro()) {
+      <p class="erro" role="alert">{{ erro() }}</p>
+    }
+  </div>
+</app-dialogo>

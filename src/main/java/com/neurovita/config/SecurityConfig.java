@@ -1,4 +1,3 @@
-
 package com.neurovita.config;
 
 import java.util.List;
@@ -16,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,7 +30,7 @@ public class SecurityConfig {
 
         @Bean
         public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+                return new BCryptPasswordEncoder();
         }
 
         @Bean
@@ -88,14 +88,20 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Rotas públicas
+                        // Login da API e documentação
                         .requestMatchers(
-                                "/",
-                                "/teste",
                                 "/api/auth/login",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
+                        ).permitAll()
+
+                        // Frontend Angular e arquivos estáticos.
+                        // Libera somente caminhos fora de /api e /api/.
+                        .requestMatchers(
+                                new RegexRequestMatcher(
+                                        "^(?!/api(?:/|$)).*$",
+                                        null)
                         ).permitAll()
 
                         // Troca de senha no primeiro acesso
@@ -201,7 +207,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/responsaveis/**")
                         .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
-                        // Demais rotas exigem autenticação
+                        // Demais endpoints da API exigem autenticação
                         .anyRequest().authenticated()
                 )
 
@@ -213,9 +219,9 @@ public class SecurityConfig {
         }
 
         private void escreverErro(
-        jakarta.servlet.http.HttpServletResponse response,
-        HttpStatus status,
-        String mensagem) throws java.io.IOException {
+                jakarta.servlet.http.HttpServletResponse response,
+                HttpStatus status,
+                String mensagem) throws java.io.IOException {
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

@@ -1,0 +1,71 @@
+@if (paciente(); as p) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Prontuário do paciente" subtitulo="Histórico e informações do paciente" [voltarPara]="raiz() + '/pacientes'">
+      <button type="button" class="botao-escuro" (click)="abrirAnotacao()">+ Nova anotação</button>
+    </app-titulo-pagina>
+
+    <app-faixa-paciente [paciente]="p" [perfil]="perfil()" />
+
+    <div class="pront-grade">
+      <div class="pront-coluna">
+        <section class="cartao pront-bloco">
+          <h2 class="pront-titulo"><app-icone nome="usuario" /> Informações pessoais</h2>
+          <dl class="pront-dados">
+            <dt>Data de nascimento</dt><dd>{{ nascimento() }}</dd>
+            <dt>Telefone</dt><dd>{{ p.telefone }}</dd>
+            <dt>E-mail</dt><dd>{{ p.email }}</dd>
+            <dt>Endereço</dt><dd>{{ p.endereco }}</dd>
+          </dl>
+        </section>
+        <section class="cartao pront-bloco">
+          <h2 class="pront-titulo"><app-icone nome="usuario" /> Responsável</h2>
+          <dl class="pront-dados">
+            <dt>Nome</dt><dd>{{ p.responsavel.nome }}</dd>
+            <dt>Relação</dt><dd>{{ p.responsavel.relacao }}</dd>
+            <dt>Telefone</dt><dd>{{ p.responsavel.telefone }}</dd>
+            <dt>Endereço</dt><dd>{{ p.responsavel.endereco }}</dd>
+          </dl>
+        </section>
+      </div>
+
+      <div class="pront-coluna pront-atalhos">
+        @for (s of secoes(); track s.id) {
+          <div class="cartao pront-atalho">
+            <app-icone nome="prancheta" />
+            <span class="pront-atalho-nome">{{ s.rotulo }}</span>
+            <a class="botao-ver-tudo" [routerLink]="[raiz(), 'pacientes', p.id, s.id]">
+              Visualizar tudo <app-icone nome="olho" />
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+
+    <section class="cartao pront-historico">
+      <h2 class="pront-titulo"><app-icone nome="relogio" /> Histórico de consultas</h2>
+      <div class="hist-cab hist-linha"><span>Data</span><span>Profissional</span><span>Resumo</span></div>
+      <div class="hist-corpo">
+        @for (c of consultas(); track $index) {
+          <div class="hist-linha hist-item"><span>{{ c.dataBR }}</span><span>{{ c.profissional }}</span><span>{{ c.resumo }}</span></div>
+        } @empty {
+          <p class="tabela-vazio">Nenhuma consulta registrada.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <app-dialogo [aberto]="anotacaoAberta()" titulo="Nova anotação" textoConfirmar="Salvar" (cancelar)="anotacaoAberta.set(false)" (confirmar)="salvarAnotacao()">
+    <div class="form-dialogo">
+      <label>Resumo da consulta
+        <textarea rows="4" [value]="anotacao()" (input)="anotacao.set($any($event.target).value); erro.set('')"></textarea>
+      </label>
+      @if (erro()) {
+        <p class="erro" role="alert">{{ erro() }}</p>
+      }
+    </div>
+  </app-dialogo>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina titulo="Paciente não encontrado" subtitulo="Esse paciente não existe ou foi removido." [voltarPara]="raiz() + '/pacientes'" />
+  </div>
+}

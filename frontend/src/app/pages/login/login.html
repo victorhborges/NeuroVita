@@ -1,0 +1,71 @@
+<app-auth-card>
+  <h1 class="auth-titulo auth-titulo-center login-titulo">Bem-vindo ao NeuroVita</h1>
+
+  <form class="login-form" novalidate (submit)="entrar($event)">
+    @if (mostrarAviso()) {
+      <div class="alert-sucesso" role="status">
+        <svg class="icon h-6 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="m16 9-5.5 5.5L8 12" />
+        </svg>
+        <div>
+          <p class="alert-titulo">Senha redefinida com sucesso!</p>
+          <p class="alert-texto">Sua senha foi alterada. Faça login para continuar</p>
+        </div>
+      </div>
+    }
+
+    <div class="campo-email">
+      <div class="field">
+        <svg class="icon icon-lg text-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+        </svg>
+        <input
+          type="email"
+          name="email"
+          placeholder="E-mail"
+          class="field-input"
+          autocomplete="off"
+          [value]="email()"
+          (input)="aoDigitarEmail($event)"
+          (focus)="abrirLista()"
+          (click)="abrirLista()"
+          (blur)="fecharLista()"
+          (keydown.escape)="fecharLista()"
+        />
+      </div>
+
+      <!-- TODO (back-end): remover esta lista de e-mails de teste. -->
+      @if (listaAberta()) {
+        <div class="email-lista" role="listbox" aria-label="E-mails de teste">
+          <p class="email-lista-titulo">Contas de teste · senha: {{ senhaDeTeste }}</p>
+          @for (conta of contas; track conta.email) {
+            <button
+              type="button"
+              role="option"
+              class="email-opcao"
+              [attr.aria-selected]="email() === conta.email"
+              (mousedown)="escolher($event, conta)"
+            >
+              <span class="email-opcao-perfil">{{ conta.rotulo }}</span>
+              <span class="email-opcao-email">{{ conta.email }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <app-campo-senha placeholder="Senha" [separador]="true" [(valor)]="senha" />
+
+    @if (erro()) {
+      <p class="erro login-erro" role="alert">{{ erro() }}</p>
+    }
+
+    <div class="forgot">
+      <a routerLink="/esqueci-senha" class="link forgot-link">Esqueci minha senha</a>
+    </div>
+
+    <button type="submit" class="btn-entrar">Entrar</button>
+  </form>
+</app-auth-card>

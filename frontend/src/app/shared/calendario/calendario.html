@@ -1,0 +1,31 @@
+<section class="cartao calendario">
+  <h2 class="calendario-titulo">Calendário</h2>
+
+  <div class="calendario-mes">
+    <button type="button" class="calendario-seta" aria-label="Mês anterior">
+      <app-icone nome="seta-esquerda" />
+    </button>
+    <span class="calendario-mes-nome">{{ mes() }}</span>
+    <button type="button" class="calendario-seta" aria-label="Próximo mês">
+      <app-icone nome="seta-direita" />
+    </button>
+  </div>
+
+  <div class="calendario-grade">
+    @for (nome of diasDaSemana; track nome) {
+      <span class="calendario-semana">{{ nome }}</span>
+    }
+    @for (semana of semanas(); track $index) {
+      @for (dia of semana; track $index) {
+        <span class="calendario-dia-celula">
+          <span
+            class="calendario-dia"
+            [class.calendario-dia-fora]="dia.foraDoMes"
+            [class.calendario-dia-consulta]="dia.comConsulta"
+            [class.calendario-dia-selecionado]="dia.selecionado"
+          >{{ dia.numero }}</span>
+        </span>
+      }
+    }
+  </div>
+</section>
