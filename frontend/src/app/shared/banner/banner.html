@@ -1,0 +1,30 @@
+<section class="banner" [class.banner-azul]="variante() === 'azul'" [class.banner-roxo]="variante() === 'roxo'">
+  <svg class="banner-nuvem" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="30" cy="48" r="22" />
+    <circle cx="58" cy="54" r="26" />
+    <circle cx="84" cy="70" r="18" />
+    <rect x="0" y="62" width="100" height="38" />
+  </svg>
+
+  <div class="banner-texto">
+    <h2 class="banner-titulo">{{ titulo() }}</h2>
+    @if (texto()) {
+      <p class="banner-sub">{{ texto() }}</p>
+    }
+  </div>
+
+  <svg class="banner-ilustracao" viewBox="0 0 120 110" aria-hidden="true">
+    <rect x="8" y="14" width="104" height="84" rx="9" fill="#fff" />
+    <rect x="8" y="14" width="104" height="84" rx="9" fill="none" stroke="#d9dcf5" />
+    <rect x="20" y="28" width="38" height="5" rx="2.5" fill="#b9bff0" />
+    <rect x="20" y="40" width="48" height="5" rx="2.5" fill="#b9bff0" />
+    <circle cx="88" cy="38" r="14" fill="#c9cdf6" />
+    <circle cx="88" cy="34" r="5" fill="#7a82e6" />
+    <path d="M78 47a10 8 0 0 1 20 0z" fill="#7a82e6" />
+    <rect x="20" y="58" width="80" height="26" rx="5" fill="#eef0fd" />
+    <circle cx="30" cy="66" r="3.5" fill="#7a82e6" />
+    <rect x="38" y="64" width="40" height="4" rx="2" fill="#b9bff0" />
+    <path d="m26 76 4 3 4-3" fill="none" stroke="#7a82e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="m26 82 4 3 4-3" fill="none" stroke="#7a82e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</section>

@@ -1,0 +1,82 @@
+@if (!paciente() || !secaoValida()) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Página não encontrada" subtitulo="Esse paciente ou essa seção não existe." [voltarPara]="raiz() + '/pacientes'" />
+  </div>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina [titulo]="cfg().rotulo" subtitulo="Histórico e informações do paciente" [voltarPara]="voltarPara()" [bloquearSaida]="sujo()">
+      <button type="button" class="botao-escuro botao-com-icone" (click)="pedirConfirmacao()">
+        <app-icone nome="salvar" /> {{ cfg().botaoSalvar }}
+      </button>
+    </app-titulo-pagina>
+
+    <app-faixa-paciente [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()" />
+
+    <div class="doc-grade doc-grade-lista" [class.doc-grade-solo]="!cfg().listaNoEditor">
+      <section class="cartao doc-principal doc-editor">
+        @if (cfg().camposNoEditor) {
+          <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().tituloCartao }}</h2>
+          <div class="doc-campos cartao">
+            <label class="campo-mini">Data da sessão
+              <input type="date" [max]="hoje" [value]="dataSessao()" (input)="dataSessao.set($any($event.target).value)" />
+            </label>
+            <label class="campo-mini">Tipo de atendimento
+              <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
+                <option value="Presencial" [selected]="tipo() === 'Presencial'">Presencial</option>
+                <option value="Online" [selected]="tipo() === 'Online'">Online</option>
+              </select>
+            </label>
+            <div class="campo-mini">Anexar arquivos
+              <label class="botao-upload">Fazer Upload de arquivos
+                <input type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+              </label>
+            </div>
+          </div>
+          @if (anexos().length) {
+            <ul class="anexos" aria-label="Arquivos anexados">
+              @for (a of anexos(); track a.url) {
+                <li><app-icone nome="arquivo-texto" /> {{ a.nome }}
+                  <button type="button" [attr.aria-label]="'Remover ' + a.nome" (click)="removerAnexo($index)"><app-icone nome="fechar" /></button>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <div class="doc-editor-topo">
+            <h2 class="doc-titulo">Editar Laudos</h2>
+            <span class="doc-alteracao">Última alteração- {{ alteradoEm() }}</span>
+          </div>
+        }
+
+        <app-editor-texto
+          [(valor)]="conteudo"
+          [tituloVazio]="cfg().vazioEditor"
+          [mostrarFinalizar]="!cfg().camposNoEditor"
+          (finalizar)="pedirConfirmacao()"
+        />
+      </section>
+
+      @if (cfg().listaNoEditor) {
+        <aside class="doc-lateral">
+          <h2 class="doc-lateral-titulo doc-lateral-titulo-simples">{{ cfg().rotulo }}</h2>
+          <ul class="doc-lista-lateral">
+            @for (item of lista(); track item.doc.id) {
+              <li>
+                <a class="doc-lateral-item" [class.doc-lateral-ativo]="item.doc.id === docId()" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]" (click)="sair($event)">
+                  <span><strong>{{ item.dataBR }}</strong><small>{{ item.sub }}</small></span>
+                  <app-icone nome="seta-direita" />
+                </a>
+              </li>
+            }
+          </ul>
+          <div class="doc-info">
+            <p class="doc-info-titulo"><app-icone nome="relogio" /> Histórico do paciente</p>
+            <p class="doc-info-texto">{{ cfg().informacao }}</p>
+          </div>
+        </aside>
+      }
+    </div>
+  </div>
+
+  <app-dialogo [aberto]="confirmando()" [titulo]="cfg().dialogoTitulo" [textoConfirmar]="cfg().dialogoConfirmar" (cancelar)="confirmando.set(false)" (confirmar)="confirmar()" />
+}

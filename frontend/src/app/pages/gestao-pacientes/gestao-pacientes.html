@@ -1,0 +1,59 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Pacientes" subtitulo="Visualize e gerencie todos os pacientes cadastrados">
+    <label class="pg-busca">
+      <input type="search" placeholder="Buscar pacientes..." aria-label="Buscar pacientes" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+      <app-icone nome="busca" />
+    </label>
+    @if (edita()) {
+      <a class="botao-escuro botao-com-icone" [routerLink]="base() + '/novo'"><app-icone nome="usuario-mais" /> Novo Paciente</a>
+    }
+  </app-titulo-pagina>
+
+  <section class="pac-cards" aria-label="Resumo dos pacientes">
+    @for (card of cards(); track card.rotulo) {
+      <div class="cartao pac-card">
+        <span class="pac-card-icone"><app-icone [nome]="card.icone" /></span>
+        <div>
+          <p class="pac-card-valor">{{ card.valor }}</p>
+          <p class="pac-card-rotulo">{{ card.rotulo }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="cartao tabela" aria-label="Lista de pacientes">
+    <div class="tabela-cab tabela-linha-ges" [class.tabela-linha-leitura]="!edita()" role="row">
+      <span>Paciente</span><span>Data de nascimento</span><span>Telefone</span><span>Profissional responsável</span><span class="centro">Status</span>
+      @if (edita()) { <span class="centro">Ações</span> }
+    </div>
+    @for (item of lista(); track item.p.id) {
+      <div class="tabela-linha tabela-linha-ges" [class.tabela-linha-leitura]="!edita()">
+        <div class="pac-nome">
+          <app-avatar [nome]="item.p.nome" [foto]="item.p.foto" />
+          <div>
+            <p class="linha-nome">{{ item.p.nome }}</p>
+            <p class="linha-tipo">ID: {{ item.p.codigo }} - {{ item.idade }} anos</p>
+          </div>
+        </div>
+        <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
+        <span class="pac-texto">{{ item.p.telefone }}</span>
+        <span class="pac-texto">{{ item.profissional }}</span>
+        <span class="centro"><span class="status" [class.status-acompanhamento]="item.ativo" [class.status-inativo]="!item.ativo">{{ item.ativo ? 'Ativo' : 'Inativo' }}</span></span>
+        @if (edita()) {
+          <span class="acoes-linha centro">
+            <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>
+            <button type="button" class="acao-excluir" [attr.aria-label]="'Excluir ' + item.p.nome" title="Excluir" (click)="excluindo.set(item.p)"><app-icone nome="lixeira" /></button>
+          </span>
+        }
+      </div>
+    } @empty {
+      <p class="tabela-vazio">Nenhum paciente encontrado.</p>
+    }
+  </section>
+</div>
+
+<app-dialogo [aberto]="!!excluindo()" titulo="Excluir paciente?" textoConfirmar="Excluir" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
+  <p class="dialogo-texto">
+    O cadastro de <strong>{{ excluindo()?.nome }}</strong>, o prontuário e as consultas marcadas serão removidos. Essa ação não pode ser desfeita.
+  </p>
+</app-dialogo>

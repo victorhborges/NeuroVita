@@ -1,0 +1,47 @@
+<header class="topo">
+  <div>
+    <h1 class="topo-saudacao">{{ config().saudacao }}</h1>
+    <p class="topo-subtitulo">Gerencie toda a agenda e cadastro da clínica.</p>
+  </div>
+
+  <div class="topo-usuario">
+    @if (config().sino) {
+      <!-- TODO: ligar as notificações. -->
+      <button type="button" class="topo-sino" aria-label="Notificações">
+        <app-icone nome="sino" />
+      </button>
+    }
+
+    @if (config().setaUsuario) {
+      <button
+        type="button" class="topo-perfil topo-perfil-botao" aria-haspopup="menu"
+        [attr.aria-expanded]="menuAberto()" (click)="alternarMenu()"
+      >
+        <app-avatar [nome]="config().usuario.nome" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
+        <span class="topo-dados">
+          <span class="topo-nome">{{ config().usuario.nome }}</span>
+          <span class="topo-cargo">{{ config().usuario.cargo }}</span>
+        </span>
+        <app-icone nome="seta-baixo" class="topo-seta" />
+      </button>
+
+      @if (menuAberto()) {
+        <div class="topo-menu" role="menu">
+          <!-- TODO: encerrar a sessão de verdade quando o login for ligado ao back-end. -->
+          <a class="topo-menu-item" role="menuitem" routerLink="/">
+            <app-icone nome="sair" />
+            Sair
+          </a>
+        </div>
+      }
+    } @else {
+      <div class="topo-perfil">
+        <app-avatar [nome]="config().usuario.nome" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
+        <span class="topo-dados">
+          <span class="topo-nome">{{ config().usuario.nome }}</span>
+          <span class="topo-cargo">{{ config().usuario.cargo }}</span>
+        </span>
+      </div>
+    }
+  </div>
+</header>

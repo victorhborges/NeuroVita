@@ -1,0 +1,47 @@
+<div>
+    <app-cabecalho [config]="config()" />
+
+    @if (config().layout === 'profissional') {
+      <!-- Psicólogo e psiquiatra: agenda + calendário -->
+      <div class="painel-colunas">
+        <div class="painel-coluna">
+          <app-agenda-do-dia [itens]="agenda()" [data]="dataAgenda()" [menuAcoes]="config().menuAcoes" [rota]="rotaAgenda()" />
+          <app-banner [variante]="config().banner.variante" [titulo]="config().banner.titulo" [texto]="config().banner.texto" />
+        </div>
+        <div class="painel-coluna">
+          <app-calendario [mes]="mesCalendario" [semanas]="semanas" />
+          <app-proximas-consultas [consultas]="proximas()" [menuAcoes]="config().menuAcoes" [rota]="rotaAgenda()" />
+        </div>
+      </div>
+    } @else {
+      <!-- Secretária e administrador: números, botões de gerenciar e agenda -->
+      <app-cards-resumo [cards]="cards()" />
+
+      <div class="acoes">
+        @for (acao of config().acoes; track acao.texto) {
+          @if (acao.rota) {
+            <a class="acao" [routerLink]="acao.rota">
+              <span class="acao-icone"><app-icone [nome]="acao.icone" /></span>
+              {{ acao.texto }}
+            </a>
+          } @else {
+            <!-- TODO: ligar este botão à sua tela de gerenciamento. -->
+            <button type="button" class="acao">
+              <span class="acao-icone"><app-icone [nome]="acao.icone" /></span>
+              {{ acao.texto }}
+            </button>
+          }
+        }
+      </div>
+
+      <div class="painel-colunas">
+        <div class="painel-coluna">
+          <app-agenda-do-dia [itens]="agenda()" [data]="dataAgenda()" [menuAcoes]="config().menuAcoes" [rota]="rotaAgenda()" />
+        </div>
+        <div class="painel-coluna">
+          <app-proximas-consultas [consultas]="proximas()" [menuAcoes]="config().menuAcoes" [rota]="rotaAgenda()" />
+          <app-banner [variante]="config().banner.variante" [titulo]="config().banner.titulo" [texto]="config().banner.texto" />
+        </div>
+      </div>
+    }
+</div>

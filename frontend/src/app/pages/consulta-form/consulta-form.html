@@ -1,0 +1,94 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Gerenciamento de consultas" subtitulo="Agende uma nova consulta para o paciente e visualize a disponibilidade do profissional." />
+
+  <div class="cartao cons-grade">
+    <section class="cons-coluna" aria-labelledby="t-dados-cons">
+      <h2 id="t-dados-cons" class="cons-titulo">Dados da Consulta</h2>
+      <div class="cons-campos cartao">
+        <div class="cons-campo">
+          <span class="cons-rotulo"><app-icone nome="usuario" /> Paciente</span>
+          <app-lista-suspensa titulo="Pacientes" placeholder="Selecione o paciente" [comBusca]="true" [opcoes]="opcoesPacientes()" [(valor)]="pacienteId" [erro]="erroPaciente()" />
+        </div>
+        <div class="cons-campo">
+          <span class="cons-rotulo"><app-icone nome="usuario" /> Responsável</span>
+          <div class="cons-leitura" aria-label="Responsável">{{ paciente()?.responsavel?.nome ?? 'Preenchido ao escolher o paciente' }}</div>
+        </div>
+        <div class="cons-campo">
+          <span class="cons-rotulo"><app-icone nome="usuario" /> Profissional</span>
+          <app-lista-suspensa titulo="Profissionais" placeholder="Selecione o profissional" [opcoes]="opcoesProfissionais()" [(valor)]="profissionalId" [erro]="erroProfissional()" />
+        </div>
+        <div class="cons-campo">
+          <span class="cons-rotulo"><app-icone nome="calendario" /> Tipo de atendimento</span>
+          <app-lista-suspensa titulo="Atendimento" [opcoes]="opcoesAtendimento" [valor]="atendimento()" (valorChange)="atendimento.set($event === 'Online' ? 'Online' : 'Presencial')" />
+        </div>
+        <label class="cons-campo">
+          <span class="cons-rotulo"><app-icone nome="local" /> Local</span>
+          <input type="text" class="cons-entrada" autocomplete="off" placeholder="Unidade Santa Maria" [value]="local()" (input)="local.set($any($event.target).value)" />
+        </label>
+      </div>
+
+      @if (paciente(); as p) {
+        <div class="cons-contato">
+          <app-avatar [nome]="p.nome" [foto]="p.foto" />
+          <div>
+            <p class="cons-contato-nome">{{ p.nome }}</p>
+            <p>{{ idade() }} anos</p>
+            <p class="cons-contato-linha"><app-icone nome="telefone" /> {{ p.responsavel.telefone }}</p>
+            <p class="cons-contato-linha"><app-icone nome="email" /> {{ p.responsavel.email || '—' }}</p>
+          </div>
+        </div>
+      } @else {
+        <div class="cons-contato cons-contato-vazio">Escolha o paciente para ver o contato do responsável.</div>
+      }
+    </section>
+
+    <section class="cons-coluna" aria-labelledby="t-disp">
+      <h2 id="t-disp" class="cons-titulo">Disponibilidade</h2>
+      <div class="cartao cons-disp">
+        <div class="cons-dias">
+          <button type="button" class="cons-seta" aria-label="Semana anterior" [disabled]="semana() <= 0" (click)="mudarSemana(-1)"><app-icone nome="seta-esquerda" /></button>
+          @for (d of dias(); track d.iso) {
+            <button
+              type="button" class="cons-dia" [class.cons-dia-ativo]="d.iso === dia()" [class.cons-dia-passado]="d.passado"
+              [disabled]="d.passado" [attr.aria-pressed]="d.iso === dia()" (click)="escolherDia(d.iso, d.passado)"
+            >
+              <strong>{{ d.nome }}</strong><span class="cons-dia-num">{{ d.numero }}</span><small>{{ d.mes }}</small>
+            </button>
+          }
+          <button type="button" class="cons-seta" aria-label="Próxima semana" (click)="mudarSemana(1)"><app-icone nome="seta-direita" /></button>
+        </div>
+
+        <h3 class="cons-sub">Horário Disponível</h3>
+        @if (dicaHorarios()) {
+          <p class="cons-dica" role="status">{{ dicaHorarios() }}</p>
+        }
+        <div class="cons-horarios" role="group" aria-label="Horários">
+          @for (h of horarios(); track h.hora) {
+            <button
+              type="button" class="cons-hora" [class.cons-hora-ativa]="h.hora === horaValida()" [disabled]="!h.livre"
+              [attr.aria-pressed]="h.hora === horaValida()" (click)="hora.set(h.hora)"
+            >
+              {{ h.hora }} <span class="cons-ponto" [class.cons-ponto-livre]="h.livre"></span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="cartao cons-resumo">
+        <h3 class="cons-sub">Consulta selecionada</h3>
+        <ul>
+          <li><app-icone nome="calendario" /> {{ formatar(dia()) }} <span class="cons-hora-resumo"><app-icone nome="relogio" /> {{ horaValida() || '—' }}</span></li>
+          <li><app-icone nome="usuario" /> {{ paciente() ? paciente()!.nome + ' - ' + idade() + ' anos' : '—' }}</li>
+          <li><app-icone nome="usuario" /> {{ rotuloProfissional() || '—' }}</li>
+        </ul>
+      </div>
+
+      <div class="cons-botoes">
+        <button type="button" class="botao-claro" (click)="cancelar()">Cancelar</button>
+        <button type="button" class="botao-escuro" (click)="salvar()">Salvar</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<app-dialogo [aberto]="confirmando()" titulo="Confirmar Consulta?" (cancelar)="confirmando.set(false)" (confirmar)="confirmar()" />

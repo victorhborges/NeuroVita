@@ -1,0 +1,176 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Agenda" subtitulo="Gerencie os atendimentos da clínica de forma simples e eficiente" />
+
+  <div class="ag-grade-geral">
+    <section class="cartao ag-principal">
+      <div class="ag-barra">
+        <button type="button" class="ag-hoje" (click)="irParaHoje()"><app-icone nome="calendario" /> Hoje</button>
+        <div class="ag-setas">
+          <button type="button" aria-label="Semana anterior" (click)="irPara(-1)"><app-icone nome="seta-esquerda" /></button>
+          <button type="button" aria-label="Próxima semana" (click)="irPara(1)"><app-icone nome="seta-direita" /></button>
+        </div>
+        <button type="button" class="ag-faixa" (click)="abrirCalendario()">
+          <app-icone nome="calendario" /> {{ faixa() }}
+          <input #seletorData type="date" class="ag-data-oculta" tabindex="-1" aria-label="Escolher uma data" (change)="escolherData($event)" />
+        </button>
+        <label class="pg-busca ag-busca">
+          <input type="search" placeholder="Buscar pacientes..." aria-label="Buscar pacientes" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+          <app-icone nome="busca" />
+        </label>
+      </div>
+
+      <div class="ag-rolagem">
+        <div class="ag-grade" role="grid" aria-label="Agenda semanal">
+          <div class="ag-canto">Hora</div>
+          @for (d of dias(); track d.iso) {
+            <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2">{{ d.nome }}<br />{{ d.texto }}</div>
+          }
+          @for (h of horarios; track h; let i = $index) {
+            <div class="ag-hora" [style.grid-row]="i + 2">{{ h }}</div>
+            @for (c of colunas; track c) {
+              <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2"></div>
+            }
+          }
+          @for (e of eventos(); track e.id) {
+            <button
+              type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
+              [style.grid-column]="e.dia + 2" [style.grid-row]="e.linha + ' / span ' + e.trechos"
+              [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
+              (click)="selecionar(e.id)"
+            >
+              <strong>{{ e.nome }}</strong>
+              <span>{{ e.tipo }}</span>
+              @if (e.trechos > 1) {
+                <small>{{ e.profNome }}</small>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <aside class="ag-lateral">
+      <section class="cartao ag-caixa">
+        <h2 class="ag-caixa-titulo"><app-icone nome="calendario" /> Resumo da agenda</h2>
+        <p class="ag-caixa-sub">Hoje - {{ dataHoje }}</p>
+        <ul class="ag-legenda">
+          @for (r of resumo(); track r.classe) {
+            <li><span class="ag-ponto ag-ponto-{{ r.classe }}"></span> {{ r.valor }} {{ r.rotulo }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="cartao ag-caixa">
+        <h2 class="ag-caixa-titulo">Próximo atendimento</h2>
+        @if (proximo(); as p) {
+          <ul class="ag-info">
+            <li><app-icone nome="relogio" /> {{ p.inicio }}</li>
+            <li><app-icone nome="prancheta" /> {{ p.tipo }}</li>
+            <li><app-icone nome="local" /> {{ p.sala }}</li>
+          </ul>
+        } @else {
+          <p class="ag-caixa-sub">Nenhum atendimento para hoje.</p>
+        }
+      </section>
+
+      <section class="cartao ag-caixa">
+        <h2 class="ag-caixa-titulo">Paciente selecionado</h2>
+        @if (escolhido(); as s) {
+          <div class="ag-paciente">
+            <app-avatar [nome]="s.nome" />
+            <div>
+              <p class="linha-nome">{{ s.nome }}</p>
+              <p class="linha-tipo">{{ s.idade }} anos</p>
+              <p class="ag-contato"><app-icone nome="telefone" /> {{ s.telefone }}</p>
+            </div>
+          </div>
+          <p class="ag-contato ag-contato-email"><app-icone nome="email" /> {{ s.email }}</p>
+          <ul class="ag-info ag-info-quando">
+            <li>
+              <app-icone nome="calendario" />
+              <span><strong>{{ secretaria() ? s.relativo : rotulo[s.a.status] }}</strong><small>{{ s.a.inicio }}</small><small>{{ s.dataBR }}</small></span>
+            </li>
+            <li><app-icone nome="usuario" /><span><strong>Profissional</strong><small>{{ s.profissional }}</small></span></li>
+          </ul>
+
+          @if (secretaria()) {
+            <button type="button" class="ag-status-botao ag-status-{{ s.a.status }}" aria-haspopup="dialog" (click)="abrirEdicao()">
+              <app-icone nome="calendario" /> {{ rotulo[s.a.status] }}
+            </button>
+          } @else {
+            <div class="ag-status" #menuStatusRaiz>
+              <button type="button" class="ag-status-botao" aria-haspopup="menu" [attr.aria-expanded]="menuStatus()" (click)="menuStatus.set(!menuStatus())">
+                <app-icone nome="calendario" /> {{ rotulo[s.a.status] }} <app-icone nome="seta-baixo" />
+              </button>
+              @if (menuStatus()) {
+                <div class="ag-status-menu" role="menu">
+                  @for (st of statusLista; track st) {
+                    <button type="button" role="menuitem" (click)="trocarStatus(st)">
+                      <span class="ag-ponto ag-ponto-{{ st }}"></span> {{ rotulo[st] }}
+                      @if (st === s.a.status) { <app-icone nome="check" /> }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        } @else {
+          <p class="ag-caixa-sub">Clique em um atendimento para ver os detalhes.</p>
+        }
+      </section>
+    </aside>
+  </div>
+</div>
+
+@if (editando() && escolhido(); as s) {
+  <div class="dialogo-fundo" (mousedown)="$event.target === $event.currentTarget && editando.set(false)">
+    <div class="dialogo dialogo-edicao" role="dialog" aria-modal="true" aria-label="Editar consulta">
+      <div class="edicao-topo">
+        <h2 class="edicao-titulo">Editar consulta</h2>
+        <button type="button" class="edicao-fechar" aria-label="Fechar" (click)="editando.set(false)"><app-icone nome="fechar" /></button>
+      </div>
+
+      <div class="edicao-paciente">
+        <app-avatar [nome]="s.nome" />
+        <div>
+          <p class="linha-nome">{{ s.nome }}</p>
+          <p class="edicao-sub">{{ s.idade }} anos{{ s.diagnostico ? '- ' + s.diagnostico : '' }}</p>
+        </div>
+      </div>
+
+      <div class="edicao-grade">
+        <label class="edicao-campo">Data
+          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="editData.set($any($event.target).value)" /></span>
+        </label>
+        <label class="edicao-campo">Horário
+          <span class="edicao-entrada"><app-icone nome="relogio" />
+            <select (change)="editHora.set($any($event.target).value)">
+              @for (h of opcoesHorario(); track h) { <option [value]="h" [selected]="h === editHora()">{{ h }}</option> }
+            </select>
+          </span>
+        </label>
+        <label class="edicao-campo">Profissional
+          <span class="edicao-entrada"><app-icone nome="usuario" />
+            <select (change)="editProf.set($any($event.target).value)">
+              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor" [selected]="p.valor === editProf()">{{ p.rotulo }}</option> }
+            </select>
+          </span>
+        </label>
+        <label class="edicao-campo">Sala
+          <span class="edicao-entrada"><app-icone nome="local" />
+            <select (change)="editSala.set($any($event.target).value)">
+              @for (sala of salas; track sala) { <option [value]="sala" [selected]="sala === editSala()">{{ sala }}</option> }
+              @if (!salas.includes(editSala())) { <option [value]="editSala()" selected>{{ editSala() }}</option> }
+            </select>
+          </span>
+        </label>
+      </div>
+
+      <button type="button" class="edicao-botao edicao-confirmar" (click)="confirmarConsulta()"><app-icone nome="check-grande" /> Confirmar consulta</button>
+      <button type="button" class="edicao-botao edicao-remarcar" (click)="remarcarConsulta()"><app-icone nome="calendario" /> Remarcar consulta</button>
+      <button type="button" class="edicao-botao edicao-cancelar" (click)="cancelando.set(true)"><app-icone nome="lixeira" /> Cancelar consulta</button>
+    </div>
+  </div>
+}
+
+<app-dialogo [aberto]="cancelando()" titulo="Cancelar esta consulta?" textoCancelar="Voltar" textoConfirmar="Cancelar consulta" (cancelar)="cancelando.set(false)" (confirmar)="confirmarCancelamento()" />

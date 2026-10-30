@@ -1,0 +1,66 @@
+<div class="editor" #raiz [class.editor-tela-cheia]="telaCheia()">
+  <div class="editor-barra" role="toolbar" aria-label="Formatação do texto">
+    <select class="editor-select editor-select-bloco" aria-label="Estilo do texto" (change)="mudarBloco($event)">
+      @for (b of blocos; track b.valor) {
+        <option [value]="b.valor">{{ b.rotulo }}</option>
+      }
+    </select>
+    <span class="editor-sep"></span>
+    <select class="editor-select" aria-label="Tamanho da letra" (change)="mudarTamanho($event)">
+      @for (t of tamanhos; track t) {
+        <option [value]="t" [selected]="t === tamanho()">{{ t }}</option>
+      }
+    </select>
+    <span class="editor-sep"></span>
+    <button type="button" class="editor-botao" [class.editor-botao-ativo]="negrito()" aria-label="Negrito" (mousedown)="$event.preventDefault()" (click)="executar('bold')"><b>B</b></button>
+    <button type="button" class="editor-botao" [class.editor-botao-ativo]="italico()" aria-label="Itálico" (mousedown)="$event.preventDefault()" (click)="executar('italic')"><i>I</i></button>
+    <button type="button" class="editor-botao" [class.editor-botao-ativo]="sublinhado()" aria-label="Sublinhado" (mousedown)="$event.preventDefault()" (click)="executar('underline')"><u>U</u></button>
+    <span class="editor-sep"></span>
+    <label class="editor-botao editor-cor" title="Cor do texto">
+      <span class="editor-cor-letra" [style.borderBottomColor]="cor()">A</span>
+      <input type="color" class="editor-cor-campo" [value]="cor()" aria-label="Cor do texto" (change)="mudarCor($event)" />
+    </label>
+    <span class="editor-sep"></span>
+    <button type="button" class="editor-botao" aria-label="Alinhar à esquerda" (mousedown)="$event.preventDefault()" (click)="executar('justifyLeft')"><app-icone nome="alinhar-esq" /></button>
+    <button type="button" class="editor-botao" aria-label="Centralizar" (mousedown)="$event.preventDefault()" (click)="executar('justifyCenter')"><app-icone nome="alinhar-centro" /></button>
+    <button type="button" class="editor-botao" aria-label="Alinhar à direita" (mousedown)="$event.preventDefault()" (click)="executar('justifyRight')"><app-icone nome="alinhar-dir" /></button>
+    <span class="editor-sep"></span>
+    <button type="button" class="editor-botao" aria-label="Inserir link" (mousedown)="$event.preventDefault()" (click)="inserirLink()"><app-icone nome="link" /></button>
+    <label class="editor-botao" title="Inserir imagem">
+      <app-icone nome="imagem" />
+      <input type="file" accept="image/*" class="editor-arquivo" aria-label="Inserir imagem" (change)="inserirImagem($event)" />
+    </label>
+    <span class="editor-mais">
+      <button type="button" class="editor-botao" aria-label="Mais opções" aria-haspopup="menu" [attr.aria-expanded]="menuMais()" (mousedown)="$event.preventDefault()" (click)="menuMais.set(!menuMais())"><app-icone nome="pontinhos" /></button>
+      @if (menuMais()) {
+        <div class="editor-menu" role="menu">
+          <button type="button" role="menuitem" (mousedown)="$event.preventDefault()" (click)="executar('insertUnorderedList'); menuMais.set(false)">Lista com marcadores</button>
+          <button type="button" role="menuitem" (mousedown)="$event.preventDefault()" (click)="executar('insertOrderedList'); menuMais.set(false)">Lista numerada</button>
+          <button type="button" role="menuitem" (mousedown)="$event.preventDefault()" (click)="executar('removeFormat'); menuMais.set(false)">Limpar formatação</button>
+          <button type="button" role="menuitem" (mousedown)="$event.preventDefault()" (click)="executar('undo'); menuMais.set(false)">Desfazer</button>
+          <button type="button" role="menuitem" (mousedown)="$event.preventDefault()" (click)="executar('redo'); menuMais.set(false)">Refazer</button>
+        </div>
+      }
+    </span>
+    <button type="button" class="editor-botao editor-botao-fim" [attr.aria-label]="telaCheia() ? 'Sair da tela cheia' : 'Tela cheia'" (mousedown)="$event.preventDefault()" (click)="alternarTelaCheia()"><app-icone nome="tela-cheia" /></button>
+  </div>
+
+  <div class="editor-corpo">
+    <div
+      #area class="editor-area texto-rico" contenteditable="true" role="textbox" aria-multiline="true"
+      aria-label="Texto do documento" spellcheck="true"
+      (input)="aoDigitar()" (paste)="aoColar($event)" (focus)="focado.set(true)" (blur)="focado.set(false)"
+    ></div>
+
+    @if (vazio() && !focado()) {
+      <div class="editor-vazio">
+        <p class="editor-vazio-titulo">{{ tituloVazio() }}</p>
+        <p class="editor-vazio-sub">Use a barra de ferramentas para formatar o texto e<br />adicionar informações</p>
+      </div>
+    }
+
+    @if (mostrarFinalizar()) {
+      <button type="button" class="botao-escuro editor-finalizar" (click)="finalizar.emit()">Finalizar</button>
+    }
+  </div>
+</div>

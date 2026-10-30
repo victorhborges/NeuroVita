@@ -1,0 +1,35 @@
+<aside class="menu">
+  <div class="menu-marca">
+    <img src="img/logo.png" alt="" class="menu-logo" />
+    <span class="menu-nome">NeuroVita</span>
+  </div>
+
+  <nav class="menu-nav" aria-label="Menu principal">
+    @for (item of itens(); track item.id) {
+      @if (item.rota) {
+        <a class="menu-item" [routerLink]="item.rota" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="{ exact: item.id === 'inicio' }">
+          <app-icone [nome]="item.icone" />
+          <span>{{ item.rotulo }}</span>
+        </a>
+      } @else {
+        <!-- TODO: ligar à tela quando ela existir (Pacientes, Profissionais, Secretária, Agenda dos outros perfis). -->
+        <button type="button" class="menu-item">
+          <app-icone [nome]="item.icone" />
+          <span>{{ item.rotulo }}</span>
+        </button>
+      }
+    }
+  </nav>
+
+  <div class="menu-rodape">
+    <!-- TODO: ligar às telas de Configurações e Ajuda. -->
+    <button type="button" class="menu-item menu-item-rodape">
+      <app-icone nome="engrenagem" />
+      <span>Configurações</span>
+    </button>
+    <button type="button" class="menu-item menu-item-rodape">
+      <app-icone nome="ajuda" />
+      <span>Ajuda</span>
+    </button>
+  </div>
+</aside>

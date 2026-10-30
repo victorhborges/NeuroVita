@@ -1,0 +1,143 @@
+@if (edicao() && !existente()) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Profissional não encontrado" subtitulo="Esse profissional não existe ou foi removido." [voltarPara]="voltar()" />
+  </div>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina
+      [titulo]="edicao() ? 'Editar Profissional' : 'Cadastrar Novo Profissional'"
+      [subtitulo]="edicao() ? 'Altere as informações necessárias e salve o cadastro' : 'Preencha as informações para realizar o cadastro do profissional'"
+      [voltarPara]="voltar()"
+    />
+
+    <form class="cartao form-pac" novalidate (submit)="$event.preventDefault(); cadastrar()">
+      <div class="form-pac-grade">
+        <div class="form-pac-coluna">
+          <section class="form-pac-bloco" aria-labelledby="p-dados">
+            <h2 id="p-dados" class="form-pac-titulo"><app-icone nome="usuario" /> Dados Pessoais</h2>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('nome')">
+              <input type="text" placeholder="Nome completo" autocomplete="off" [value]="f().nome" (input)="digitar('nome', $event)" />
+              @if (mostrarErro('nome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('nascimento')">
+              <input type="date" [max]="hoje" aria-label="Data de nascimento" [value]="f().nascimento" (input)="digitar('nascimento', $event)" [class.campo-vazio]="!f().nascimento" />
+              @if (!f().nascimento) { <span class="campo-falso">Data de nascimento</span> }
+              @if (mostrarErro('nascimento'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('email')">
+              <input type="email" placeholder="E-mail" autocomplete="off" [value]="f().email" (input)="digitar('email', $event)" />
+              @if (mostrarErro('email'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('cpf')">
+              <input type="text" inputmode="numeric" placeholder="CPF" autocomplete="off" [value]="f().cpf" (input)="digitar('cpf', $event)" />
+              @if (mostrarErro('cpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('telefone')">
+              <input type="tel" inputmode="tel" placeholder="Telefone" autocomplete="off" [value]="f().telefone" (input)="digitar('telefone', $event)" />
+              @if (mostrarErro('telefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+          </section>
+
+          <section class="form-pac-bloco" aria-labelledby="p-prof">
+            <h2 id="p-prof" class="form-pac-titulo">Dados Profissionais</h2>
+            <div class="campo-form">
+              <app-lista-suspensa titulo="Categoria Profissional" placeholder="Categoria Profissional" [opcoes]="categorias" [valor]="f().tipo" (valorChange)="definir('tipo', $event)" [erro]="!!mostrarErro('tipo')" />
+              @if (mostrarErro('tipo'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </div>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('registro')">
+              <input type="text" placeholder="Número de registro" autocomplete="off" [value]="f().registro" (input)="digitar('registro', $event)" />
+              @if (prefixoRegistro()) { <small class="campo-dica">Será salvo como {{ prefixoRegistro() }} {{ f().registro || '00/000000' }}</small> }
+              @if (mostrarErro('registro'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('anoConclusao')">
+              <input type="text" inputmode="numeric" placeholder="Ano de conclusão" autocomplete="off" [value]="f().anoConclusao" (input)="digitar('anoConclusao', $event)" />
+              @if (mostrarErro('anoConclusao'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+          </section>
+        </div>
+
+        <div class="form-pac-coluna">
+          <section class="form-pac-bloco" aria-labelledby="p-disp">
+            <h2 id="p-disp" class="form-pac-titulo">Disponibilidade</h2>
+            <div class="form-caixa">
+              <fieldset class="form-grupo">
+                <legend>Dias da semana disponíveis</legend>
+                <div class="dias-semana">
+                  @for (d of nomesDias; track d; let i = $index) {
+                    <label class="dia-opcao" [class.dia-opcao-ativo]="f().dias.includes(i)">
+                      <input type="checkbox" [checked]="f().dias.includes(i)" (change)="alternarDia(i)" />
+                      <span class="caixa"></span> {{ d }}
+                    </label>
+                  }
+                </div>
+                @if (mostrarErro('dias'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+              </fieldset>
+
+              <div class="form-grupo">
+                <p class="form-grupo-titulo">Horário de atendimento</p>
+                <div class="faixa-campos">
+                  <label>Das <input type="time" step="1800" [value]="faixaInicio()" (input)="faixaInicio.set($any($event.target).value)" /></label>
+                  <label>Até <input type="time" step="1800" [value]="faixaFim()" (input)="faixaFim.set($any($event.target).value)" /></label>
+                  <button type="button" class="botao-mini" (click)="salvarFaixa()">{{ faixaEditando() === null ? 'Adicionar' : 'Salvar horário' }}</button>
+                </div>
+                @if (erroFaixa()) { <small class="campo-msg" role="alert">{{ erroFaixa() }}</small> }
+                <ul class="faixas-lista" aria-label="Horários cadastrados">
+                  @for (x of faixas(); track x.inicio + x.fim; let i = $index) {
+                    <li [class.faixa-editando]="faixaEditando() === i">
+                      <span>{{ x.inicio }} - {{ x.fim }}</span>
+                      <span class="faixa-acoes">
+                        <button type="button" class="acao-editar" [attr.aria-label]="'Editar horário ' + x.inicio" (click)="editarFaixa(i)"><app-icone nome="editar" /></button>
+                        <button type="button" class="acao-excluir" [attr.aria-label]="'Remover horário ' + x.inicio" (click)="removerFaixa(i)"><app-icone nome="lixeira" /></button>
+                      </span>
+                    </li>
+                  }
+                </ul>
+                @if (mostrarErro('faixas'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+              </div>
+
+              <div class="form-grupo form-grupo-linha">
+                <label class="check"><input type="checkbox" [checked]="f().online" (change)="definir('online', !f().online)" /><span class="caixa"></span> Atende Online</label>
+                <label class="check"><input type="checkbox" [checked]="f().presencial" (change)="definir('presencial', !f().presencial)" /><span class="caixa"></span> Atende Presencial</label>
+              </div>
+              @if (mostrarErro('presencial'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </div>
+          </section>
+
+          <fieldset class="radios radios-status">
+            <legend>Status do profissional</legend>
+            <label class="radio"><input type="radio" name="status" [checked]="f().ativo" (change)="definir('ativo', true)" /><span class="radio-bolinha"></span> Ativo</label>
+            <label class="radio"><input type="radio" name="status" [checked]="!f().ativo" (change)="definir('ativo', false)" /><span class="radio-bolinha"></span> Inativo</label>
+          </fieldset>
+
+          <section class="form-pac-bloco" aria-labelledby="p-acesso">
+            <h2 id="p-acesso" class="form-pac-titulo">Acesso ao sistema</h2>
+            <div class="form-caixa">
+              <label class="campo-form" [class.campo-form-erro]="mostrarErro('emailAcesso')">
+                <input type="email" placeholder="E-mail de acesso" autocomplete="off" [value]="f().emailAcesso" (input)="digitar('emailAcesso', $event)" />
+                @if (mostrarErro('emailAcesso'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+              </label>
+              <div class="senha-linha">
+                <label class="campo-form" [class.campo-form-erro]="mostrarErro('senha')">
+                  <input type="text" [placeholder]="edicao() ? 'Nova senha (opcional)' : 'Senha Temporária'" autocomplete="off" [value]="f().senha" (input)="digitar('senha', $event)" />
+                  @if (mostrarErro('senha'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+                </label>
+                <button type="button" class="botao-escuro botao-com-icone" (click)="gerarSenha()"><app-icone nome="atualizar" /> Gerar senha</button>
+              </div>
+              <label class="check"><input type="checkbox" [checked]="f().boasVindas" (change)="definir('boasVindas', !f().boasVindas)" /><span class="caixa"></span> Enviar e-mail de boas-vindas com as instruções de acesso</label>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="form-pac-botoes">
+        <button type="button" class="botao-claro" (click)="cancelar()">Cancelar</button>
+        <button type="submit" class="botao-escuro">{{ edicao() ? 'Salvar' : 'Cadastrar' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <app-dialogo
+    [aberto]="confirmando()" [titulo]="edicao() ? 'Salvar alterações?' : 'Confirmar Cadastro?'"
+    (cancelar)="confirmando.set(false)" (confirmar)="confirmar()"
+  />
+}

@@ -1,0 +1,77 @@
+@if (!paciente() || !secaoValida()) {
+  <div class="pg">
+    <app-titulo-pagina titulo="Página não encontrada" subtitulo="Esse paciente ou essa seção não existe." [voltarPara]="raiz() + '/pacientes'" />
+  </div>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina [titulo]="cfg().rotulo" subtitulo="Histórico e informações do paciente" [voltarPara]="voltarPara()">
+      @if (cfg().id === 'evolucoes') {
+        <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, 'novo']">{{ cfg().botaoNovo }}</a>
+      }
+      @if (selecionado(); as doc) {
+        <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, doc.id, 'editar']">Editar {{ cfg().singular }}</a>
+      }
+    </app-titulo-pagina>
+
+    <app-faixa-paciente [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()" />
+
+    <div class="doc-grade doc-grade-lista">
+      <section class="cartao doc-principal">
+        @if (selecionado(); as doc) {
+          <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().id === 'evolucoes' ? 'Evolução do Paciente' : doc.titulo }}</h2>
+
+          <div class="doc-campos cartao">
+            <div class="campo-mini">Data da sessão<span class="campo-leitura">{{ formatar(doc.dataSessao) }}</span></div>
+            <div class="campo-mini">Tipo de atendimento<span class="campo-leitura">{{ doc.tipoAtendimento }}</span></div>
+            <div class="campo-mini">Anexar arquivos
+              <button type="button" class="botao-upload" (click)="escolherArquivo()">Fazer Upload de arquivos</button>
+            </div>
+          </div>
+          <input #arquivo type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+
+          @if (doc.anexos.length) {
+            <ul class="anexos" aria-label="Arquivos anexados">
+              @for (a of doc.anexos; track a.url) {
+                <li><app-icone nome="arquivo-texto" /> {{ a.nome }}
+                  <button type="button" aria-label="Baixar anexo" (click)="baixar(a.nome, a.url)"><app-icone nome="baixar" /></button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (doc.arquivo; as arq) {
+            <div class="doc-arquivo">
+              <app-icone nome="arquivo-texto" />
+              <span>{{ arq.nome }}</span>
+              <a class="botao-ver-tudo" [href]="arq.url" target="_blank" rel="noopener">Abrir <app-icone nome="olho" /></a>
+              <button type="button" class="botao-ver-tudo" (click)="baixar(arq.nome, arq.url)">Baixar <app-icone nome="baixar" /></button>
+            </div>
+          } @else {
+            <div class="doc-texto cartao texto-rico" [innerHTML]="doc.conteudo | htmlSeguro"></div>
+          }
+        } @else {
+          <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().tituloCartao }}</h2>
+          <p class="tabela-vazio">{{ docId() ? 'Documento não encontrado.' : cfg().vazioLista }}</p>
+        }
+      </section>
+
+      <aside class="doc-lateral">
+        <h2 class="doc-lateral-titulo doc-lateral-titulo-simples">{{ cfg().rotulo }}</h2>
+        <ul class="doc-lista-lateral">
+          @for (item of docs(); track item.doc.id) {
+            <li>
+              <a class="doc-lateral-item" [class.doc-lateral-ativo]="item.doc.id === selecionado()?.id" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]">
+                <span><strong>{{ item.dataBR }}</strong><small>{{ item.sub }}</small></span>
+                <app-icone nome="seta-direita" />
+              </a>
+            </li>
+          }
+        </ul>
+        <div class="doc-info">
+          <p class="doc-info-titulo"><app-icone nome="relogio" /> Histórico do paciente</p>
+          <p class="doc-info-texto">{{ cfg().informacao }}</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+}
