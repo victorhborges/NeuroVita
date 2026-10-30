@@ -21,6 +21,7 @@ import { PainelShell } from './pages/painel-shell/painel-shell';
 import { Prontuario } from './pages/prontuario/prontuario';
 import { SecaoPaciente } from './pages/secao-paciente/secao-paciente';
 import { CONFIG_PERFIS, Perfil } from './shared/perfil';
+import { authGuard } from './shared/auth.guard';
 
 /**
  * Cada perfil tem uma "moldura" (menu à esquerda) e as telas dentro dela.
@@ -31,6 +32,7 @@ function rotasDoPerfil(perfil: Perfil, filhas: Route[] = []): Route {
   return {
     path: perfil,
     component: PainelShell,
+    canActivate: [authGuard],
     data: { perfil },
     children: [{ path: '', component: PainelInicio, title: CONFIG_PERFIS[perfil].titulo }, ...filhas],
   };
