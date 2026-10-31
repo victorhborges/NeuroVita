@@ -86,6 +86,14 @@ public class ConsultaController {
                 consultaService.cancelar(id));
     }
 
+    @PatchMapping("/{id}/confirmar")
+    public ResponseEntity<ConsultaResponse> confirmar(
+        @PathVariable String id) {
+
+    return ResponseEntity.ok(
+            consultaService.confirmar(id));
+}
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         consultaService.deletar(id);

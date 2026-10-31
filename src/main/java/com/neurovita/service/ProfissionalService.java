@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.security.SecureRandom;
@@ -93,13 +92,13 @@ public class ProfissionalService {
     }
 
     public List<ProfissionalResponse> listarTodos() {
-        exigirAdministrador();
+    exigirAdministradorOuSecretaria();
 
-        return profissionalRepository.findAll()
-                .stream()
-                .map(ProfissionalResponse::new)
-                .toList();
-    }
+    return profissionalRepository.findAll()
+            .stream()
+            .map(ProfissionalResponse::new)
+            .toList();
+}
 
     public ProfissionalResponse buscarPorId(String id) {
         exigirAcessoAoPerfil(id);

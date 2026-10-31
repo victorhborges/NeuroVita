@@ -56,7 +56,7 @@ public class ConsultaService {
 
         Consulta consulta = new Consulta();
         preencherConsulta(consulta, request);
-        consulta.setStatus(StatusConsulta.CONFIRMADA);
+        consulta.setStatus(StatusConsulta.PENDENTE);
 
         return new ConsultaResponse(consultaRepository.save(consulta));
     }
@@ -107,7 +107,7 @@ public class ConsultaService {
         preencherConsulta(consulta, request);
 
         if (consulta.getStatus() == null) {
-            consulta.setStatus(StatusConsulta.CONFIRMADA);
+            consulta.setStatus(StatusConsulta.PENDENTE);
         }
 
         if (dataHoraAlterada) {
@@ -117,6 +117,30 @@ public class ConsultaService {
         return new ConsultaResponse(consultaRepository.save(consulta));
     }
 
+    public ConsultaResponse confirmar(String id) {
+    Consulta consulta = buscarConsulta(id);
+    validarAcessoConsulta(consulta);
+
+    if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Consultas canceladas não podem ser confirmadas.");
+    }
+
+    if (consulta.getStatus() == StatusConsulta.REMARCADA) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Uma consulta remarcada não pode ser confirmada por esta operação.");
+    }
+
+    if (consulta.getStatus() == StatusConsulta.PENDENTE) {
+        consulta.setStatus(StatusConsulta.CONFIRMADA);
+        consulta = consultaRepository.save(consulta);
+    }
+
+    return new ConsultaResponse(consulta);
+    }
+    
     public ConsultaResponse cancelar(String id) {
         Consulta consulta = buscarConsulta(id);
         validarAcessoConsulta(consulta);

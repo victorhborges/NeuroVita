@@ -22,7 +22,7 @@ public class Consulta {
 
     private Integer duracao;
 
-    private StatusConsulta status = StatusConsulta.CONFIRMADA;
+    private StatusConsulta status = StatusConsulta.PENDENTE;
 
     public Consulta() {
     }

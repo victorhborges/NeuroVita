@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.security.SecureRandom;
@@ -38,31 +37,31 @@ import com.neurovita.repository.VinculoResponsavelRepository;
 @Service
 public class PacienteService {
 
-    private static final String PERFIL_PACIENTE = "PACIENTE";
+        private static final String PERFIL_PACIENTE = "PACIENTE";
 
-    private final PacienteRepository pacienteRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final ResponsavelRepository responsavelRepository;
-    private final VinculoResponsavelRepository vinculoRepository;
-    private final PasswordEncoder passwordEncoder;
+        private final PacienteRepository pacienteRepository;
+        private final UsuarioRepository usuarioRepository;
+        private final ResponsavelRepository responsavelRepository;
+        private final VinculoResponsavelRepository vinculoRepository;
+        private final PasswordEncoder passwordEncoder;
 
-    private final SecureRandom secureRandom = new SecureRandom();
+        private final SecureRandom secureRandom = new SecureRandom();
 
-    public PacienteService(
-            PacienteRepository pacienteRepository,
-            UsuarioRepository usuarioRepository,
-            ResponsavelRepository responsavelRepository,
-            VinculoResponsavelRepository vinculoRepository,
-            PasswordEncoder passwordEncoder) {
+        public PacienteService(
+                PacienteRepository pacienteRepository,
+                UsuarioRepository usuarioRepository,
+                ResponsavelRepository responsavelRepository,
+                VinculoResponsavelRepository vinculoRepository,
+                PasswordEncoder passwordEncoder) {
 
         this.pacienteRepository = pacienteRepository;
         this.usuarioRepository = usuarioRepository;
         this.responsavelRepository = responsavelRepository;
         this.vinculoRepository = vinculoRepository;
         this.passwordEncoder = passwordEncoder;
-    }
+        }
 
-    public CadastroPacienteResponse salvar(PacienteRequest request) {
+        public CadastroPacienteResponse salvar(PacienteRequest request) {
         exigirAdministradorOuSecretaria();
 
         validarEmailDisponivel(request.getEmail(), null);
@@ -79,46 +78,46 @@ public class PacienteService {
         String senhaProvisoria = gerarSenhaProvisoria();
 
         try {
-            Usuario usuario = new Usuario();
-            usuario.setNome(pacienteSalvo.getNome());
-            usuario.setEmail(pacienteSalvo.getEmail());
-            usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
-            usuario.setPerfil(PERFIL_PACIENTE);
-            usuario.setSenhaProvisoria(true);
-            usuario.setAtivo(true);
-            usuario.setEntidadeId(pacienteSalvo.getId());
+                Usuario usuario = new Usuario();
+                usuario.setNome(pacienteSalvo.getNome());
+                usuario.setEmail(pacienteSalvo.getEmail());
+                usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
+                usuario.setPerfil(PERFIL_PACIENTE);
+                usuario.setSenhaProvisoria(true);
+                usuario.setAtivo(true);
+                usuario.setEntidadeId(pacienteSalvo.getId());
 
-            usuarioSalvo = usuarioRepository.save(usuario);
+                usuarioSalvo = usuarioRepository.save(usuario);
 
-            salvarVinculos(pacienteSalvo.getId(), responsaveis);
+                salvarVinculos(pacienteSalvo.getId(), responsaveis);
 
         } catch (RuntimeException e) {
-            limparCadastroIncompleto(
-                    pacienteSalvo.getId(),
-                    usuarioSalvo,
-                    e);
+                limparCadastroIncompleto(
+                        pacienteSalvo.getId(),
+                        usuarioSalvo,
+                        e);
 
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Não foi possível concluir o cadastro do paciente.",
-                    e);
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Não foi possível concluir o cadastro do paciente.",
+                        e);
         }
 
         return new CadastroPacienteResponse(
                 criarResposta(pacienteSalvo),
                 senhaProvisoria);
-    }
+        }
 
-    public List<PacienteResponse> listarTodos() {
-        exigirAdministrador();
+        public List<PacienteResponse> listarTodos() {
+        exigirAdministradorOuSecretaria();
 
         return pacienteRepository.findAll()
                 .stream()
                 .map(this::criarResposta)
                 .toList();
-    }
+}
 
-    public PacienteResponse buscarPorId(String id) {
+        public PacienteResponse buscarPorId(String id) {
         exigirAdministrador();
 
         Paciente paciente = buscarPaciente(id);
