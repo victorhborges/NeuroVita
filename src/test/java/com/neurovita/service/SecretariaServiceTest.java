@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.util.List;
@@ -316,28 +315,28 @@ class SecretariaServiceTest {
         verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
-    @Test
-    void naoDevePersistirAtualizacaoQuandoContaDeAcessoNaoExiste() {
-        Secretaria secretaria = criarSecretaria("secretaria-123");
+   @Test
+void naoDevePersistirAtualizacaoQuandoContaDeAcessoNaoExiste() {
+    Secretaria secretaria = criarSecretaria("secretaria-123");
 
-        when(secretariaRepository.findById("secretaria-123"))
-                .thenReturn(Optional.of(secretaria));
+    when(secretariaRepository.findById("secretaria-123"))
+            .thenReturn(Optional.of(secretaria));
 
-        when(usuarioRepository.findByEntidadeId("secretaria-123"))
-                .thenReturn(Optional.empty());
+    when(usuarioRepository.findByEntidadeId("secretaria-123"))
+            .thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> secretariaService.atualizar(
-                        "secretaria-123", criarRequest()));
+    ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> secretariaService.atualizar(
+                    "secretaria-123", criarRequest()));
 
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                exception.getStatusCode());
+    assertEquals(
+            HttpStatus.CONFLICT,
+            exception.getStatusCode());
 
-        verify(secretariaRepository, never()).save(any(Secretaria.class));
-        verify(usuarioRepository, never()).save(any(Usuario.class));
-    }
+    verify(secretariaRepository, never()).save(any(Secretaria.class));
+    verify(usuarioRepository, never()).save(any(Usuario.class));
+}
 
     @Test
     void deveInativarSecretariaEContaDeAcessoSemApagarHistorico() {
