@@ -15,6 +15,7 @@ export interface ProfissionalApi {
     numeroRegistro: string;
     anoConclusao: number | null;
     atendeOnline: boolean;
+    atendePresencial?: boolean;
     ativo: boolean;
 }
 

@@ -58,7 +58,7 @@ public class SecretariaService {
             usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
             usuario.setPerfil(PERFIL_SECRETARIA);
             usuario.setSenhaProvisoria(true);
-            usuario.setAtivo(true);
+            usuario.setAtivo(Boolean.TRUE.equals(salva.getAtivo()));
             usuario.setEntidadeId(salva.getId());
 
             usuarioRepository.save(usuario);
@@ -99,12 +99,12 @@ public class SecretariaService {
         validarRequest(request);
 
         Secretaria secretaria = buscarSecretaria(id);
+        boolean estadoAnterior = Boolean.TRUE.equals(secretaria.getAtivo());
         String emailAnterior = secretaria.getEmail();
 
         validarEmailDisponivel(request.getEmail(), emailAnterior);
 
         preencher(secretaria, request);
-        Secretaria atualizada = secretariaRepository.save(secretaria);
 
         try {
             Usuario usuario = usuarioRepository
@@ -114,10 +114,18 @@ public class SecretariaService {
                             HttpStatus.CONFLICT,
                             "A conta de acesso da secretaria não foi encontrada."));
 
-            usuario.setNome(atualizada.getNome());
-            usuario.setEmail(atualizada.getEmail());
-
-            usuarioRepository.save(usuario);
+            boolean estadoContaAnterior = usuario.isAtivo();
+            boolean novoEstado = Boolean.TRUE.equals(secretaria.getAtivo());
+            usuario.setNome(secretaria.getNome());
+            usuario.setEmail(secretaria.getEmail());
+            SincronizacaoAtivo.salvar(
+                    estadoAnterior,
+                    estadoContaAnterior,
+                    novoEstado,
+                    secretaria::setAtivo,
+                    () -> secretariaRepository.save(secretaria),
+                    usuario::setAtivo,
+                    () -> usuarioRepository.save(usuario));
 
         } catch (RuntimeException e) {
             throw new ResponseStatusException(
@@ -126,17 +134,27 @@ public class SecretariaService {
                     e);
         }
 
-        return new SecretariaResponse(atualizada);
+        return new SecretariaResponse(secretaria);
     }
 
     public void deletar(String id) {
         Secretaria secretaria = buscarSecretaria(id);
+        Usuario usuario = usuarioRepository.findByEntidadeId(id)
+                .orElse(null);
+        if (usuario == null) {
+            secretaria.setAtivo(false);
+            secretariaRepository.save(secretaria);
+            return;
+        }
 
-        usuarioRepository.findByEntidadeId(id)
-                .filter(this::ehSecretaria)
-                .ifPresent(usuarioRepository::delete);
-
-        secretariaRepository.delete(secretaria);
+        SincronizacaoAtivo.salvar(
+                Boolean.TRUE.equals(secretaria.getAtivo()),
+                usuario.isAtivo(),
+                false,
+                secretaria::setAtivo,
+                () -> secretariaRepository.save(secretaria),
+                usuario::setAtivo,
+                () -> usuarioRepository.save(usuario));
     }
 
     private Secretaria buscarSecretaria(String id) {

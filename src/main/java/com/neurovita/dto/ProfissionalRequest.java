@@ -42,6 +42,7 @@ public class ProfissionalRequest {
     private Integer anoConclusao;
 
     private Boolean atendeOnline;
+    private Boolean atendePresencial;
     private Boolean ativo;
     @Size(min = 8, max = 72, message = "A senha provisória deve ter entre 8 e 72 caracteres.")
     private String senhaProvisoria;
@@ -125,6 +126,14 @@ public class ProfissionalRequest {
     public void setAtendeOnline(Boolean atendeOnline) {
     this.atendeOnline = atendeOnline;
 }
+
+    public Boolean getAtendePresencial() {
+        return atendePresencial;
+    }
+
+    public void setAtendePresencial(Boolean atendePresencial) {
+        this.atendePresencial = atendePresencial;
+    }
 
     public Boolean getAtivo() {
         return ativo;

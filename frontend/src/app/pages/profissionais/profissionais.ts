@@ -62,9 +62,7 @@ export class Profissionais {
 
   /** Clique na lixeira: se houver consultas marcadas, o sistema não deixa excluir. */
   protected pedirExclusao(p: Profissional): void {
-    const consultas = this.clinica.consultasDoProfissional(p.id);
-    if (consultas > 0) this.bloqueado.set({ prof: p, consultas });
-    else this.excluindo.set(p);
+    this.excluindo.set(p);
   }
 
   protected async confirmarExclusao(): Promise<void> {
@@ -73,7 +71,7 @@ export class Profissionais {
     try {
       await this.clinica.removerProfissional(p.id);
       this.excluindo.set(null);
-      this.aviso.mostrar('Profissional excluído com sucesso.');
+      this.aviso.mostrar('Profissional inativado. O histórico foi preservado.');
     } catch (erro) {
       console.error('Falha ao excluir profissional:', erro);
       this.aviso.mostrar('Não foi possível excluir o profissional.');

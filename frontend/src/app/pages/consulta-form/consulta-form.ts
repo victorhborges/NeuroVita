@@ -228,6 +228,13 @@ export class ConsultaForm {
       return 'Este profissional não está habilitado para atendimento online.';
     }
 
+    if (
+      this.atendimento() === 'Presencial' &&
+      this.profissional()?.atendePresencial === false
+    ) {
+      return 'Este profissional não está habilitado para atendimento presencial.';
+    }
+
     if (this.carregandoDisponibilidade()) {
       return 'Carregando a disponibilidade do profissional.';
     }
@@ -549,6 +556,16 @@ export class ConsultaForm {
     ) {
       this.aviso.mostrar(
         'Este profissional não atende online.',
+      );
+      return;
+    }
+
+    if (
+      this.atendimento() === 'Presencial' &&
+      this.profissional()?.atendePresencial === false
+    ) {
+      this.aviso.mostrar(
+        'Este profissional não está habilitado para atendimento presencial.',
       );
       return;
     }

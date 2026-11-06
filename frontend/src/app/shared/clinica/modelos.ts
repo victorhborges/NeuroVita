@@ -6,6 +6,7 @@ export type TipoAtendimento = 'Presencial' | 'Online';
 export type StatusConsulta = 'confirmado' | 'pendente' | 'remarcado' | 'cancelado';
 
 export interface Responsavel {
+  id?: string;
   nome: string;
   relacao: string;
   telefone: string;
@@ -50,6 +51,7 @@ export interface Paciente {
   /** Profissional responsável pelo paciente (null enquanto não houver). */
   profissionalId: string | null;
   responsavel: Responsavel;
+  responsaveis: Responsavel[];
   plano: PlanoSaude;
   diagnostico: { principal: string; cid: string; inicioTratamento: string | null };
   consultas: Consulta[];
@@ -64,7 +66,8 @@ export interface DadosPaciente {
   cpf: string;
   telefone: string;
   endereco?: string;
-  responsavel: { nome: string; nascimento: string; email: string; relacao: string; telefone: string; cpf: string };
+  responsavel: Responsavel;
+  responsaveis?: Responsavel[];
   plano: PlanoSaude;
   ativo: boolean;
 }

@@ -50,7 +50,7 @@
         @if (gerencia()) {
           <span class="acoes-linha centro">
             <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>
-            <button type="button" class="acao-excluir" [attr.aria-label]="'Excluir ' + item.p.nome" title="Excluir" (click)="pedirExclusao(item.p)"><app-icone nome="lixeira" /></button>
+            <button type="button" class="acao-excluir" [attr.aria-label]="'Inativar ' + item.p.nome" title="Inativar" (click)="pedirExclusao(item.p)"><app-icone nome="lixeira" /></button>
           </span>
         }
       </div>
@@ -60,8 +60,8 @@
   </section>
 </div>
 
-<app-dialogo [aberto]="!!excluindo()" titulo="Confirmar Exclusão?" textoConfirmar="Sim" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
-  <p class="dialogo-texto">O cadastro de <strong>{{ excluindo()?.nome }}</strong> será removido. Essa ação não pode ser desfeita.</p>
+<app-dialogo [aberto]="!!excluindo()" titulo="Inativar profissional?" textoConfirmar="Inativar" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
+  <p class="dialogo-texto">O profissional não receberá novas consultas. As consultas antigas e os registros clínicos serão preservados.</p>
 </app-dialogo>
 
 <app-dialogo

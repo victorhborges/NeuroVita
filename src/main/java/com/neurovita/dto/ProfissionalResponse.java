@@ -19,6 +19,7 @@ public class ProfissionalResponse {
     private Integer anoConclusao;
 
     private Boolean atendeOnline;
+    private Boolean atendePresencial;
     private Boolean ativo;
 
     public ProfissionalResponse(Profissional profissional) {
@@ -37,6 +38,8 @@ public class ProfissionalResponse {
         this.anoConclusao = profissional.getAnoConclusao();
 
         this.atendeOnline = profissional.getAtendeOnline();
+        this.atendePresencial = profissional.getAtendePresencial() == null
+                || profissional.getAtendePresencial();
         this.ativo = profissional.getAtivo();
     }
 
@@ -81,6 +84,10 @@ public class ProfissionalResponse {
 
     public Boolean getAtendeOnline() {
         return atendeOnline;
+    }
+
+    public Boolean getAtendePresencial() {
+        return atendePresencial;
     }
 
     public Boolean getAtivo() {

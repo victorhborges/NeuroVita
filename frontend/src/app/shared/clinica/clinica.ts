@@ -77,6 +77,14 @@ export class Clinica {
 
   private pacienteDaApi(p: PacienteApi, responsaveis: ResponsavelApi[], consultas: ConsultaApi[]): Paciente {
     const vinculo = p.responsaveis?.[0];
+    const contatos = (p.responsaveis ?? []).map((link) => {
+      const contato = responsaveis.find((item) => item.id === link.responsavelId);
+      return {
+        id: link.responsavelId, nome: contato?.nome ?? '', relacao: link.grauParentesco,
+        telefone: contato?.telefone ?? '', endereco: contato?.endereco ?? '',
+        email: contato?.email, nascimento: contato?.dataNascimento, cpf: contato?.cpf,
+      };
+    });
     const r = responsaveis.find((item) => item.id === vinculo?.responsavelId);
     const historico = consultas.filter((c) => c.pacienteId === p.id).sort((a, b) => b.dataHora.localeCompare(a.dataHora));
     const ultima = historico[0];
@@ -87,6 +95,7 @@ export class Clinica {
       profissionalId: ultima?.profissionalId ?? null,
       responsavelId: vinculo?.responsavelId,
       responsavel: { nome: r?.nome ?? '', relacao: vinculo?.grauParentesco ?? '', telefone: r?.telefone ?? '', endereco: r?.endereco ?? '', email: r?.email, nascimento: r?.dataNascimento, cpf: r?.cpf },
+      responsaveis: contatos,
       plano: { possui: !!p.possuiPlanoSaude, nome: p.planoSaude ?? '', carteirinha: p.numeroCarteirinha ?? '', validade: p.validadePlano ?? '' },
       diagnostico: { principal: '—', cid: '—', inicioTratamento: null }, consultas: historico.map((c) => ({
         data: c.dataHora.slice(0, 10), profissional: c.profissionalId, resumo: c.tipoAtendimento,
@@ -100,7 +109,7 @@ export class Clinica {
       id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, tratamento: '', especialidade: p.categoria,
       tipo, registro: p.numeroRegistro ?? '', nascimento: p.dataNascimento ?? '', telefone: p.telefone ?? '', ativo: !!p.ativo,
       cpf: p.cpf ?? '', email: p.emailContato ?? p.email ?? '', anoConclusao: p.anoConclusao,
-      disponibilidade: { dias: [], faixas: [], online: !!p.atendeOnline, presencial: true }, emailAcesso: p.email,
+      disponibilidade: { dias: [], faixas: [], online: !!p.atendeOnline, presencial: p.atendePresencial !== false }, emailAcesso: p.email,
     };
   }
 
@@ -171,6 +180,12 @@ export class Clinica {
     const status = !dados.ativo ? 'inativo' : atual && atual.status !== 'inativo' ? atual.status : 'acompanhamento';
     const situacao = status === 'inativo' ? 'Inativo' : status === 'aguardando' ? 'Aguardando retorno' : 'Em andamento';
     const r = dados.responsavel;
+    const informados = dados.responsaveis?.length
+      ? dados.responsaveis
+      : (r.nome.trim() ? [{ ...r, id: atual?.responsavelId }] : []);
+    const informadosValidos = informados.filter((contato) => contato.nome.trim());
+    const responsaveisSalvos: ResponsavelApi[] = [];
+    const responsaveisCriadosNestaOperacao: string[] = [];
 
     if (atual) {
       const editado: Paciente = {
@@ -178,31 +193,84 @@ export class Clinica {
         endereco: dados.endereco ?? atual.endereco, status, situacao, plano: dados.plano,
         responsavel: { ...atual.responsavel, nome: r.nome, nascimento: r.nascimento, email: r.email, relacao: r.relacao, telefone: r.telefone, cpf: r.cpf },
       };
-      let responsavelId = atual.responsavelId;
-      if (r.nome.trim()) {
-        const contato = { nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone, dataNascimento: r.nascimento || undefined, endereco: dados.endereco || undefined };
-        responsavelId = (responsavelId
-          ? await firstValueFrom(this.responsaveisApi.atualizar(responsavelId, contato))
-          : await firstValueFrom(this.responsaveisApi.criar(contato))).id;
+      try {
+        for (const contato of informadosValidos) {
+          const request = {
+            nome: contato.nome.trim(), cpf: contato.cpf || '', email: contato.email || '',
+            telefone: contato.telefone || '', dataNascimento: contato.nascimento || undefined,
+            endereco: contato.endereco || dados.endereco || undefined,
+          };
+          const salvo = contato.id
+            ? await firstValueFrom(this.responsaveisApi.atualizar(contato.id, request))
+            : await firstValueFrom(this.responsaveisApi.criar(request));
+          if (!contato.id) responsaveisCriadosNestaOperacao.push(salvo.id);
+          responsaveisSalvos.push(salvo);
+        }
+      } catch (erro) {
+        await this.limparResponsaveisCriados(responsaveisCriadosNestaOperacao);
+        throw erro;
       }
-      const resposta = await firstValueFrom(this.pacientesApi.atualizar(id!, this.pacienteRequest(dados, responsavelId)));
-      const pacienteReal = this.pacienteDaApi(resposta, responsavelId ? [{ id: responsavelId, nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone }] : [], []);
+      const vinculos = responsaveisSalvos.map((contato, index) => ({
+        responsavelId: contato.id,
+        grauParentesco: informadosValidos[index]?.relacao?.trim() || 'Responsável',
+      }));
+      let resposta: PacienteApi;
+      try {
+        resposta = await firstValueFrom(this.pacientesApi.atualizar(id!, this.pacienteRequest(dados, vinculos)));
+      } catch (erro) {
+        await this.limparResponsaveisCriados(responsaveisCriadosNestaOperacao);
+        throw erro;
+      }
+      const pacienteReal = this.pacienteDaApi(resposta, responsaveisSalvos, []);
       this._pacientes.update((l) => l.map((p) => p.id === pacienteReal.id ? pacienteReal : p));
       return pacienteReal;
     }
 
-    let responsavelId: string | undefined;
-    if (r.nome.trim()) responsavelId = (await firstValueFrom(this.responsaveisApi.criar({ nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone, dataNascimento: r.nascimento || undefined, endereco: dados.endereco || undefined }))).id;
-    const cadastro = await firstValueFrom(this.pacientesApi.criar(this.pacienteRequest(dados, responsavelId)));
-    const novo = this.pacienteDaApi(cadastro.paciente, responsavelId ? [{ id: responsavelId, nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone }] : [], []);
+    try {
+      for (const contato of informadosValidos) {
+        const salvo = await firstValueFrom(this.responsaveisApi.criar({
+          nome: contato.nome.trim(), cpf: contato.cpf || '', email: contato.email || '',
+          telefone: contato.telefone || '', dataNascimento: contato.nascimento || undefined,
+          endereco: contato.endereco || dados.endereco || undefined,
+        }));
+        responsaveisCriadosNestaOperacao.push(salvo.id);
+        responsaveisSalvos.push(salvo);
+      }
+    } catch (erro) {
+      await this.limparResponsaveisCriados(responsaveisCriadosNestaOperacao);
+      throw erro;
+    }
+    const vinculos = responsaveisSalvos.map((contato, index) => ({
+      responsavelId: contato.id,
+      grauParentesco: informadosValidos[index]?.relacao?.trim() || 'Responsável',
+    }));
+    let cadastro: { paciente: PacienteApi; senhaProvisoria: string };
+    try {
+      cadastro = await firstValueFrom(this.pacientesApi.criar(this.pacienteRequest(dados, vinculos)));
+    } catch (erro) {
+      await this.limparResponsaveisCriados(responsaveisCriadosNestaOperacao);
+      throw erro;
+    }
+    const novo = this.pacienteDaApi(cadastro.paciente, responsaveisSalvos, []);
     this._pacientes.update((l) => [...l.filter((p) => p.id !== novo.id), novo]);
     return novo;
   }
 
-  private pacienteRequest(dados: DadosPaciente, responsavelId?: string) {
+  private async limparResponsaveisCriados(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      try {
+        await firstValueFrom(this.responsaveisApi.excluir(id));
+      } catch (erro) {
+        // A API impede excluir responsáveis que já estejam vinculados.
+        console.error('Falha na compensação de um responsável recém-criado:', erro);
+      }
+    }
+  }
+
+  private pacienteRequest(dados: DadosPaciente, responsaveis: { responsavelId: string; grauParentesco: string }[]) {
     return {
       nome: dados.nome, dataNascimento: dados.nascimento, email: dados.email || '', cpf: dados.cpf || '', telefone: dados.telefone || '', endereco: dados.endereco || '', ativo: dados.ativo,
-      responsaveis: responsavelId ? [{ responsavelId, grauParentesco: dados.responsavel.relacao || 'Responsável' }] : [],
+      responsaveis,
       possuiPlanoSaude: dados.plano.possui, planoSaude: dados.plano.nome, numeroCarteirinha: dados.plano.carteirinha,
       validadePlano: dados.plano.validade || null,
     };
@@ -212,7 +280,7 @@ export class Clinica {
   adicionarPaciente(dados: NovoPaciente): Promise<Paciente> {
     return this.salvarPaciente({
       nome: dados.nome, nascimento: dados.nascimento, email: dados.email, cpf: '', telefone: dados.telefone, endereco: dados.endereco,
-      responsavel: { nome: '', nascimento: '', email: '', relacao: '', telefone: '', cpf: '' },
+      responsavel: { nome: '', nascimento: '', email: '', relacao: '', telefone: '', cpf: '', endereco: '' },
       plano: { possui: false, nome: '', carteirinha: '', validade: '' }, ativo: true,
     });
   }
@@ -220,9 +288,9 @@ export class Clinica {
   /** Remove o paciente, o prontuário e as consultas dele. */
   async removerPaciente(id: string): Promise<void> {
     await firstValueFrom(this.pacientesApi.excluir(id));
-    this._pacientes.update((l) => l.filter((p) => p.id !== id));
-    this._documentos.update((l) => l.filter((d) => d.pacienteId !== id));
-    this._agendamentos.update((l) => l.filter((a) => a.pacienteId !== id));
+    this._pacientes.update((l) => l.map((p) => p.id === id
+      ? { ...p, status: 'inativo', situacao: 'Inativo' }
+      : p));
   }
 
   /* ---------- Profissionais ---------- */
@@ -237,7 +305,7 @@ export class Clinica {
       const salvo = await firstValueFrom(this.profissionaisApi.atualizar(id!, {
         nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
         categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
-        numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+        numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
       }));
       await this.sincronizarDisponibilidade(id!, dados.disponibilidade);
       const atualizado = { ...this.profissionalDaApi(salvo), disponibilidade: dados.disponibilidade };
@@ -247,7 +315,7 @@ export class Clinica {
     const cadastro = await firstValueFrom(this.profissionaisApi.criar({
       nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
       categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
-      numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+      numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
     }));
     await this.sincronizarDisponibilidade(cadastro.profissional.id, dados.disponibilidade);
     const novo: Profissional & { senhaProvisoria: string } = { ...this.profissionalDaApi(cadastro.profissional), disponibilidade: dados.disponibilidade, senhaProvisoria: cadastro.senhaProvisoria };
@@ -262,7 +330,7 @@ export class Clinica {
       nome: p.nome, email: p.emailAcesso, emailContato: p.email, dataNascimento: p.nascimento, cpf: p.cpf, telefone: p.telefone,
       categoria: p.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
       numeroRegistro: p.registro.replace(/^(CRM|CRP)\s*/, ''), anoConclusao: p.anoConclusao,
-      atendeOnline: p.disponibilidade.online, ativo,
+      atendeOnline: p.disponibilidade.online, atendePresencial: p.disponibilidade.presencial, ativo,
     }));
     this._profissionais.update((l) => l.map((p) => (p.id === id ? { ...p, ativo } : p)));
   }
@@ -275,9 +343,7 @@ export class Clinica {
   /** Remove o profissional. Só use quando `consultasDoProfissional` for 0. */
   async removerProfissional(id: string): Promise<void> {
     await firstValueFrom(this.profissionaisApi.excluir(id));
-    this._profissionais.update((l) => l.filter((p) => p.id !== id));
-    this._agendamentos.update((l) => l.filter((a) => a.profissionalId !== id));
-    this._pacientes.update((l) => l.map((p) => (p.profissionalId === id ? { ...p, profissionalId: null } : p)));
+    this._profissionais.update((l) => l.map((p) => p.id === id ? { ...p, ativo: false } : p));
   }
 
   /**
@@ -325,7 +391,7 @@ export class Clinica {
 
   async removerSecretaria(id: string): Promise<void> {
     await firstValueFrom(this.secretariasApi.excluir(id));
-    this._secretarias.update((l) => l.filter((s) => s.id !== id));
+    this._secretarias.update((l) => l.map((s) => s.id === id ? { ...s, ativo: false } : s));
   }
 
   /** Esse e-mail de acesso já pertence a outro profissional ou secretária? */

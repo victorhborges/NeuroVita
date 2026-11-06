@@ -14,6 +14,8 @@ import {
 interface Formulario {
   nome: string; nascimento: string; email: string; cpf: string; telefone: string;
   rNome: string; rNascimento: string; rEmail: string; rParentesco: string; rTelefone: string; rCpf: string;
+  rId?: string;
+  responsaveisExtras: { id?: string; nome: string; nascimento: string; email: string; parentesco: string; telefone: string; cpf: string }[];
   possuiPlano: boolean; plano: string; carteirinha: string; validade: string;
   ativo: boolean;
 }
@@ -23,6 +25,7 @@ type Campo = keyof Formulario;
 const VAZIO: Formulario = {
   nome: '', nascimento: '', email: '', cpf: '', telefone: '',
   rNome: '', rNascimento: '', rEmail: '', rParentesco: '', rTelefone: '', rCpf: '',
+  responsaveisExtras: [],
   possuiPlano: false, plano: '', carteirinha: '', validade: '', ativo: true,
 };
 
@@ -70,17 +73,27 @@ export class PacienteForm {
     if (!f.telefone.trim()) e.telefone = 'Informe o telefone.';
     else if (!telefoneValido(f.telefone)) e.telefone = 'Telefone inválido.';
 
-    if (this.menorDeIdade()) {
-      if (!f.rNome.trim()) e.rNome = 'Paciente menor de idade: informe o responsável.';
-      if (!f.rParentesco.trim()) e.rParentesco = 'Informe o grau de parentesco.';
-      if (!f.rTelefone.trim()) e.rTelefone = 'Informe o telefone do responsável.';
-    }
+    const possuiResponsavel = !!f.rNome.trim() || f.responsaveisExtras.some((r) => r.nome.trim());
+    if (this.menorDeIdade() && !possuiResponsavel) e.rNome = 'Paciente menor de idade: informe pelo menos um responsável.';
+    if (f.rNome.trim() && !f.rParentesco.trim()) e.rParentesco = 'Informe o grau de parentesco.';
+    if (f.rNome.trim() && (!f.rTelefone.trim() || !telefoneValido(f.rTelefone))) e.rTelefone = 'Informe um telefone válido do responsável.';
     if (f.rEmail.trim() && !emailValido(f.rEmail)) e.rEmail = 'E-mail inválido.';
     if (f.rCpf.trim() && !cpfValido(f.rCpf)) e.rCpf = 'CPF inválido.';
     if (f.rTelefone.trim() && !telefoneValido(f.rTelefone)) e.rTelefone = 'Telefone inválido.';
+    for (const r of f.responsaveisExtras) {
+      if (!r.nome.trim() && (r.telefone.trim() || r.cpf.trim() || r.email.trim() || r.parentesco.trim())) {
+        e.rNome = 'Informe o nome de todos os responsáveis adicionados.';
+        break;
+      }
+      if (r.nome.trim() && !r.parentesco.trim()) e.rNome = 'Informe o grau de parentesco de cada responsável.';
+      if (r.nome.trim() && (!r.telefone.trim() || !telefoneValido(r.telefone))) e.rNome = 'Informe um telefone válido para cada responsável.';
+      if (r.email.trim() && !emailValido(r.email)) e.rNome = 'Informe um e-mail válido para cada responsável.';
+      if (r.cpf.trim() && !cpfValido(r.cpf)) e.rNome = 'Informe um CPF válido para cada responsável.';
+    }
     if (f.possuiPlano) {
       if (!f.plano.trim()) e.plano = 'Informe o plano de saúde.';
       if (!f.carteirinha.trim()) e.carteirinha = 'Informe o número da carteirinha.';
+      if (!f.validade) e.validade = 'Informe a validade do plano.';
     }
     return e;
   });
@@ -91,11 +104,19 @@ export class PacienteForm {
       const p = this.existente();
       if (this.carregado || !p) return;
       this.carregado = true;
+      const todosResponsaveis = p.responsaveis.length
+        ? p.responsaveis
+        : (p.responsavel.nome ? [{ ...p.responsavel, id: p.responsavelId }] : []);
+      const principal = todosResponsaveis[0] ?? p.responsavel;
       this.f.set({
         nome: p.nome, nascimento: p.nascimento, email: p.email === '—' ? '' : p.email, cpf: p.cpf, telefone: p.telefone === '—' ? '' : p.telefone,
-        rNome: p.responsavel.nome === '—' ? '' : p.responsavel.nome, rNascimento: p.responsavel.nascimento ?? '',
-        rEmail: p.responsavel.email ?? '', rParentesco: p.responsavel.relacao === '—' ? '' : p.responsavel.relacao,
-        rTelefone: p.responsavel.telefone === '—' ? '' : p.responsavel.telefone, rCpf: p.responsavel.cpf ?? '',
+        rId: principal.id, rNome: principal.nome === '—' ? '' : principal.nome, rNascimento: principal.nascimento ?? '',
+        rEmail: principal.email ?? '', rParentesco: principal.relacao === '—' ? '' : principal.relacao,
+        rTelefone: principal.telefone === '—' ? '' : principal.telefone, rCpf: principal.cpf ?? '',
+        responsaveisExtras: todosResponsaveis.slice(1).map((r) => ({
+          id: r.id, nome: r.nome, nascimento: r.nascimento ?? '', email: r.email ?? '',
+          parentesco: r.relacao, telefone: r.telefone, cpf: r.cpf ?? '',
+        })),
         possuiPlano: p.plano.possui, plano: p.plano.nome, carteirinha: p.plano.carteirinha, validade: p.plano.validade,
         ativo: p.status !== 'inativo',
       });
@@ -119,6 +140,31 @@ export class PacienteForm {
     this.f.update((atual) => ({ ...atual, [campo]: valor }));
   }
 
+  protected adicionarResponsavel(): void {
+    this.f.update((atual) => ({
+      ...atual,
+      responsaveisExtras: [...atual.responsaveisExtras, { nome: '', nascimento: '', email: '', parentesco: '', telefone: '', cpf: '' }],
+    }));
+  }
+
+  protected removerResponsavel(indice: number): void {
+    this.f.update((atual) => ({
+      ...atual,
+      responsaveisExtras: atual.responsaveisExtras.filter((_, i) => i !== indice),
+    }));
+  }
+
+  protected digitarExtra(indice: number, campo: 'nome' | 'nascimento' | 'email' | 'parentesco' | 'telefone' | 'cpf', evento: Event): void {
+    let valor = (evento.target as HTMLInputElement).value;
+    if (campo === 'cpf') valor = formatarCpf(valor);
+    if (campo === 'telefone') valor = formatarTelefone(valor);
+    this.f.update((atual) => ({
+      ...atual,
+      responsaveisExtras: atual.responsaveisExtras.map((r, i) => i === indice ? { ...r, [campo]: valor } : r),
+    }));
+    (evento.target as HTMLInputElement).value = valor;
+  }
+
   protected cadastrar(): void {
     this.tentou.set(true);
     if (Object.keys(this.erros()).length) {
@@ -134,7 +180,11 @@ export class PacienteForm {
     const paciente = await this.clinica.salvarPaciente(
       {
         nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
-        responsavel: { nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf },
+        responsavel: { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },
+        responsaveis: [
+          { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },
+          ...f.responsaveisExtras.map((r) => ({ id: r.id, nome: r.nome.trim(), nascimento: r.nascimento, email: r.email.trim(), relacao: r.parentesco.trim(), telefone: r.telefone, cpf: r.cpf, endereco: '' })),
+        ].filter((r) => r.nome),
         plano: { possui: f.possuiPlano, nome: f.possuiPlano ? f.plano.trim() : '', carteirinha: f.possuiPlano ? f.carteirinha.trim() : '', validade: f.possuiPlano ? f.validade : '' },
         ativo: f.ativo,
       },

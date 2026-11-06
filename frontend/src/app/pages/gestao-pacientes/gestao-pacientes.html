@@ -42,7 +42,7 @@
         @if (edita()) {
           <span class="acoes-linha centro">
             <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>
-            <button type="button" class="acao-excluir" [attr.aria-label]="'Excluir ' + item.p.nome" title="Excluir" (click)="excluindo.set(item.p)"><app-icone nome="lixeira" /></button>
+            <button type="button" class="acao-excluir" [attr.aria-label]="'Inativar ' + item.p.nome" title="Inativar" (click)="excluindo.set(item.p)"><app-icone nome="lixeira" /></button>
           </span>
         }
       </div>
@@ -52,8 +52,8 @@
   </section>
 </div>
 
-<app-dialogo [aberto]="!!excluindo()" titulo="Excluir paciente?" textoConfirmar="Excluir" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
+<app-dialogo [aberto]="!!excluindo()" titulo="Inativar paciente?" textoConfirmar="Inativar" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
   <p class="dialogo-texto">
-    O cadastro de <strong>{{ excluindo()?.nome }}</strong>, o prontuário e as consultas marcadas serão removidos. Essa ação não pode ser desfeita.
+    <strong>{{ excluindo()?.nome }}</strong> não poderá receber novas consultas. O prontuário, os vínculos e o histórico serão preservados.
   </p>
 </app-dialogo>
