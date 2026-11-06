@@ -1,5 +1,6 @@
 package com.neurovita.model;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
@@ -13,6 +14,8 @@ public class Profissional {
 
     private String nome;
     private String email;
+    private String emailContato;
+    private LocalDate dataNascimento;
     private String cpf;
     private String telefone;
 
@@ -48,6 +51,11 @@ public class Profissional {
     public String getEmail() {
         return email;
     }
+
+    public String getEmailContato() { return emailContato; }
+    public void setEmailContato(String emailContato) { this.emailContato = emailContato; }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
 
     public void setEmail(String email) {
         this.email = email;

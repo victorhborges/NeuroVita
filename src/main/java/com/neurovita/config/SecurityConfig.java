@@ -91,6 +91,7 @@ public class SecurityConfig {
                         // Login da API e documentação
                         .requestMatchers(
                                 "/api/auth/login",
+                                "/api/auth/recuperacao/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
@@ -122,6 +123,30 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/pacientes"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+
+                        // A listagem é usada pela secretaria ao agendar consultas.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/pacientes"
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/pacientes/*"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/pacientes/*"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/pacientes/*"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
                         // Demais operações com pacientes
@@ -131,6 +156,12 @@ public class SecurityConfig {
                         // Cadastro de profissionais
                         .requestMatchers(
                                 HttpMethod.POST,
+                                "/api/profissionais"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
+                        // A lista alimenta o formulário de agendamento da secretaria.
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/profissionais"
                         ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
@@ -200,7 +231,8 @@ public class SecurityConfig {
                                 "/api/prontuarios/**",
                                 "/api/diagnosticos/**",
                                 "/api/tratamentos/**",
-                                "/api/exames/**"
+                                "/api/exames/**",
+                                "/api/documentos-clinicos/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
                         // Gerenciamento de responsáveis

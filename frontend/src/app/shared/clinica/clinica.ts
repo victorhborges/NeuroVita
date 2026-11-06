@@ -1,39 +1,162 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { catchError, firstValueFrom, forkJoin, of } from 'rxjs';
 
-import { deISO, diaDaSemana, paraISO } from '../util';
-import {
-  AGENDAMENTOS_INICIAIS, DOCUMENTOS_INICIAIS, PACIENTES_INICIAIS, PROFISSIONAIS_INICIAIS, SECRETARIAS_INICIAIS,
-} from './dados-clinica';
+import { diaDaSemana, paraISO } from '../util';
 import {
   Agendamento, Consulta, DadosPaciente, DadosProfissional, DadosSecretaria, Documento, Paciente, Profissional,
-  Secao, Secretaria, TipoAtendimento,
+  Secao, Secretaria, StatusConsulta, TipoAtendimento,
 } from './modelos';
 import { minutosDe } from './status';
+import { DocumentosApiService, DocumentoClinicoApi } from './documentos-api.service';
+import { Auth } from '../auth';
+import { ConsultasApiService, ConsultaApi } from './consultas-api.service';
+import { PacientesApiService, PacienteApi } from './pacientes-api.service';
+import { ProfissionaisApiService, ProfissionalApi } from './profissionais-api.service';
+import { ResponsaveisApiService, ResponsavelApi } from './responsaveis-api.service';
+import { SecretariasApiService } from './secretarias-api.service';
+import { DisponibilidadesApiService } from './disponibilidades-api.service';
+import { DiagnosticosApiService } from './diagnosticos-api.service';
 
 export type NovoPaciente = Pick<Paciente, 'nome' | 'nascimento' | 'telefone' | 'email' | 'endereco'>;
 export type DadosDocumento = Omit<Documento, 'id' | 'atualizadoEm'> & { id?: string };
 
-const gerarId = (prefixo: string) => `${prefixo}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /**
- * Guarda pacientes, profissionais, consultas e documentos EM MEMÓRIA (somem ao recarregar a página).
- * Psicólogo e secretária usam os mesmos dados: o que um cadastra aparece para o outro.
- * TODO (back-end): trocar o conteúdo dos métodos por chamadas HttpClient. Os componentes
- * não precisam mudar, desde que os métodos devolvam os mesmos tipos.
+ * Fachada de domínio que carrega os dados clínicos da API e mantém sinais para as telas.
  */
 @Injectable({ providedIn: 'root' })
 export class Clinica {
-  private readonly _pacientes = signal<Paciente[]>(PACIENTES_INICIAIS);
-  private readonly _profissionais = signal<Profissional[]>(PROFISSIONAIS_INICIAIS);
-  private readonly _secretarias = signal<Secretaria[]>(SECRETARIAS_INICIAIS);
-  private readonly _agendamentos = signal<Agendamento[]>(AGENDAMENTOS_INICIAIS);
-  private readonly _documentos = signal<Documento[]>(DOCUMENTOS_INICIAIS);
+  private readonly _pacientes = signal<Paciente[]>([]);
+  private readonly _profissionais = signal<Profissional[]>([]);
+  private readonly _secretarias = signal<Secretaria[]>([]);
+  private readonly _agendamentos = signal<Agendamento[]>([]);
+  private readonly _documentos = signal<Documento[]>([]);
+  private readonly documentosApi = inject(DocumentosApiService);
+  private readonly auth = inject(Auth);
+  private readonly pacientesApi = inject(PacientesApiService);
+  private readonly profissionaisApi = inject(ProfissionaisApiService);
+  private readonly responsaveisApi = inject(ResponsaveisApiService);
+  private readonly secretariasApi = inject(SecretariasApiService);
+  private readonly consultasApi = inject(ConsultasApiService);
+  private readonly disponibilidadesApi = inject(DisponibilidadesApiService);
+  private readonly diagnosticosApi = inject(DiagnosticosApiService);
 
   readonly pacientes = this._pacientes.asReadonly();
   readonly profissionais = this._profissionais.asReadonly();
   readonly secretarias = this._secretarias.asReadonly();
   readonly agendamentos = this._agendamentos.asReadonly();
   readonly documentos = this._documentos.asReadonly();
+
+  constructor() { this.carregarDadosDaApi(); }
+
+  private carregarDadosDaApi(): void {
+    const perfil = this.auth.obterPerfil();
+    const podeListarProfissionais = perfil === 'admin' || perfil === 'secretaria';
+    const podeListarSecretarias = perfil === 'admin';
+    const podeListarResponsaveis = perfil === 'admin' || perfil === 'secretaria';
+    forkJoin({
+      pacientes: this.pacientesApi.listarTodos().pipe(catchError(() => of([] as PacienteApi[]))),
+      profissionais: podeListarProfissionais ? this.profissionaisApi.listarTodos().pipe(catchError(() => of([] as ProfissionalApi[]))) : of([] as ProfissionalApi[]),
+      responsaveis: podeListarResponsaveis ? this.responsaveisApi.listarTodos().pipe(catchError(() => of([] as ResponsavelApi[]))) : of([] as ResponsavelApi[]),
+      secretarias: podeListarSecretarias ? this.secretariasApi.listarTodos().pipe(catchError(() => of([]))) : of([]),
+      consultas: this.consultasApi.listarTodas().pipe(catchError(() => of([] as ConsultaApi[]))),
+    }).subscribe(({ pacientes, profissionais, responsaveis, secretarias, consultas }) => {
+      const profissionaisMap = new Map(profissionais.map((p) => [p.id, p]));
+      this._agendamentos.set(consultas.map((c) => this.agendamentoDaApi(c)));
+      this._pacientes.set(pacientes.map((p) => this.pacienteDaApi(p, responsaveis, consultas)));
+      this._profissionais.set(profissionais.map((p) => this.profissionalDaApi(p)));
+      profissionais.forEach((p) => this.carregarDisponibilidade(p.id));
+      this._secretarias.set(secretarias.map((s) => ({
+        id: s.id, codigo: s.id.slice(-5).toUpperCase(), nome: s.nome, nascimento: s.dataNascimento ?? '', telefone: s.telefone ?? '', email: s.emailContato ?? s.email,
+        cpf: s.cpf ?? '', endereco: s.endereco ?? '', cargo: s.cargo ?? 'Secretária', admissao: s.admissao ?? '', ativo: s.ativo ?? true, emailAcesso: s.email,
+      })));
+      // Associa consultas aos profissionais para que a interface use nomes vindos da API.
+      this._agendamentos.update((lista) => lista.map((a) => ({ ...a, local: a.local || profissionaisMap.get(a.profissionalId)?.nome || '' })));
+    });
+  }
+
+  private pacienteDaApi(p: PacienteApi, responsaveis: ResponsavelApi[], consultas: ConsultaApi[]): Paciente {
+    const vinculo = p.responsaveis?.[0];
+    const r = responsaveis.find((item) => item.id === vinculo?.responsavelId);
+    const historico = consultas.filter((c) => c.pacienteId === p.id).sort((a, b) => b.dataHora.localeCompare(a.dataHora));
+    const ultima = historico[0];
+    return {
+      id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, nascimento: p.dataNascimento,
+      telefone: p.telefone ?? '', email: p.email ?? '', cpf: p.cpf ?? '', endereco: p.endereco ?? '',
+      status: p.ativo === false ? 'inativo' : 'acompanhamento', situacao: p.ativo === false ? 'Inativo' : 'Em acompanhamento', ultimaConsulta: ultima?.dataHora.slice(0, 10) ?? null,
+      profissionalId: ultima?.profissionalId ?? null,
+      responsavelId: vinculo?.responsavelId,
+      responsavel: { nome: r?.nome ?? '', relacao: vinculo?.grauParentesco ?? '', telefone: r?.telefone ?? '', endereco: r?.endereco ?? '', email: r?.email, nascimento: r?.dataNascimento, cpf: r?.cpf },
+      plano: { possui: !!p.possuiPlanoSaude, nome: p.planoSaude ?? '', carteirinha: p.numeroCarteirinha ?? '', validade: p.validadePlano ?? '' },
+      diagnostico: { principal: '—', cid: '—', inicioTratamento: null }, consultas: historico.map((c) => ({
+        data: c.dataHora.slice(0, 10), profissional: c.profissionalId, resumo: c.tipoAtendimento,
+      })),
+    };
+  }
+
+  private profissionalDaApi(p: ProfissionalApi): Profissional {
+    const tipo = /psiquiat/i.test(p.categoria) ? 'psiquiatra' : 'psicologo';
+    return {
+      id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, tratamento: '', especialidade: p.categoria,
+      tipo, registro: p.numeroRegistro ?? '', nascimento: p.dataNascimento ?? '', telefone: p.telefone ?? '', ativo: !!p.ativo,
+      cpf: p.cpf ?? '', email: p.emailContato ?? p.email ?? '', anoConclusao: p.anoConclusao,
+      disponibilidade: { dias: [], faixas: [], online: !!p.atendeOnline, presencial: true }, emailAcesso: p.email,
+    };
+  }
+
+  private carregarDisponibilidade(profissionalId: string): void {
+    this.profissionaisApi.listarDisponibilidades(profissionalId).subscribe({
+      next: (itens) => {
+        const diasOrdem = ['SEGUNDA_FEIRA', 'TERCA_FEIRA', 'QUARTA_FEIRA', 'QUINTA_FEIRA', 'SEXTA_FEIRA', 'SABADO'];
+        const normalizar = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+        const faixas = itens.filter((x) => x.ativo).map((x) => ({ inicio: x.horaInicio.slice(0, 5), fim: x.horaFim.slice(0, 5) }));
+        const dias = [...new Set(itens.filter((x) => x.ativo).map((x) => diasOrdem.indexOf(normalizar(x.diaSemana))).filter((x) => x >= 0))];
+        this._profissionais.update((lista) => lista.map((p) => p.id === profissionalId
+          ? { ...p, disponibilidade: { ...p.disponibilidade, dias, faixas } } : p));
+      },
+      error: (erro) => console.error('Falha ao carregar disponibilidades:', erro),
+    });
+  }
+
+  private async sincronizarDisponibilidade(profissionalId: string, disponibilidade: DadosProfissional['disponibilidade']): Promise<void> {
+    const atuais = await firstValueFrom(this.profissionaisApi.listarDisponibilidades(profissionalId));
+    for (const item of atuais) await firstValueFrom(this.profissionaisApi.removerDisponibilidade(profissionalId, item.id));
+    const nomesDias = ['SEGUNDA_FEIRA', 'TERCA_FEIRA', 'QUARTA_FEIRA', 'QUINTA_FEIRA', 'SEXTA_FEIRA', 'SABADO'];
+    for (const dia of disponibilidade.dias) {
+      for (const faixa of disponibilidade.faixas) {
+        const nova = await firstValueFrom(this.disponibilidadesApi.criar({ diaSemana: nomesDias[dia], horaInicio: `${faixa.inicio}:00`, horaFim: `${faixa.fim}:00`, ativo: true }));
+        await firstValueFrom(this.profissionaisApi.adicionarDisponibilidade(profissionalId, nova.id));
+      }
+    }
+  }
+
+  private agendamentoDaApi(c: ConsultaApi): Agendamento {
+    const status: Record<string, StatusConsulta> = { PENDENTE: 'pendente', CONFIRMADA: 'confirmado', REMARCADA: 'remarcado', CANCELADA: 'cancelado' };
+    return {
+      id: c.id, data: c.dataHora.slice(0, 10), inicio: c.dataHora.slice(11, 16), duracao: c.duracao,
+      pacienteId: c.pacienteId, profissionalId: c.profissionalId, tipo: c.tipoAtendimento,
+      atendimento: c.modalidade === 'ONLINE' ? 'Online' : 'Presencial', sala: c.local, local: c.local,
+      status: status[c.status] ?? 'pendente',
+    };
+  }
+
+  carregarDocumentos(pacienteId: string): void {
+    this.documentosApi.listarPorPaciente(pacienteId).subscribe({
+      next: (itens) => this._documentos.update((atuais) => [
+        ...atuais.filter((d) => d.pacienteId !== pacienteId),
+        ...itens.map((item) => this.documentoDaApi(item)),
+      ]),
+      error: (erro) => console.error('Falha ao carregar documentos clínicos:', erro),
+    });
+  }
+
+  carregarDiagnosticos(pacienteId: string): void {
+    this.diagnosticosApi.listarPorPaciente(pacienteId).subscribe({
+      next: (itens) => this._pacientes.update((lista) => lista.map((p) => p.id === pacienteId
+        ? { ...p, diagnostico: { ...p.diagnostico, principal: itens.map((d) => d.descricao).join('; ') || '—' } } : p)),
+      error: (erro) => console.error('Falha ao carregar diagnósticos:', erro),
+    });
+  }
 
   /* ---------- Pacientes ---------- */
 
@@ -42,7 +165,7 @@ export class Clinica {
   }
 
   /** Cria (sem `id`) ou atualiza (com `id`) um paciente a partir do formulário de cadastro. */
-  salvarPaciente(dados: DadosPaciente, id?: string): Paciente {
+  async salvarPaciente(dados: DadosPaciente, id?: string): Promise<Paciente> {
     const lista = this._pacientes();
     const atual = id ? lista.find((p) => p.id === id) : undefined;
     const status = !dados.ativo ? 'inativo' : atual && atual.status !== 'inativo' ? atual.status : 'acompanhamento';
@@ -55,30 +178,38 @@ export class Clinica {
         endereco: dados.endereco ?? atual.endereco, status, situacao, plano: dados.plano,
         responsavel: { ...atual.responsavel, nome: r.nome, nascimento: r.nascimento, email: r.email, relacao: r.relacao, telefone: r.telefone, cpf: r.cpf },
       };
-      this._pacientes.update((l) => l.map((p) => (p.id === atual.id ? editado : p)));
-      return editado;
+      let responsavelId = atual.responsavelId;
+      if (r.nome.trim()) {
+        const contato = { nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone, dataNascimento: r.nascimento || undefined, endereco: dados.endereco || undefined };
+        responsavelId = (responsavelId
+          ? await firstValueFrom(this.responsaveisApi.atualizar(responsavelId, contato))
+          : await firstValueFrom(this.responsaveisApi.criar(contato))).id;
+      }
+      const resposta = await firstValueFrom(this.pacientesApi.atualizar(id!, this.pacienteRequest(dados, responsavelId)));
+      const pacienteReal = this.pacienteDaApi(resposta, responsavelId ? [{ id: responsavelId, nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone }] : [], []);
+      this._pacientes.update((l) => l.map((p) => p.id === pacienteReal.id ? pacienteReal : p));
+      return pacienteReal;
     }
 
-    const maior = Math.max(0, ...lista.map((p) => Number(p.codigo) || 0));
-    const codigo = String(maior + 1).padStart(5, '0');
-    const base = dados.nome
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const novo: Paciente = {
-      id: lista.some((p) => p.id === base) ? `${base}-${codigo}` : base, codigo,
-      nome: dados.nome, nascimento: dados.nascimento, telefone: dados.telefone, email: dados.email, cpf: dados.cpf,
-      endereco: dados.endereco || '—', status, situacao, ultimaConsulta: null, profissionalId: null,
-      responsavel: { nome: r.nome || '—', relacao: r.relacao || '—', telefone: r.telefone || '—', endereco: dados.endereco || '—', email: r.email, nascimento: r.nascimento, cpf: r.cpf },
-      plano: dados.plano,
-      diagnostico: { principal: '—', cid: '—', inicioTratamento: null },
-      consultas: [],
-    };
-    this._pacientes.update((l) => [...l, novo]);
+    let responsavelId: string | undefined;
+    if (r.nome.trim()) responsavelId = (await firstValueFrom(this.responsaveisApi.criar({ nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone, dataNascimento: r.nascimento || undefined, endereco: dados.endereco || undefined }))).id;
+    const cadastro = await firstValueFrom(this.pacientesApi.criar(this.pacienteRequest(dados, responsavelId)));
+    const novo = this.pacienteDaApi(cadastro.paciente, responsavelId ? [{ id: responsavelId, nome: r.nome, cpf: r.cpf, email: r.email, telefone: r.telefone }] : [], []);
+    this._pacientes.update((l) => [...l.filter((p) => p.id !== novo.id), novo]);
     return novo;
   }
 
+  private pacienteRequest(dados: DadosPaciente, responsavelId?: string) {
+    return {
+      nome: dados.nome, dataNascimento: dados.nascimento, email: dados.email || '', cpf: dados.cpf || '', telefone: dados.telefone || '', endereco: dados.endereco || '', ativo: dados.ativo,
+      responsaveis: responsavelId ? [{ responsavelId, grauParentesco: dados.responsavel.relacao || 'Responsável' }] : [],
+      possuiPlanoSaude: dados.plano.possui, planoSaude: dados.plano.nome, numeroCarteirinha: dados.plano.carteirinha,
+      validadePlano: dados.plano.validade || null,
+    };
+  }
+
   /** Cadastro rápido (usado na lista de pacientes do psicólogo). */
-  adicionarPaciente(dados: NovoPaciente): Paciente {
+  adicionarPaciente(dados: NovoPaciente): Promise<Paciente> {
     return this.salvarPaciente({
       nome: dados.nome, nascimento: dados.nascimento, email: dados.email, cpf: '', telefone: dados.telefone, endereco: dados.endereco,
       responsavel: { nome: '', nascimento: '', email: '', relacao: '', telefone: '', cpf: '' },
@@ -87,16 +218,11 @@ export class Clinica {
   }
 
   /** Remove o paciente, o prontuário e as consultas dele. */
-  removerPaciente(id: string): void {
+  async removerPaciente(id: string): Promise<void> {
+    await firstValueFrom(this.pacientesApi.excluir(id));
     this._pacientes.update((l) => l.filter((p) => p.id !== id));
     this._documentos.update((l) => l.filter((d) => d.pacienteId !== id));
     this._agendamentos.update((l) => l.filter((a) => a.pacienteId !== id));
-  }
-
-  adicionarConsulta(pacienteId: string, consulta: Consulta): void {
-    this._pacientes.update((l) =>
-      l.map((p) => (p.id === pacienteId ? { ...p, consultas: [consulta, ...p.consultas] } : p)),
-    );
   }
 
   /* ---------- Profissionais ---------- */
@@ -106,35 +232,38 @@ export class Clinica {
   }
 
   /** Cria (sem `id`) ou atualiza (com `id`) um profissional a partir do formulário de cadastro. */
-  salvarProfissional(dados: DadosProfissional, id?: string): Profissional {
-    const lista = this._profissionais();
-    const atual = id ? lista.find((p) => p.id === id) : undefined;
-    const prefixo = dados.tipo === 'psiquiatra' ? 'CRM' : 'CRP';
-    const mesmaCategoria = !!atual && atual.tipo === dados.tipo;
-    const campos = {
-      nome: dados.nome, nascimento: dados.nascimento, email: dados.email, cpf: dados.cpf, telefone: dados.telefone,
-      tipo: dados.tipo, registro: `${prefixo} ${dados.registro}`, anoConclusao: dados.anoConclusao,
-      disponibilidade: dados.disponibilidade, ativo: dados.ativo, emailAcesso: dados.emailAcesso,
-      // O tratamento (Dr./Dra.) e a especialidade só são mantidos se a categoria não mudou.
-      tratamento: mesmaCategoria ? atual.tratamento : ('' as const),
-      especialidade: mesmaCategoria ? atual.especialidade : dados.tipo === 'psiquiatra' ? 'Psiquiatra' : 'Psicólogo',
-    };
-    if (atual) {
-      const editado: Profissional = { ...atual, ...campos };
-      this._profissionais.update((l) => l.map((p) => (p.id === atual.id ? editado : p)));
-      return editado;
+  async salvarProfissional(dados: DadosProfissional, id?: string): Promise<Profissional & { senhaProvisoria?: string }> {
+    if (id) {
+      const salvo = await firstValueFrom(this.profissionaisApi.atualizar(id!, {
+        nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
+        categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
+        numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+      }));
+      await this.sincronizarDisponibilidade(id!, dados.disponibilidade);
+      const atualizado = { ...this.profissionalDaApi(salvo), disponibilidade: dados.disponibilidade };
+      this._profissionais.update((l) => l.map((p) => p.id === id ? atualizado : p));
+      return atualizado;
     }
-    const maior = Math.max(0, ...lista.map((p) => Number(p.codigo) || 0));
-    const codigo = String(maior + 1).padStart(5, '0');
-    const base = dados.nome
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const novo: Profissional = { id: lista.some((p) => p.id === base) ? `${base}-${codigo}` : base, codigo, ...campos };
+    const cadastro = await firstValueFrom(this.profissionaisApi.criar({
+      nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
+      categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
+      numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+    }));
+    await this.sincronizarDisponibilidade(cadastro.profissional.id, dados.disponibilidade);
+    const novo: Profissional & { senhaProvisoria: string } = { ...this.profissionalDaApi(cadastro.profissional), disponibilidade: dados.disponibilidade, senhaProvisoria: cadastro.senhaProvisoria };
     this._profissionais.update((l) => [...l, novo]);
     return novo;
   }
 
-  alterarAtivoProfissional(id: string, ativo: boolean): void {
+  async alterarAtivoProfissional(id: string, ativo: boolean): Promise<void> {
+    const p = this.profissional(id);
+    if (!p) return;
+    await firstValueFrom(this.profissionaisApi.atualizar(id, {
+      nome: p.nome, email: p.emailAcesso, emailContato: p.email, dataNascimento: p.nascimento, cpf: p.cpf, telefone: p.telefone,
+      categoria: p.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
+      numeroRegistro: p.registro.replace(/^(CRM|CRP)\s*/, ''), anoConclusao: p.anoConclusao,
+      atendeOnline: p.disponibilidade.online, ativo,
+    }));
     this._profissionais.update((l) => l.map((p) => (p.id === id ? { ...p, ativo } : p)));
   }
 
@@ -144,7 +273,8 @@ export class Clinica {
   }
 
   /** Remove o profissional. Só use quando `consultasDoProfissional` for 0. */
-  removerProfissional(id: string): void {
+  async removerProfissional(id: string): Promise<void> {
+    await firstValueFrom(this.profissionaisApi.excluir(id));
     this._profissionais.update((l) => l.filter((p) => p.id !== id));
     this._agendamentos.update((l) => l.filter((a) => a.profissionalId !== id));
     this._pacientes.update((l) => l.map((p) => (p.profissionalId === id ? { ...p, profissionalId: null } : p)));
@@ -170,25 +300,31 @@ export class Clinica {
     return this._secretarias().find((s) => s.id === id);
   }
 
-  salvarSecretaria(dados: DadosSecretaria, id?: string): Secretaria {
-    const lista = this._secretarias();
-    const atual = id ? lista.find((s) => s.id === id) : undefined;
-    if (atual) {
-      const editada: Secretaria = { ...atual, ...dados };
-      this._secretarias.update((l) => l.map((s) => (s.id === atual.id ? editada : s)));
+  async salvarSecretaria(dados: DadosSecretaria, id?: string): Promise<Secretaria & { senhaProvisoria?: string }> {
+    const request = {
+      nome: dados.nome, email: dados.emailAcesso || dados.email, emailContato: dados.email,
+      dataNascimento: dados.nascimento || undefined, cpf: dados.cpf, telefone: dados.telefone,
+      endereco: dados.endereco, cargo: dados.cargo, admissao: dados.admissao || undefined, ativo: dados.ativo,
+      senhaProvisoria: dados.senhaProvisoria,
+    };
+    if (id) {
+      const salva = await firstValueFrom(this.secretariasApi.atualizar(id, request));
+      const editada = { ...dados, id, codigo: id.slice(-5).toUpperCase(), email: salva.emailContato ?? salva.email, emailAcesso: salva.email };
+      this._secretarias.update((l) => l.map((s) => s.id === id ? editada : s));
       return editada;
     }
-    const maior = Math.max(0, ...lista.map((s) => Number(s.codigo) || 0));
-    const codigo = String(maior + 1).padStart(5, '0');
-    const base = dados.nome
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const nova: Secretaria = { ...dados, id: lista.some((s) => s.id === base) ? `${base}-${codigo}` : base, codigo };
+    const cadastro = await firstValueFrom(this.secretariasApi.criar(request));
+    const nova: Secretaria & { senhaProvisoria: string } = {
+      ...dados, id: cadastro.secretaria.id, codigo: cadastro.secretaria.id.slice(-5).toUpperCase(),
+      email: cadastro.secretaria.emailContato ?? cadastro.secretaria.email, emailAcesso: cadastro.secretaria.email,
+      senhaProvisoria: cadastro.senhaProvisoria,
+    };
     this._secretarias.update((l) => [...l, nova]);
     return nova;
   }
 
-  removerSecretaria(id: string): void {
+  async removerSecretaria(id: string): Promise<void> {
+    await firstValueFrom(this.secretariasApi.excluir(id));
     this._secretarias.update((l) => l.filter((s) => s.id !== id));
   }
 
@@ -233,19 +369,29 @@ export class Clinica {
     return salas.find((s) => !ocupadas.has(s)) ?? salas[0];
   }
 
-  adicionarAgendamento(dados: Omit<Agendamento, 'id'>): Agendamento {
-    const novo: Agendamento = { ...dados, id: gerarId('ag-') };
+  async adicionarAgendamento(dados: Omit<Agendamento, 'id'>): Promise<Agendamento> {
+    const salvo = await firstValueFrom(this.consultasApi.criar({
+      pacienteId: dados.pacienteId, profissionalId: dados.profissionalId,
+      dataHora: `${dados.data}T${dados.inicio}:00`, tipoAtendimento: dados.tipo,
+      local: dados.local, modalidade: dados.atendimento.toUpperCase(), duracao: dados.duracao,
+    }));
+    const novo = this.agendamentoDaApi(salvo);
     this._agendamentos.update((l) => [...l, novo]);
-    // O primeiro profissional que atende o paciente passa a ser o responsável.
-    const p = this.paciente(dados.pacienteId);
-    if (p && !p.profissionalId) {
-      this._pacientes.update((l) => l.map((x) => (x.id === p.id ? { ...x, profissionalId: dados.profissionalId } : x)));
-    }
     return novo;
   }
 
-  atualizarAgendamento(atualizado: Agendamento): void {
-    this._agendamentos.update((l) => l.map((a) => (a.id === atualizado.id ? atualizado : a)));
+  async atualizarAgendamento(atualizado: Agendamento): Promise<void> {
+    const payload = {
+      pacienteId: atualizado.pacienteId, profissionalId: atualizado.profissionalId,
+      dataHora: `${atualizado.data}T${atualizado.inicio}:00`, tipoAtendimento: atualizado.tipo,
+      local: atualizado.local, modalidade: atualizado.atendimento.toUpperCase(), duracao: atualizado.duracao,
+    };
+    if (atualizado.status === 'cancelado') await firstValueFrom(this.consultasApi.cancelar(atualizado.id));
+    else {
+      await firstValueFrom(this.consultasApi.atualizar(atualizado.id, payload));
+      if (atualizado.status === 'confirmado') await firstValueFrom(this.consultasApi.confirmar(atualizado.id));
+    }
+    this._agendamentos.update((l) => l.map((a) => a.id === atualizado.id ? atualizado : a));
   }
 
   /* ---------- Documentos do prontuário ---------- */
@@ -257,28 +403,43 @@ export class Clinica {
       .sort((a, b) => b.dataSessao.localeCompare(a.dataSessao) || b.atualizadoEm.localeCompare(a.atualizadoEm));
   }
 
-  salvarDocumento(dados: DadosDocumento): Documento {
+  async salvarDocumento(dados: DadosDocumento): Promise<Documento> {
     const completo: Documento = {
       ...dados,
-      id: dados.id ?? gerarId('d'),
+      id: dados.id ?? '',
       atualizadoEm: new Date().toISOString(),
     };
-    this._documentos.update((l) =>
-      dados.id ? l.map((d) => (d.id === dados.id ? completo : d)) : [...l, completo],
-    );
-    if (completo.secao === 'evolucoes') this.atualizarUltimaConsulta(completo.pacienteId, completo.dataSessao);
-    return completo;
+    const anexos = await Promise.all(completo.anexos.map(async (anexo) => {
+      const resposta = await fetch(anexo.url);
+      const blob = await resposta.blob();
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binario = '';
+      bytes.forEach((byte) => binario += String.fromCharCode(byte));
+      return { nome: anexo.nome, conteudoBase64: btoa(binario), tipoMime: blob.type || 'application/octet-stream' };
+    }));
+    const request = {
+      pacienteId: completo.pacienteId, secao: completo.secao, titulo: completo.titulo,
+      dataSessao: completo.dataSessao, tipoAtendimento: completo.tipoAtendimento,
+      conteudo: completo.conteudo || `Arquivo anexado: ${completo.titulo}`, anexos,
+    };
+    const salvo = dados.id
+      ? await firstValueFrom(this.documentosApi.atualizar(dados.id, request))
+      : await firstValueFrom(this.documentosApi.criar(request));
+    const documento = this.documentoDaApi(salvo);
+    this._documentos.update((l) => dados.id ? l.map((d) => d.id === documento.id ? documento : d) : [...l, documento]);
+    return documento;
   }
 
-  private atualizarUltimaConsulta(pacienteId: string, data: string): void {
-    this._pacientes.update((l) =>
-      l.map((p) =>
-        p.id === pacienteId && (!p.ultimaConsulta || deISO(data) > deISO(p.ultimaConsulta))
-          ? { ...p, ultimaConsulta: data }
-          : p,
-      ),
-    );
+  private documentoDaApi(item: DocumentoClinicoApi): Documento {
+    const anexos = (item.anexos ?? []).map((a) => ({ nome: a.nome, url: `data:${a.tipoMime};base64,${a.conteudoBase64}` }));
+    return {
+      id: item.id, pacienteId: item.pacienteId, secao: item.secao as Secao, titulo: item.titulo,
+      dataSessao: item.dataSessao, tipoAtendimento: item.tipoAtendimento as TipoAtendimento,
+      conteudo: item.conteudo, atualizadoEm: item.atualizadoEm,
+      anexos, arquivo: item.conteudo.startsWith('Arquivo anexado:') ? anexos[0] : undefined,
+    };
   }
+
 }
 
 export const hojeISO = () => paraISO(new Date());

@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, input, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, effect, inject, input, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Aviso } from '../../shared/aviso/aviso';
@@ -35,6 +35,8 @@ export class DocumentoLeitura {
 
   private readonly arquivoCampo = viewChild<ElementRef<HTMLInputElement>>('arquivo');
 
+  constructor() { effect(() => this.clinica.carregarDocumentos(this.id())); }
+
   protected readonly paciente = computed(() => this.clinica.paciente(this.id()));
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
   protected readonly cfg = computed(() => SECOES[this.secaoValida() ?? 'evolucoes']);
@@ -63,14 +65,19 @@ export class DocumentoLeitura {
     this.arquivoCampo()?.nativeElement.click();
   }
 
-  protected anexar(evento: Event): void {
+  protected async anexar(evento: Event): Promise<void> {
     const campo = evento.target as HTMLInputElement;
     const arquivos = Array.from(campo.files ?? []);
     const doc = this.selecionado();
     campo.value = '';
     if (!doc || !arquivos.length) return;
-    this.clinica.salvarDocumento({ ...doc, anexos: [...doc.anexos, ...arquivos.map(anexoDe)] });
-    this.aviso.mostrar('Arquivo anexado com sucesso.');
+    try {
+      await this.clinica.salvarDocumento({ ...doc, anexos: [...doc.anexos, ...arquivos.map(anexoDe)] });
+      this.aviso.mostrar('Arquivo anexado com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao anexar arquivo ao documento:', erro);
+      this.aviso.mostrar('Não foi possível anexar o arquivo. Tente novamente.');
+    }
   }
 
   protected baixar(nome: string, url: string): void {

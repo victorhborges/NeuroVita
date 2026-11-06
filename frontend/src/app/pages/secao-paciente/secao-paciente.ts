@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, effect, inject, input, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { Aviso } from '../../shared/aviso/aviso';
@@ -37,6 +37,11 @@ export class SecaoPaciente {
 
   private readonly arquivoCampo = viewChild<ElementRef<HTMLInputElement>>('arquivo');
   private readonly menuRaiz = viewChild<ElementRef<HTMLElement>>('menuCaixa');
+
+  constructor() {
+    effect(() => this.clinica.carregarDocumentos(this.id()));
+    effect(() => this.clinica.carregarDiagnosticos(this.id()));
+  }
 
   protected readonly paciente = computed(() => this.clinica.paciente(this.id()));
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
@@ -81,20 +86,26 @@ export class SecaoPaciente {
     this.arquivoCampo()?.nativeElement.click();
   }
 
-  protected aoEnviar(evento: Event): void {
+  protected async aoEnviar(evento: Event): Promise<void> {
     const campo = evento.target as HTMLInputElement;
     const arquivos = Array.from(campo.files ?? []);
     campo.value = '';
     if (!arquivos.length) return;
-    for (const arquivo of arquivos) {
-      this.clinica.salvarDocumento({
+    try {
+      await Promise.all(arquivos.map((arquivo) => {
+        const anexo = anexoDe(arquivo);
+        return this.clinica.salvarDocumento({
         pacienteId: this.id(), secao: this.cfg().id, titulo: semExtensao(arquivo.name),
         dataSessao: this.dataFiltro() || this.hoje,
         tipoAtendimento: this.tipoFiltro() === 'Online' ? 'Online' : 'Presencial',
-        conteudo: '', anexos: [], arquivo: anexoDe(arquivo),
+        conteudo: '', anexos: [anexo], arquivo: anexo,
       });
-    }
+      }));
     this.aviso.mostrar(arquivos.length > 1 ? 'Arquivos enviados com sucesso.' : 'Arquivo enviado com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao enviar documentos clínicos:', erro);
+      this.aviso.mostrar('Não foi possível salvar os arquivos. Tente novamente.');
+    }
   }
 
   protected baixar(doc: Documento): void {

@@ -4,6 +4,7 @@ import { Login } from './pages/login/login';
 import { EsqueciSenha } from './pages/esqueci-senha/esqueci-senha';
 import { Codigo } from './pages/codigo/codigo';
 import { RedefinirSenha } from './pages/redefinir-senha/redefinir-senha';
+import { PrimeiroAcesso } from './pages/primeiro-acesso/primeiro-acesso';
 import { NaoEncontrada } from './pages/nao-encontrada/nao-encontrada';
 import { Agenda } from './pages/agenda/agenda';
 import { DocumentoEditor } from './pages/documento-editor/documento-editor';
@@ -76,6 +77,7 @@ export const routes: Routes = [
   { path: 'esqueci-senha', component: EsqueciSenha, title: 'Esqueci minha senha | NeuroVita' },
   { path: 'codigo', component: Codigo, title: 'Digite o código | NeuroVita' },
   { path: 'redefinir-senha', component: RedefinirSenha, title: 'Redefinir senha | NeuroVita' },
+  { path: 'primeiro-acesso', component: PrimeiroAcesso, title: 'Definir senha | NeuroVita' },
 
   rotasDoPerfil('psicologo', rotasDoProfissional()),
   rotasDoPerfil('psiquiatra', rotasDoProfissional()),

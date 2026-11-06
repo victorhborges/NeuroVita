@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -56,7 +57,7 @@ public class ConsultaService {
 
         Consulta consulta = new Consulta();
         preencherConsulta(consulta, request);
-        consulta.setStatus(StatusConsulta.CONFIRMADA);
+        consulta.setStatus(StatusConsulta.PENDENTE);
 
         return new ConsultaResponse(consultaRepository.save(consulta));
     }
@@ -101,20 +102,49 @@ public class ConsultaService {
         validarDisponibilidadeEConflitos(request, id);
 
         LocalDateTime dataHoraAnterior = consulta.getDataHora();
+
         boolean dataHoraAlterada = dataHoraAnterior != null
                 && !dataHoraAnterior.equals(request.getDataHora());
+
+        boolean profissionalAlterado = !Objects.equals(
+                consulta.getProfissionalId(),
+                request.getProfissionalId());
 
         preencherConsulta(consulta, request);
 
         if (consulta.getStatus() == null) {
-            consulta.setStatus(StatusConsulta.CONFIRMADA);
+            consulta.setStatus(StatusConsulta.PENDENTE);
         }
 
-        if (dataHoraAlterada) {
+        if (dataHoraAlterada || profissionalAlterado) {
             consulta.setStatus(StatusConsulta.REMARCADA);
         }
 
         return new ConsultaResponse(consultaRepository.save(consulta));
+    }
+
+    public ConsultaResponse confirmar(String id) {
+        Consulta consulta = buscarConsulta(id);
+        validarAcessoConsulta(consulta);
+
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Consultas canceladas não podem ser confirmadas.");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.REMARCADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Uma consulta remarcada não pode ser confirmada por esta operação.");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.PENDENTE) {
+            consulta.setStatus(StatusConsulta.CONFIRMADA);
+            consulta = consultaRepository.save(consulta);
+        }
+
+        return new ConsultaResponse(consulta);
     }
 
     public ConsultaResponse cancelar(String id) {

@@ -1,0 +1,41 @@
+<app-auth-card>
+  <h1 class="auth-titulo redefinir-titulo">Defina sua senha</h1>
+  <p class="auth-texto">
+    Para proteger sua conta, crie uma nova senha com 8 a 72 caracteres.
+  </p>
+
+  <form class="redefinir-form" (submit)="alterar($event)">
+    <app-campo-senha
+      nome="nova"
+      placeholder="Nova senha"
+      corIcone="muted"
+      [(valor)]="novaSenha"
+    />
+    <app-campo-senha
+      nome="confirmar"
+      placeholder="Confirmar nova senha"
+      corIcone="muted"
+      [(valor)]="confirmarSenha"
+    />
+
+    @if (erro()) {
+      <p class="erro" role="alert">{{ erro() }}</p>
+    }
+
+    <button type="submit" class="btn-action btn-redefinir" [disabled]="salvando()">
+      @if (salvando()) {
+        Salvando…
+      } @else {
+        Definir senha
+      }
+    </button>
+  </form>
+
+  <a routerLink="/" class="back-link" (click)="auth.sair()">
+    <svg class="icon h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </svg>
+    Voltar para o login
+  </a>
+</app-auth-card>

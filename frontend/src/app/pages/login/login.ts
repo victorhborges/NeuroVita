@@ -18,7 +18,9 @@ export class Login {
   readonly sucesso = input<string>();
 
   protected readonly mostrarAviso = computed(
-    () => this.sucesso() === 'true',
+    () =>
+      this.sucesso() === 'true' ||
+      this.sucesso() === 'senha-alterada',
   );
 
   protected readonly email = signal('');
@@ -64,7 +66,11 @@ export class Login {
           return;
         }
 
-        this.router.navigateByUrl(resultado.rota);
+        this.router.navigateByUrl(
+          resultado.primeiroAcesso
+            ? '/primeiro-acesso'
+            : resultado.rota,
+        );
       },
 
       error: (erro: HttpErrorResponse) => {

@@ -28,7 +28,7 @@ public class ConsultaResponse {
         this.duracao = consulta.getDuracao();
         this.status = consulta.getStatus() != null
                 ? consulta.getStatus()
-                : StatusConsulta.CONFIRMADA;
+                : StatusConsulta.PENDENTE;
     }
 
     public String getId() {

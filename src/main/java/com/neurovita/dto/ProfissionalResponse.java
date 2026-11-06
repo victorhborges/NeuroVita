@@ -1,5 +1,6 @@
 package com.neurovita.dto;
 
+import java.time.LocalDate;
 import com.neurovita.model.Profissional;
 
 public class ProfissionalResponse {
@@ -7,6 +8,8 @@ public class ProfissionalResponse {
     private String id;
     private String nome;
     private String email;
+    private String emailContato;
+    private LocalDate dataNascimento;
     private String cpf;
     private String telefone;
 
@@ -23,6 +26,8 @@ public class ProfissionalResponse {
         this.id = profissional.getId();
         this.nome = profissional.getNome();
         this.email = profissional.getEmail();
+        this.emailContato = profissional.getEmailContato();
+        this.dataNascimento = profissional.getDataNascimento();
         this.cpf = profissional.getCpf();
         this.telefone = profissional.getTelefone();
 
@@ -46,6 +51,9 @@ public class ProfissionalResponse {
     public String getEmail() {
         return email;
     }
+
+    public String getEmailContato() { return emailContato; }
+    public LocalDate getDataNascimento() { return dataNascimento; }
 
     public String getCpf() {
         return cpf;

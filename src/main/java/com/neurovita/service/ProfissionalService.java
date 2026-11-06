@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.security.SecureRandom;
@@ -60,7 +59,8 @@ public class ProfissionalService {
         preencherProfissional(profissional, request);
 
         Profissional salvo = profissionalRepository.save(profissional);
-        String senhaProvisoria = gerarSenhaProvisoria();
+        String senhaProvisoria = request.getSenhaProvisoria() == null || request.getSenhaProvisoria().isBlank()
+                ? gerarSenhaProvisoria() : request.getSenhaProvisoria();
 
         try {
             Usuario usuario = new Usuario();
@@ -93,13 +93,13 @@ public class ProfissionalService {
     }
 
     public List<ProfissionalResponse> listarTodos() {
-        exigirAdministrador();
+    exigirAdministradorOuSecretaria();
 
-        return profissionalRepository.findAll()
-                .stream()
-                .map(ProfissionalResponse::new)
-                .toList();
-    }
+    return profissionalRepository.findAll()
+            .stream()
+            .map(ProfissionalResponse::new)
+            .toList();
+}
 
     public ProfissionalResponse buscarPorId(String id) {
         exigirAcessoAoPerfil(id);
@@ -224,6 +224,8 @@ public class ProfissionalService {
 
         profissional.setNome(request.getNome());
         profissional.setEmail(request.getEmail());
+        profissional.setEmailContato(request.getEmailContato());
+        profissional.setDataNascimento(request.getDataNascimento());
         profissional.setCpf(request.getCpf());
         profissional.setTelefone(request.getTelefone());
 

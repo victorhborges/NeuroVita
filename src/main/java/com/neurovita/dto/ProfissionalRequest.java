@@ -1,10 +1,13 @@
 package com.neurovita.dto;
 
+import java.time.LocalDate;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class ProfissionalRequest {
 
@@ -13,6 +16,8 @@ public class ProfissionalRequest {
 
     @Email(message = "Informe um e-mail válido.")
     private String email;
+    private String emailContato;
+    private LocalDate dataNascimento;
 
     @Pattern(
         regexp = "^[0-9.\\- ]{11,14}$",
@@ -38,6 +43,8 @@ public class ProfissionalRequest {
 
     private Boolean atendeOnline;
     private Boolean ativo;
+    @Size(min = 8, max = 72, message = "A senha provisória deve ter entre 8 e 72 caracteres.")
+    private String senhaProvisoria;
 
     public ProfissionalRequest() {
     }
@@ -53,6 +60,11 @@ public class ProfissionalRequest {
     public String getEmail() {
         return email;
     }
+
+    public String getEmailContato() { return emailContato; }
+    public void setEmailContato(String emailContato) { this.emailContato = emailContato; }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
 
     public void setEmail(String email) {
         this.email = email;
@@ -121,4 +133,7 @@ public class ProfissionalRequest {
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
     }
+
+    public String getSenhaProvisoria() { return senhaProvisoria; }
+    public void setSenhaProvisoria(String senhaProvisoria) { this.senhaProvisoria = senhaProvisoria; }
 }

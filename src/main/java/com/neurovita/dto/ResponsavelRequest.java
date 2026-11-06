@@ -1,5 +1,6 @@
 package com.neurovita.dto;
 
+import java.time.LocalDate;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -23,6 +24,8 @@ public class ResponsavelRequest {
         message = "Informe um telefone válido."
     )
     private String telefone;
+    private LocalDate dataNascimento;
+    private String endereco;
 
     public ResponsavelRequest() {
     }
@@ -58,4 +61,9 @@ public class ResponsavelRequest {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
+    public String getEndereco() { return endereco; }
+    public void setEndereco(String endereco) { this.endereco = endereco; }
 }
