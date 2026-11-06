@@ -1,4 +1,3 @@
-
 package com.neurovita.controller;
 
 import java.util.List;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.neurovita.dto.CadastroProfissionalResponse;
+import com.neurovita.dto.DisponibilidadeResponse;
 import com.neurovita.dto.ProfissionalRequest;
 import com.neurovita.dto.ProfissionalResponse;
 import com.neurovita.service.ProfissionalService;
@@ -64,6 +64,19 @@ public class ProfissionalController {
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         profissionalService.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{profissionalId}/disponibilidades")
+    public ResponseEntity<List<DisponibilidadeResponse>> listarDisponibilidades(
+            @PathVariable String profissionalId) {
+
+        List<DisponibilidadeResponse> disponibilidades =
+                profissionalService.listarDisponibilidades(profissionalId)
+                        .stream()
+                        .map(DisponibilidadeResponse::new)
+                        .toList();
+
+        return ResponseEntity.ok(disponibilidades);
     }
 
     @PostMapping("/{profissionalId}/disponibilidades/{disponibilidadeId}")

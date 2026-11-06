@@ -1,9 +1,10 @@
-import { Component, ElementRef, inject, viewChildren } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChildren } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthCard } from '../../shared/auth-card/auth-card';
+import { RecuperacaoSenhaApiService } from '../../shared/clinica/recuperacao-senha-api.service';
 
-/** Código de verificação de 6 dígitos (demonstrativo). */
+/** Valida o código de recuperação enviado por e-mail. */
 @Component({
   selector: 'app-codigo',
   imports: [AuthCard, RouterLink],
@@ -11,6 +12,9 @@ import { AuthCard } from '../../shared/auth-card/auth-card';
 })
 export class Codigo {
   private readonly router = inject(Router);
+  private readonly api = inject(RecuperacaoSenhaApiService);
+  protected readonly erro = signal('');
+  protected readonly reenviado = signal(false);
 
   /** Posições dos 6 dígitos (usado no @for do template). */
   protected readonly posicoes = [0, 1, 2, 3, 4, 5];
@@ -36,12 +40,22 @@ export class Codigo {
   }
 
   protected reenviar(): void {
-    // TODO: chamar aqui o reenvio real do código.
+    const email = sessionStorage.getItem('neurovita_recuperacao_email');
+    if (!email) { this.router.navigate(['/esqueci-senha']); return; }
+    this.api.solicitar(email).subscribe({
+      next: () => { this.reenviado.set(true); this.erro.set(''); },
+      error: (erro) => this.erro.set(erro?.error?.mensagem ?? 'Não foi possível reenviar o código.'),
+    });
   }
 
   protected verificar(evento: Event): void {
     evento.preventDefault();
-    // TODO: validar o código de verdade antes de seguir.
-    this.router.navigate(['/redefinir-senha']);
+    const email = sessionStorage.getItem('neurovita_recuperacao_email');
+    const codigo = this.digitos().map((ref) => ref.nativeElement.value.replace(/\D/g, '')).join('');
+    if (!email || codigo.length !== 6) { this.erro.set('Informe os seis dígitos do código.'); return; }
+    this.api.verificar(email, codigo).subscribe({
+      next: ({ token }) => { sessionStorage.setItem('neurovita_recuperacao_token', token); this.router.navigate(['/redefinir-senha']); },
+      error: (erro) => this.erro.set(erro?.error?.mensagem ?? 'Código inválido ou expirado.'),
+    });
   }
 }

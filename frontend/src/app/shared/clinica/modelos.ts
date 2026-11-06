@@ -33,6 +33,7 @@ export interface Consulta {
 
 export interface Paciente {
   id: string;
+  responsavelId?: string;
   /** Número que aparece como "ID: 00123". */
   codigo: string;
   nome: string;
@@ -114,6 +115,7 @@ export interface DadosProfissional {
   disponibilidade: Disponibilidade;
   ativo: boolean;
   emailAcesso: string;
+  senhaProvisoria?: string;
 }
 
 export interface Secretaria {
@@ -133,7 +135,7 @@ export interface Secretaria {
   foto?: string;
 }
 
-export type DadosSecretaria = Omit<Secretaria, 'id' | 'codigo' | 'foto'>;
+export type DadosSecretaria = Omit<Secretaria, 'id' | 'codigo' | 'foto'> & { senhaProvisoria?: string };
 
 /** Uma consulta marcada na agenda. */
 export interface Agendamento {
@@ -156,7 +158,7 @@ export interface Agendamento {
 
 export interface Anexo {
   nome: string;
-  /** Endereço temporário do arquivo no navegador (some ao recarregar a página). */
+  /** URL local ou data URL retornada pelo servidor. */
   url: string;
 }
 

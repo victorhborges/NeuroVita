@@ -1,5 +1,6 @@
 package com.neurovita.dto;
 
+import java.time.LocalDate;
 import com.neurovita.model.Responsavel;
 
 public class ResponsavelResponse {
@@ -9,6 +10,8 @@ public class ResponsavelResponse {
     private String cpf;
     private String email;
     private String telefone;
+    private LocalDate dataNascimento;
+    private String endereco;
 
     public ResponsavelResponse(Responsavel responsavel) {
         this.id = responsavel.getId();
@@ -16,6 +19,8 @@ public class ResponsavelResponse {
         this.cpf = responsavel.getCpf();
         this.email = responsavel.getEmail();
         this.telefone = responsavel.getTelefone();
+        this.dataNascimento = responsavel.getDataNascimento();
+        this.endereco = responsavel.getEndereco();
     }
 
     public String getId() {
@@ -37,4 +42,7 @@ public class ResponsavelResponse {
     public String getTelefone() {
         return telefone;
     }
+
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public String getEndereco() { return endereco; }
 }

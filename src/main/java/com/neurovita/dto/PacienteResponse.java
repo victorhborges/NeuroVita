@@ -14,6 +14,8 @@ public class PacienteResponse {
     private String email;
     private String cpf;
     private String telefone;
+    private String endereco;
+    private Boolean ativo;
 
     private List<VinculoResponsavelResponse> responsaveis;
 
@@ -32,6 +34,8 @@ public class PacienteResponse {
         this.email = paciente.getEmail();
         this.cpf = paciente.getCpf();
         this.telefone = paciente.getTelefone();
+        this.endereco = paciente.getEndereco();
+        this.ativo = paciente.getAtivo();
 
         this.responsaveis = vinculos.stream()
                 .map(VinculoResponsavelResponse::new)
@@ -66,6 +70,9 @@ public class PacienteResponse {
     public String getTelefone() {
         return telefone;
     }
+
+    public String getEndereco() { return endereco; }
+    public Boolean getAtivo() { return ativo; }
 
     public List<VinculoResponsavelResponse> getResponsaveis() {
         return responsaveis;

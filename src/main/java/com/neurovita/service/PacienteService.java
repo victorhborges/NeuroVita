@@ -29,6 +29,7 @@ import com.neurovita.model.Paciente;
 import com.neurovita.model.Responsavel;
 import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoResponsavel;
+import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ResponsavelRepository;
 import com.neurovita.repository.UsuarioRepository;
@@ -40,6 +41,7 @@ public class PacienteService {
         private static final String PERFIL_PACIENTE = "PACIENTE";
 
         private final PacienteRepository pacienteRepository;
+        private final ConsultaRepository consultaRepository;
         private final UsuarioRepository usuarioRepository;
         private final ResponsavelRepository responsavelRepository;
         private final VinculoResponsavelRepository vinculoRepository;
@@ -49,12 +51,14 @@ public class PacienteService {
 
         public PacienteService(
                 PacienteRepository pacienteRepository,
+                ConsultaRepository consultaRepository,
                 UsuarioRepository usuarioRepository,
                 ResponsavelRepository responsavelRepository,
                 VinculoResponsavelRepository vinculoRepository,
                 PasswordEncoder passwordEncoder) {
 
         this.pacienteRepository = pacienteRepository;
+        this.consultaRepository = consultaRepository;
         this.usuarioRepository = usuarioRepository;
         this.responsavelRepository = responsavelRepository;
         this.vinculoRepository = vinculoRepository;
@@ -62,7 +66,7 @@ public class PacienteService {
         }
 
         public CadastroPacienteResponse salvar(PacienteRequest request) {
-        exigirAdministradorOuSecretaria();
+        exigirCadastroPaciente();
 
         validarEmailDisponivel(request.getEmail(), null);
 
@@ -75,19 +79,21 @@ public class PacienteService {
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
         Usuario usuarioSalvo = null;
 
-        String senhaProvisoria = gerarSenhaProvisoria();
+        String senhaProvisoria = null;
 
         try {
-                Usuario usuario = new Usuario();
-                usuario.setNome(pacienteSalvo.getNome());
-                usuario.setEmail(pacienteSalvo.getEmail());
-                usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
-                usuario.setPerfil(PERFIL_PACIENTE);
-                usuario.setSenhaProvisoria(true);
-                usuario.setAtivo(true);
-                usuario.setEntidadeId(pacienteSalvo.getId());
-
-                usuarioSalvo = usuarioRepository.save(usuario);
+                if (pacienteSalvo.getEmail() != null && !pacienteSalvo.getEmail().isBlank()) {
+                        senhaProvisoria = gerarSenhaProvisoria();
+                        Usuario usuario = new Usuario();
+                        usuario.setNome(pacienteSalvo.getNome());
+                        usuario.setEmail(pacienteSalvo.getEmail());
+                        usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
+                        usuario.setPerfil(PERFIL_PACIENTE);
+                        usuario.setSenhaProvisoria(true);
+                        usuario.setAtivo(true);
+                        usuario.setEntidadeId(pacienteSalvo.getId());
+                        usuarioSalvo = usuarioRepository.save(usuario);
+                }
 
                 salvarVinculos(pacienteSalvo.getId(), responsaveis);
 
@@ -109,6 +115,21 @@ public class PacienteService {
         }
 
         public List<PacienteResponse> listarTodos() {
+        if (ehProfissional()) {
+                List<String> idsPacientes = consultaRepository
+                        .findByProfissionalId(obterProfissionalId())
+                        .stream()
+                        .map(com.neurovita.model.Consulta::getPacienteId)
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+                return pacienteRepository.findAllById(idsPacientes)
+                        .stream()
+                        .map(this::criarResposta)
+                        .toList();
+        }
+
         exigirAdministradorOuSecretaria();
 
         return pacienteRepository.findAll()
@@ -118,7 +139,7 @@ public class PacienteService {
 }
 
         public PacienteResponse buscarPorId(String id) {
-        exigirAdministrador();
+        exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
 
@@ -129,7 +150,7 @@ public class PacienteService {
             String id,
             PacienteRequest request) {
 
-        exigirAdministrador();
+        exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
 
@@ -155,7 +176,7 @@ public class PacienteService {
     }
 
     public void deletar(String id) {
-        exigirAdministrador();
+        exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
 
@@ -188,6 +209,8 @@ public class PacienteService {
         paciente.setEmail(request.getEmail());
         paciente.setCpf(request.getCpf());
         paciente.setTelefone(request.getTelefone());
+        paciente.setEndereco(request.getEndereco());
+        paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
 
         paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
         paciente.setPlanoSaude(request.getPlanoSaude());
@@ -384,11 +407,7 @@ public class PacienteService {
             String email,
             String pacienteId) {
 
-        if (email == null || email.isBlank()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "O e-mail do paciente é obrigatório para criar a conta.");
-        }
+        if (email == null || email.isBlank()) return;
 
         pacienteRepository.findByEmailIgnoreCase(email)
                 .filter(paciente ->
@@ -445,6 +464,38 @@ public class PacienteService {
                     "Somente administradores ou secretarias podem "
                     + "cadastrar pacientes");
         }
+    }
+
+    private void exigirCadastroPaciente() {
+        Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
+        if (autenticacao == null || !autenticacao.isAuthenticated()
+                || autenticacao.getAuthorities().stream().noneMatch(a ->
+                        a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        || a.getAuthority().equals("ROLE_SECRETARIA")
+                        || a.getAuthority().equals("ROLE_PROFISSIONAL"))) {
+            throw new AccessDeniedException("Perfil sem permissão para cadastrar pacientes.");
+        }
+    }
+
+    private boolean ehProfissional() {
+        return obterAutenticacao().getAuthorities().stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
+    }
+
+    private String obterProfissionalId() {
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(obterAutenticacao().getName())
+                .orElseThrow(() ->
+                        new AccessDeniedException("Usuário não encontrado"));
+
+        if (usuario.getEntidadeId() == null
+                || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException(
+                    "Usuário sem vínculo com um profissional");
+        }
+
+        return usuario.getEntidadeId();
     }
 
     private void exigirAdministrador() {

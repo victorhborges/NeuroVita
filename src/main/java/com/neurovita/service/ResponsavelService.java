@@ -111,6 +111,8 @@ public class ResponsavelService {
         responsavel.setCpf(cpf);
         responsavel.setEmail(email);
         responsavel.setTelefone(normalizarTexto(request.getTelefone()));
+        responsavel.setDataNascimento(request.getDataNascimento());
+        responsavel.setEndereco(normalizarTexto(request.getEndereco()));
     }
 
     private void validarDadosUnicos(

@@ -34,8 +34,6 @@ export interface ConfigPerfil {
   acoes: { texto: string; icone: IconeAcao; rota?: string }[];
   /** Mostra o sino de notificações no topo. */
   sino: boolean;
-  /** 'demo' = números fixos do protótipo; 'agenda' = calculados a partir das consultas marcadas. */
-  fonte: 'demo' | 'agenda';
   banner: { variante: 'azul' | 'roxo'; titulo: string; texto?: string };
 }
 
@@ -62,7 +60,6 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
     layout: 'profissional',
     acoes: [],
     sino: true,
-    fonte: 'demo',
     banner: BANNER_PROFISSIONAL,
   },
   psiquiatra: {
@@ -77,7 +74,6 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
     layout: 'profissional',
     acoes: [],
     sino: true,
-    fonte: 'demo',
     banner: BANNER_PROFISSIONAL,
   },
   secretaria: {
@@ -94,7 +90,6 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
       { texto: 'Gerenciar paciente', icone: 'usuario-mais', rota: '/secretaria/pacientes' },
     ],
     sino: false,
-    fonte: 'agenda',
     banner: BANNER_GESTAO,
   },
   admin: {
@@ -111,7 +106,6 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
       { texto: 'Gerenciar secretária', icone: 'usuario-mais', rota: '/admin/secretarias' },
     ],
     sino: false,
-    fonte: 'agenda',
     banner: BANNER_GESTAO,
   },
 };

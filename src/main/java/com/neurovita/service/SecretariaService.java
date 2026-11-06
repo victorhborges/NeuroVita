@@ -48,7 +48,8 @@ public class SecretariaService {
         preencher(secretaria, request);
 
         Secretaria salva = secretariaRepository.save(secretaria);
-        String senhaProvisoria = gerarSenhaProvisoria();
+        String senhaProvisoria = request.getSenhaProvisoria() == null || request.getSenhaProvisoria().isBlank()
+                ? gerarSenhaProvisoria() : request.getSenhaProvisoria();
 
         try {
             Usuario usuario = new Usuario();
@@ -155,6 +156,13 @@ public class SecretariaService {
                 request.getTelefone() == null
                         ? null
                         : request.getTelefone().trim());
+        secretaria.setEmailContato(request.getEmailContato());
+        secretaria.setDataNascimento(request.getDataNascimento());
+        secretaria.setCpf(request.getCpf());
+        secretaria.setEndereco(request.getEndereco());
+        secretaria.setCargo(request.getCargo());
+        secretaria.setAdmissao(request.getAdmissao());
+        secretaria.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
     }
 
     private void validarRequest(SecretariaRequest request) {

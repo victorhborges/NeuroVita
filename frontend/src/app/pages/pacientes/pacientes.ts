@@ -78,18 +78,24 @@ export class Pacientes {
     this.erro.set('');
   }
 
-  protected salvarNovo(): void {
+  protected async salvarNovo(): Promise<void> {
     if (!this.nome().trim() || !this.nascimento()) {
       this.erro.set('Informe o nome e a data de nascimento.');
       return;
     }
-    const novo = this.clinica.adicionarPaciente({
+    try {
+    const novo = await this.clinica.adicionarPaciente({
       nome: this.nome().trim(), nascimento: this.nascimento(), telefone: this.telefone().trim() || '—',
-      email: this.email().trim() || '—', endereco: this.endereco().trim() || '—',
+      email: this.email().trim(), endereco: this.endereco().trim(),
     });
     this.novoAberto.set(false);
     this.busca.set('');
     this.aviso.mostrar('Paciente cadastrado com sucesso.');
     this.router.navigate([this.raiz(), 'pacientes', novo.id]);
+    } catch (erro) {
+      console.error('Falha ao cadastrar paciente:', erro);
+      this.erro.set('Não foi possível cadastrar o paciente.');
+      this.aviso.mostrar('Não foi possível cadastrar o paciente.');
+    }
   }
 }

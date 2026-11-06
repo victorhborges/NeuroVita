@@ -17,6 +17,8 @@ public class Paciente {
     private String email;
     private String cpf;
     private String telefone;
+    private String endereco;
+    private Boolean ativo = true;
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
@@ -73,6 +75,11 @@ public class Paciente {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public String getEndereco() { return endereco; }
+    public void setEndereco(String endereco) { this.endereco = endereco; }
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 
     public Boolean getPossuiPlanoSaude() {
         return possuiPlanoSaude;

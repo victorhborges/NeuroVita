@@ -24,7 +24,7 @@ interface UsuarioSessao {
 }
 
 export type ResultadoLogin =
-  | { ok: true; rota: string }
+  | { ok: true; rota: string; primeiroAcesso: boolean }
   | { ok: false; motivo: 'perfil' | 'paciente' };
 
 @Injectable({
@@ -90,8 +90,19 @@ export class Auth {
         return {
           ok: true,
           rota: CONFIG_PERFIS[perfilFrontend].rota,
+          primeiroAcesso: this.ehPrimeiroAcesso(resposta.token),
         } as const;
       }),
+    );
+  }
+
+  alterarSenhaPrimeiroAcesso(
+    novaSenha: string,
+    confirmarSenha: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      '/api/auth/primeiro-acesso/alterar-senha',
+      { novaSenha, confirmarSenha },
     );
   }
 
@@ -150,5 +161,17 @@ export class Auth {
       .replace(/[\u0300-\u036f]/g, '')
       .trim()
       .toUpperCase();
+  }
+
+  private ehPrimeiroAcesso(token: string): boolean {
+    try {
+      const payload = token.split('.')[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const json = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+
+      return JSON.parse(json).primeiroAcesso === true;
+    } catch {
+      return false;
+    }
   }
 }

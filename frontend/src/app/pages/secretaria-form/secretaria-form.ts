@@ -66,7 +66,7 @@ export class SecretariaForm {
     if (!f.emailAcesso.trim()) e.emailAcesso = 'Informe o e-mail de acesso.';
     else if (!emailValido(f.emailAcesso)) e.emailAcesso = 'E-mail inválido.';
     else if (this.clinica.emailDeAcessoEmUso(f.emailAcesso, this.id())) e.emailAcesso = 'Esse e-mail de acesso já está em uso.';
-    if ((!this.edicao() || f.senha) && f.senha.length < 6) e.senha = 'A senha temporária precisa ter 6 caracteres ou mais.';
+    if ((!this.edicao() || f.senha) && f.senha.length < 8) e.senha = 'A senha temporária precisa ter 8 caracteres ou mais.';
     return e;
   });
 
@@ -111,20 +111,26 @@ export class SecretariaForm {
     this.confirmando.set(true);
   }
 
-  protected confirmar(): void {
+  protected async confirmar(): Promise<void> {
     const f = this.f();
-    const secretaria = this.clinica.salvarSecretaria(
+    try {
+    const secretaria = await this.clinica.salvarSecretaria(
       {
         nome: f.nome.trim(), nascimento: f.nascimento, telefone: f.telefone, email: f.email.trim(), cpf: f.cpf,
-        endereco: f.endereco.trim() || '—', cargo: f.cargo.trim(), admissao: f.admissao, ativo: f.ativo, emailAcesso: f.emailAcesso.trim(),
+        endereco: f.endereco.trim(), cargo: f.cargo.trim(), admissao: f.admissao, ativo: f.ativo, emailAcesso: f.emailAcesso.trim(), senhaProvisoria: f.senha,
       },
       this.id(),
     );
     // TODO (back-end): gravar a senha temporária com segurança e enviar o e-mail de boas-vindas (f.boasVindas).
     this.confirmando.set(false);
     if (this.edicao()) this.aviso.mostrar(`Dados de ${secretaria.nome} atualizados.`);
-    else this.aviso.mostrar(`Secretária cadastrada. Senha temporária: ${f.senha}`, 9000);
+    else this.aviso.mostrar(`Secretária cadastrada. Senha temporária: ${secretaria.senhaProvisoria ?? ''}`, 9000);
     this.router.navigateByUrl(this.voltar());
+    } catch (erro) {
+      console.error('Falha ao salvar secretária:', erro);
+      this.confirmando.set(false);
+      this.aviso.mostrar('Não foi possível salvar a secretária. Verifique os dados e tente novamente.');
+    }
   }
 
   protected cancelar(): void {

@@ -34,6 +34,8 @@ public class PacienteRequest {
         message = "Informe um telefone válido."
     )
     private String telefone;
+    private String endereco;
+    private Boolean ativo;
 
     @Valid
     private List<VinculoResponsavelRequest> responsaveis = new ArrayList<>();
@@ -85,6 +87,11 @@ public class PacienteRequest {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public String getEndereco() { return endereco; }
+    public void setEndereco(String endereco) { this.endereco = endereco; }
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 
     public List<VinculoResponsavelRequest> getResponsaveis() {
         return responsaveis;

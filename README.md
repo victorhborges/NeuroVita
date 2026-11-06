@@ -6,7 +6,7 @@ O projeto possui uma arquitetura integrada, composta por frontend Angular, backe
 
 O backend disponibiliza uma API REST para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico. O frontend Angular é compilado e servido pela própria aplicação Spring Boot.
 
-> 🚧 **Status:** A integração frontend e backend está implementada localmente. A aplicação integrada foi compilada e executada localmente, com conexão ao MongoDB Atlas. O login real com JWT foi verificado pelo frontend, incluindo armazenamento da sessão, exibição do nome do usuário autenticado e logout. O interceptor JWT e a proteção de navegação por perfil estão implementados. A nova arquitetura integrada ainda não foi publicada no Render. A validação funcional completa permanece sob responsabilidade da equipe designada para os testes.
+> 🚧 **Status local:** fluxos de autenticação, cadastros, consultas/agenda, prontuário e recuperação de senha estão conectados à API. Os testes Maven disponíveis passaram (14 testes) e o build Angular concluiu com aviso de bundle acima do orçamento configurado. A recuperação por e-mail exige configuração SMTP. A versão não foi publicada.
 
 ---
 
@@ -53,6 +53,8 @@ O projeto possui os seguintes módulos e recursos:
 - ✅ Validação de dados de entrada
 - 🔄 Status, remarcação e cancelamento de consultas
 - 🖥️ Frontend Angular integrado à aplicação Spring Boot
+- 📄 Documentos clínicos e anexos persistidos na API
+- ✉️ Recuperação de senha por código temporário enviado por e-mail
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -808,6 +810,11 @@ As configurações sensíveis são fornecidas por variáveis de ambiente, inclui
 - `MONGODB_URI`
 - `JWT_SECRET`
 - `PORT`
+- `SMTP_ENABLED` (padrão `false`)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`
+- `SMTP_AUTH`, `SMTP_STARTTLS`
+
+Para habilitar recuperação de senha, configure o SMTP do provedor e defina `SMTP_ENABLED=true`. O código de seis dígitos expira em 10 minutos; o token emitido após a verificação também expira em 10 minutos e é de uso único. Sem SMTP habilitado, a API retorna indisponibilidade e não simula o envio.
 
 O arquivo `.env` é utilizado somente no ambiente local e não deve ser versionado.
 
@@ -1255,6 +1262,7 @@ A integração atual incorpora o frontend Angular à aplicação Java, mantendo 
 | JWT                                          | 🟢 Utilizado na autenticação; interceptor implementado no frontend; revisão das permissões pendente                                     |
 | BCrypt                                       | 🟢 Utilizado no fluxo de autenticação                                                                                                   |
 | Troca de senha no primeiro acesso            | 🟡 Implementada; validação funcional pendente                                                                                           |
+| Recuperação de senha por e-mail               | 🟡 Implementada; requer configuração SMTP no ambiente                                                                                    |
 | Spring Security                              | 🟡 Configurado; revisão das permissões por endpoint em andamento                                                                        |
 | Autorização por perfil para todos os módulos | 🟡 Em revisão e validação                                                                                                               |
 | Proteção por vínculo profissional-paciente   | 🟡 Regras existentes precisam de validação funcional completa                                                                           |

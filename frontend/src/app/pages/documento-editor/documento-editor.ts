@@ -76,6 +76,7 @@ export class DocumentoEditor {
   });
 
   constructor() {
+    effect(() => this.clinica.carregarDocumentos(this.id()));
     // Ao abrir um documento existente, copia os dados dele para o formulário (uma vez).
     effect(() => {
       const d = this.doc();
@@ -113,7 +114,7 @@ export class DocumentoEditor {
     this.confirmando.set(true);
   }
 
-  protected confirmar(): void {
+  protected async confirmar(): Promise<void> {
     const existente = this.doc();
     const cfg = this.cfg();
     const dataBR = formatarData(this.dataSessao());
@@ -121,7 +122,7 @@ export class DocumentoEditor {
       existente?.titulo ??
       (cfg.id === 'evolucoes' ? `Evolução ${dataBR}` : primeiraLinha(this.conteudo()) || `${cfg.singular} ${dataBR}`);
 
-    const salvo = this.clinica.salvarDocumento({
+    const salvo = await this.clinica.salvarDocumento({
       id: existente?.id, pacienteId: this.id(), secao: cfg.id, titulo, dataSessao: this.dataSessao(),
       tipoAtendimento: this.tipo(), conteudo: this.conteudo(), anexos: this.anexos(), arquivo: existente?.arquivo,
     });

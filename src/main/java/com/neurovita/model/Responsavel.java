@@ -1,5 +1,6 @@
 package com.neurovita.model;
 
+import java.time.LocalDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,6 +14,8 @@ public class Responsavel {
     private String cpf;
     private String email;
     private String telefone;
+    private LocalDate dataNascimento;
+    private String endereco;
 
     public Responsavel() {
     }
@@ -56,4 +59,9 @@ public class Responsavel {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
+    public String getEndereco() { return endereco; }
+    public void setEndereco(String endereco) { this.endereco = endereco; }
 }

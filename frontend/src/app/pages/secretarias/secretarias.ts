@@ -40,11 +40,16 @@ export class Secretarias {
       .map((s) => ({ s, idade: idadeDe(s.nascimento), nascimento: formatarData(s.nascimento) }));
   });
 
-  protected confirmarExclusao(): void {
+  protected async confirmarExclusao(): Promise<void> {
     const s = this.excluindo();
     if (!s) return;
-    this.clinica.removerSecretaria(s.id);
+    try {
+    await this.clinica.removerSecretaria(s.id);
     this.excluindo.set(null);
     this.aviso.mostrar('Secretária excluída com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao excluir secretária:', erro);
+      this.aviso.mostrar('Não foi possível excluir a secretária.');
+    }
   }
 }

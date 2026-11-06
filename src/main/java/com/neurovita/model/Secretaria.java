@@ -1,6 +1,7 @@
 
 package com.neurovita.model;
 
+import java.time.LocalDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,6 +14,13 @@ public class Secretaria {
     private String nome;
     private String email;
     private String telefone;
+    private String emailContato;
+    private LocalDate dataNascimento;
+    private String cpf;
+    private String endereco;
+    private String cargo;
+    private LocalDate admissao;
+    private Boolean ativo;
 
     public Secretaria() {
     }
@@ -48,4 +56,19 @@ public class Secretaria {
     public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
+
+    public String getEmailContato() { return emailContato; }
+    public void setEmailContato(String emailContato) { this.emailContato = emailContato; }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
+    public String getCpf() { return cpf; }
+    public void setCpf(String cpf) { this.cpf = cpf; }
+    public String getEndereco() { return endereco; }
+    public void setEndereco(String endereco) { this.endereco = endereco; }
+    public String getCargo() { return cargo; }
+    public void setCargo(String cargo) { this.cargo = cargo; }
+    public LocalDate getAdmissao() { return admissao; }
+    public void setAdmissao(LocalDate admissao) { this.admissao = admissao; }
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 }

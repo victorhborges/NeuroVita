@@ -67,19 +67,29 @@ export class Profissionais {
     else this.excluindo.set(p);
   }
 
-  protected confirmarExclusao(): void {
+  protected async confirmarExclusao(): Promise<void> {
     const p = this.excluindo();
     if (!p) return;
-    this.clinica.removerProfissional(p.id);
-    this.excluindo.set(null);
-    this.aviso.mostrar('Profissional excluído com sucesso.');
+    try {
+      await this.clinica.removerProfissional(p.id);
+      this.excluindo.set(null);
+      this.aviso.mostrar('Profissional excluído com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao excluir profissional:', erro);
+      this.aviso.mostrar('Não foi possível excluir o profissional.');
+    }
   }
 
-  protected inativarBloqueado(): void {
+  protected async inativarBloqueado(): Promise<void> {
     const b = this.bloqueado();
     if (b?.prof.ativo) {
-      this.clinica.alterarAtivoProfissional(b.prof.id, false);
-      this.aviso.mostrar(`${b.prof.nome} foi inativado.`);
+      try {
+        await this.clinica.alterarAtivoProfissional(b.prof.id, false);
+        this.aviso.mostrar(`${b.prof.nome} foi inativado.`);
+      } catch (erro) {
+        console.error('Falha ao inativar profissional:', erro);
+        this.aviso.mostrar('Não foi possível inativar o profissional.');
+      }
     }
     this.bloqueado.set(null);
   }

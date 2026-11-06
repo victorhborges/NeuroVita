@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -101,8 +102,13 @@ public class ConsultaService {
         validarDisponibilidadeEConflitos(request, id);
 
         LocalDateTime dataHoraAnterior = consulta.getDataHora();
+
         boolean dataHoraAlterada = dataHoraAnterior != null
                 && !dataHoraAnterior.equals(request.getDataHora());
+
+        boolean profissionalAlterado = !Objects.equals(
+                consulta.getProfissionalId(),
+                request.getProfissionalId());
 
         preencherConsulta(consulta, request);
 
@@ -110,7 +116,7 @@ public class ConsultaService {
             consulta.setStatus(StatusConsulta.PENDENTE);
         }
 
-        if (dataHoraAlterada) {
+        if (dataHoraAlterada || profissionalAlterado) {
             consulta.setStatus(StatusConsulta.REMARCADA);
         }
 
@@ -118,29 +124,29 @@ public class ConsultaService {
     }
 
     public ConsultaResponse confirmar(String id) {
-    Consulta consulta = buscarConsulta(id);
-    validarAcessoConsulta(consulta);
+        Consulta consulta = buscarConsulta(id);
+        validarAcessoConsulta(consulta);
 
-    if (consulta.getStatus() == StatusConsulta.CANCELADA) {
-        throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Consultas canceladas não podem ser confirmadas.");
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Consultas canceladas não podem ser confirmadas.");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.REMARCADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Uma consulta remarcada não pode ser confirmada por esta operação.");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.PENDENTE) {
+            consulta.setStatus(StatusConsulta.CONFIRMADA);
+            consulta = consultaRepository.save(consulta);
+        }
+
+        return new ConsultaResponse(consulta);
     }
 
-    if (consulta.getStatus() == StatusConsulta.REMARCADA) {
-        throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Uma consulta remarcada não pode ser confirmada por esta operação.");
-    }
-
-    if (consulta.getStatus() == StatusConsulta.PENDENTE) {
-        consulta.setStatus(StatusConsulta.CONFIRMADA);
-        consulta = consultaRepository.save(consulta);
-    }
-
-    return new ConsultaResponse(consulta);
-    }
-    
     public ConsultaResponse cancelar(String id) {
         Consulta consulta = buscarConsulta(id);
         validarAcessoConsulta(consulta);

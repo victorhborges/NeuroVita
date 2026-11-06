@@ -128,11 +128,12 @@ export class PacienteForm {
     this.confirmando.set(true);
   }
 
-  protected confirmar(): void {
+  protected async confirmar(): Promise<void> {
     const f = this.f();
-    const paciente = this.clinica.salvarPaciente(
+    try {
+    const paciente = await this.clinica.salvarPaciente(
       {
-        nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim() || '—', cpf: f.cpf, telefone: f.telefone,
+        nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
         responsavel: { nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf },
         plano: { possui: f.possuiPlano, nome: f.possuiPlano ? f.plano.trim() : '', carteirinha: f.possuiPlano ? f.carteirinha.trim() : '', validade: f.possuiPlano ? f.validade : '' },
         ativo: f.ativo,
@@ -142,6 +143,10 @@ export class PacienteForm {
     this.confirmando.set(false);
     this.aviso.mostrar(this.edicao() ? `Dados de ${paciente.nome} atualizados.` : 'Paciente cadastrado com sucesso.');
     this.router.navigateByUrl(this.voltar());
+    } catch (erro) {
+      console.error('Falha ao salvar paciente:', erro);
+      this.aviso.mostrar('Não foi possível salvar o paciente. Verifique os dados e tente novamente.');
+    }
   }
 
   protected cancelar(): void {

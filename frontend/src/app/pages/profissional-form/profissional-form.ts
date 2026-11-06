@@ -92,8 +92,8 @@ export class ProfissionalForm {
     if (!f.emailAcesso.trim()) e.emailAcesso = 'Informe o e-mail de acesso.';
     else if (!emailValido(f.emailAcesso)) e.emailAcesso = 'E-mail inválido.';
     else if (this.clinica.emailDeAcessoEmUso(f.emailAcesso, this.id())) e.emailAcesso = 'Esse e-mail de acesso já está em uso.';
-    if (!this.edicao() && f.senha.length < 6) e.senha = 'A senha temporária precisa ter 6 caracteres ou mais.';
-    else if (this.edicao() && f.senha && f.senha.length < 6) e.senha = 'A senha temporária precisa ter 6 caracteres ou mais.';
+    if (!this.edicao() && f.senha.length < 8) e.senha = 'A senha temporária precisa ter 8 caracteres ou mais.';
+    else if (this.edicao() && f.senha && f.senha.length < 8) e.senha = 'A senha temporária precisa ter 8 caracteres ou mais.';
     return e;
   });
 
@@ -189,22 +189,28 @@ export class ProfissionalForm {
     this.confirmando.set(true);
   }
 
-  protected confirmar(): void {
+  protected async confirmar(): Promise<void> {
     const f = this.f();
-    const profissional = this.clinica.salvarProfissional(
+    try {
+    const profissional = await this.clinica.salvarProfissional(
       {
         nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
         tipo: f.tipo === 'psiquiatra' ? 'psiquiatra' : 'psicologo', registro: f.registro.trim(), anoConclusao: Number(f.anoConclusao),
         disponibilidade: { dias: f.dias, faixas: this.faixas(), online: f.online, presencial: f.presencial },
-        ativo: f.ativo, emailAcesso: f.emailAcesso.trim(),
+        ativo: f.ativo, emailAcesso: f.emailAcesso.trim(), senhaProvisoria: f.senha,
       },
       this.id(),
     );
     // TODO (back-end): gravar a senha temporária com segurança e enviar o e-mail de boas-vindas (f.boasVindas).
     this.confirmando.set(false);
     if (this.edicao()) this.aviso.mostrar(`Dados de ${profissional.nome} atualizados.`);
-    else this.aviso.mostrar(`Profissional cadastrado. Senha temporária: ${f.senha}`, 9000);
+    else this.aviso.mostrar(`Profissional cadastrado. Senha temporária: ${profissional.senhaProvisoria ?? ''}`, 9000);
     this.router.navigateByUrl(this.voltar());
+    } catch (erro) {
+      console.error('Falha ao salvar profissional:', erro);
+      this.confirmando.set(false);
+      this.aviso.mostrar('Não foi possível salvar o profissional. Verifique os dados e tente novamente.');
+    }
   }
 
   protected cancelar(): void {

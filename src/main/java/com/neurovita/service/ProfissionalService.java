@@ -59,7 +59,8 @@ public class ProfissionalService {
         preencherProfissional(profissional, request);
 
         Profissional salvo = profissionalRepository.save(profissional);
-        String senhaProvisoria = gerarSenhaProvisoria();
+        String senhaProvisoria = request.getSenhaProvisoria() == null || request.getSenhaProvisoria().isBlank()
+                ? gerarSenhaProvisoria() : request.getSenhaProvisoria();
 
         try {
             Usuario usuario = new Usuario();
@@ -223,6 +224,8 @@ public class ProfissionalService {
 
         profissional.setNome(request.getNome());
         profissional.setEmail(request.getEmail());
+        profissional.setEmailContato(request.getEmailContato());
+        profissional.setDataNascimento(request.getDataNascimento());
         profissional.setCpf(request.getCpf());
         profissional.setTelefone(request.getTelefone());
 

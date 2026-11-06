@@ -55,11 +55,16 @@ export class GestaoPacientes {
     ];
   });
 
-  protected confirmarExclusao(): void {
+  protected async confirmarExclusao(): Promise<void> {
     const paciente = this.excluindo();
     if (!paciente) return;
-    this.clinica.removerPaciente(paciente.id);
+    try {
+    await this.clinica.removerPaciente(paciente.id);
     this.excluindo.set(null);
     this.aviso.mostrar('Paciente excluído com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao excluir paciente:', erro);
+      this.aviso.mostrar('Não foi possível excluir o paciente.');
+    }
   }
 }
