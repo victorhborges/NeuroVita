@@ -35,6 +35,8 @@ import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ResponsavelRepository;
 import com.neurovita.repository.UsuarioRepository;
 import com.neurovita.repository.VinculoResponsavelRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
+
 
 @ExtendWith(MockitoExtension.class)
 class PacienteServiceTest {

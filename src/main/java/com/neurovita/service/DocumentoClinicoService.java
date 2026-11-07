@@ -43,10 +43,19 @@ public class DocumentoClinicoService {
     }
 
     public List<DocumentoClinicoResponse> porPaciente(String pacienteId, Authentication auth) {
+        return porPacienteESecao(pacienteId, null, auth);
+    }
+
+    public List<DocumentoClinicoResponse> porPacienteESecao(String pacienteId, String secao, Authentication auth) {
         exigirProfissionalOuAdmin(auth);
         if (!pacientes.existsById(pacienteId)) throw new ResourceNotFoundException("Paciente não encontrado.");
         validarAcessoPaciente(pacienteId, auth);
-        List<DocumentoClinico> itens = repository.findByPacienteIdOrderByDataSessaoDesc(pacienteId);
+        List<DocumentoClinico> itens;
+        if (secao != null && !secao.isBlank()) {
+            itens = repository.findByPacienteIdAndSecaoIgnoreCaseOrderByDataSessaoDesc(pacienteId, secao.trim());
+        } else {
+            itens = repository.findByPacienteIdOrderByDataSessaoDesc(pacienteId);
+        }
         return itens.stream().map(DocumentoClinicoResponse::new).toList();
     }
 

@@ -16,8 +16,11 @@ public class DocumentoClinicoController {
     public DocumentoClinicoController(DocumentoClinicoService service) { this.service = service; }
 
     @GetMapping("/paciente/{pacienteId}")
-    public List<DocumentoClinicoResponse> porPaciente(@PathVariable String pacienteId, Authentication auth) {
-        return service.porPaciente(pacienteId, auth);
+    public List<DocumentoClinicoResponse> porPaciente(
+            @PathVariable String pacienteId,
+            @RequestParam(required = false) String secao,
+            Authentication auth) {
+        return service.porPacienteESecao(pacienteId, secao, auth);
     }
 
     @PostMapping

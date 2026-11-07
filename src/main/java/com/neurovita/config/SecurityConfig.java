@@ -240,6 +240,11 @@ public class SecurityConfig {
                         .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
                         // Vínculos profissionais ativos com pacientes
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/vinculos-profissionais-pacientes/**"
+                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+
                         .requestMatchers("/api/vinculos-profissionais-pacientes/**")
                         .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 

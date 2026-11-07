@@ -2,6 +2,7 @@
 package com.neurovita.service;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -13,11 +14,11 @@ import com.neurovita.dto.DiagnosticoResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Diagnostico;
 import com.neurovita.model.Usuario;
-import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DiagnosticoRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class DiagnosticoService {
@@ -26,24 +27,26 @@ public class DiagnosticoService {
     private final PacienteRepository pacienteRepository;
     private final ProfissionalRepository profissionalRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ConsultaRepository consultaRepository;
+    private final VinculoProfissionalPacienteRepository vinculoRepository;
 
     public DiagnosticoService(
             DiagnosticoRepository diagnosticoRepository,
             PacienteRepository pacienteRepository,
             ProfissionalRepository profissionalRepository,
             UsuarioRepository usuarioRepository,
-            ConsultaRepository consultaRepository) {
+            VinculoProfissionalPacienteRepository vinculoRepository) {
 
         this.diagnosticoRepository = diagnosticoRepository;
         this.pacienteRepository = pacienteRepository;
         this.profissionalRepository = profissionalRepository;
         this.usuarioRepository = usuarioRepository;
-        this.consultaRepository = consultaRepository;
+        this.vinculoRepository = vinculoRepository;
     }
 
     public DiagnosticoResponse salvar(DiagnosticoRequest request) {
-        validarVinculos(request);
+        validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
+        validarProfissionalSolicitante(request.getProfissionalId());
+        validarAcessoPaciente(request.getPacienteId());
 
         Diagnostico diagnostico = new Diagnostico();
         preencherDiagnostico(diagnostico, request);
@@ -71,7 +74,7 @@ public class DiagnosticoService {
 
     public DiagnosticoResponse buscarPorId(String id) {
         Diagnostico diagnostico = buscarDiagnostico(id);
-        validarAcesso(diagnostico);
+        validarAcessoLeitura(diagnostico);
 
         return new DiagnosticoResponse(diagnostico);
     }
@@ -80,8 +83,15 @@ public class DiagnosticoService {
             String id, DiagnosticoRequest request) {
 
         Diagnostico diagnostico = buscarDiagnostico(id);
-        validarAcesso(diagnostico);
-        validarVinculos(request);
+        validarAcessoEdicaoExclusao(diagnostico);
+
+        if (!Objects.equals(diagnostico.getPacienteId(), request.getPacienteId())) {
+            throw new AccessDeniedException("O paciente de um diagnóstico não pode ser alterado.");
+        }
+
+        validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
+        validarProfissionalSolicitante(request.getProfissionalId());
+        validarAcessoPaciente(request.getPacienteId());
 
         preencherDiagnostico(diagnostico, request);
 
@@ -91,7 +101,7 @@ public class DiagnosticoService {
 
     public void deletar(String id) {
         Diagnostico diagnostico = buscarDiagnostico(id);
-        validarAcesso(diagnostico);
+        validarAcessoEdicaoExclusao(diagnostico);
 
         diagnosticoRepository.delete(diagnostico);
     }
@@ -101,48 +111,24 @@ public class DiagnosticoService {
             throw new ResourceNotFoundException("Paciente não encontrado");
         }
 
-        if (ehProfissional()) {
-            String profissionalId = obterProfissionalId();
-
-            return diagnosticoRepository.findByPacienteId(pacienteId).stream()
-                    .filter(d -> profissionalId.equals(d.getProfissionalId()))
-                    .map(DiagnosticoResponse::new)
-                    .toList();
-        }
-
-        exigirAdministrador();
+        validarAcessoPaciente(pacienteId);
 
         return diagnosticoRepository.findByPacienteId(pacienteId).stream()
                 .map(DiagnosticoResponse::new)
                 .toList();
     }
 
-    private void validarVinculos(DiagnosticoRequest request) {
-        if (request.getPacienteId() == null
-                || request.getPacienteId().isBlank()
-                || !pacienteRepository.existsById(request.getPacienteId())) {
+    private void validarDadosEntidade(String pacienteId, String profissionalId) {
+        if (pacienteId == null
+                || pacienteId.isBlank()
+                || !pacienteRepository.existsById(pacienteId)) {
             throw new ResourceNotFoundException("Paciente não encontrado");
         }
 
-        if (request.getProfissionalId() == null
-                || request.getProfissionalId().isBlank()
-                || !profissionalRepository.existsById(request.getProfissionalId())) {
+        if (profissionalId == null
+                || profissionalId.isBlank()
+                || !profissionalRepository.existsById(profissionalId)) {
             throw new ResourceNotFoundException("Profissional não encontrado");
-        }
-
-        validarProfissionalSolicitante(request.getProfissionalId());
-
-        boolean existeVinculo = consultaRepository
-                .findByPacienteIdAndProfissionalId(
-                        request.getPacienteId(),
-                        request.getProfissionalId())
-                .stream()
-                .findAny()
-                .isPresent();
-
-        if (!existeVinculo) {
-            throw new AccessDeniedException(
-                    "É necessário existir uma consulta entre o paciente e o profissional");
         }
     }
 
@@ -161,17 +147,43 @@ public class DiagnosticoService {
                                 "Diagnóstico não encontrado"));
     }
 
-    private void validarAcesso(Diagnostico diagnostico) {
+    private void validarAcessoLeitura(Diagnostico diagnostico) {
+        validarAcessoPaciente(diagnostico.getPacienteId());
+    }
+
+    private void validarAcessoEdicaoExclusao(Diagnostico diagnostico) {
+        if (ehAdministrador()) {
+            return;
+        }
+
         if (ehProfissional()) {
-            if (!obterProfissionalId().equals(
-                    diagnostico.getProfissionalId())) {
+            validarAcessoPaciente(diagnostico.getPacienteId());
+            if (!obterProfissionalId().equals(diagnostico.getProfissionalId())) {
                 throw new AccessDeniedException(
-                        "Acesso permitido somente aos próprios diagnósticos");
+                        "Apenas o profissional autor do diagnóstico pode editá-lo ou excluí-lo.");
             }
             return;
         }
 
-        exigirAdministrador();
+        throw new AccessDeniedException("Perfil sem permissão para gerenciar diagnósticos");
+    }
+
+    private void validarAcessoPaciente(String pacienteId) {
+        if (ehAdministrador()) {
+            return;
+        }
+
+        if (ehProfissional()) {
+            String profissionalId = obterProfissionalId();
+            if (vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                    pacienteId, profissionalId).isEmpty()) {
+                throw new AccessDeniedException(
+                        "Acesso aos registros clínicos do paciente requer vínculo profissional ativo.");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("Perfil sem permissão para acessar registros clínicos");
     }
 
     private void validarProfissionalSolicitante(String profissionalId) {
@@ -188,12 +200,14 @@ public class DiagnosticoService {
                         a.getAuthority().equals("ROLE_PROFISSIONAL"));
     }
 
-    private void exigirAdministrador() {
-        boolean autorizado = obterAutenticacao().getAuthorities().stream()
+    private boolean ehAdministrador() {
+        return obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+    }
 
-        if (!autorizado) {
+    private void exigirAdministrador() {
+        if (!ehAdministrador()) {
             throw new AccessDeniedException(
                     "Perfil sem permissão para gerenciar diagnósticos");
         }
