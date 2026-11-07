@@ -34,6 +34,8 @@ import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ResponsavelRepository;
 import com.neurovita.repository.UsuarioRepository;
 import com.neurovita.repository.VinculoResponsavelRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
+import com.neurovita.model.VinculoProfissionalPaciente;
 
 @Service
 public class PacienteService {
@@ -45,6 +47,7 @@ public class PacienteService {
         private final UsuarioRepository usuarioRepository;
         private final ResponsavelRepository responsavelRepository;
         private final VinculoResponsavelRepository vinculoRepository;
+        private final VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
         private final PasswordEncoder passwordEncoder;
 
         private final SecureRandom secureRandom = new SecureRandom();
@@ -55,6 +58,7 @@ public class PacienteService {
                 UsuarioRepository usuarioRepository,
                 ResponsavelRepository responsavelRepository,
                 VinculoResponsavelRepository vinculoRepository,
+                VinculoProfissionalPacienteRepository vinculoProfissionalRepository,
                 PasswordEncoder passwordEncoder) {
 
         this.pacienteRepository = pacienteRepository;
@@ -62,6 +66,7 @@ public class PacienteService {
         this.usuarioRepository = usuarioRepository;
         this.responsavelRepository = responsavelRepository;
         this.vinculoRepository = vinculoRepository;
+        this.vinculoProfissionalRepository = vinculoProfissionalRepository;
         this.passwordEncoder = passwordEncoder;
         }
 
@@ -117,13 +122,22 @@ public class PacienteService {
 
         public List<PacienteResponse> listarTodos() {
         if (ehProfissional()) {
-                List<String> idsPacientes = consultaRepository
-                        .findByProfissionalId(obterProfissionalId())
+                String profissionalId = obterProfissionalId();
+                Set<String> idsPacientes = new HashSet<>();
+
+                vinculoProfissionalRepository
+                        .findByProfissionalIdAndEncerradoEmIsNull(profissionalId)
+                        .stream()
+                        .map(VinculoProfissionalPaciente::getPacienteId)
+                        .filter(java.util.Objects::nonNull)
+                        .forEach(idsPacientes::add);
+
+                consultaRepository
+                        .findByProfissionalId(profissionalId)
                         .stream()
                         .map(com.neurovita.model.Consulta::getPacienteId)
                         .filter(java.util.Objects::nonNull)
-                        .distinct()
-                        .toList();
+                        .forEach(idsPacientes::add);
 
                 return pacienteRepository.findAllById(idsPacientes)
                         .stream()
@@ -404,7 +418,12 @@ public class PacienteService {
         List<VinculoResponsavel> vinculos =
                 vinculoRepository.findByPacienteId(paciente.getId());
 
-        return new PacienteResponse(paciente, vinculos);
+        List<VinculoProfissionalPaciente> vinculosProfissionais =
+                vinculoProfissionalRepository != null
+                        ? vinculoProfissionalRepository.findByPacienteIdAndEncerradoEmIsNullOrderByIniciadoEmDesc(paciente.getId())
+                        : java.util.Collections.emptyList();
+
+        return new PacienteResponse(paciente, vinculos, vinculosProfissionais);
     }
 
     private void limparCadastroIncompleto(

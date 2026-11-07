@@ -60,7 +60,7 @@ public class VinculoProfissionalPacienteService {
 
     public List<VinculoProfissionalPacienteResponse> listarPorPaciente(
             String pacienteId, Authentication auth) {
-        exigirGestor(auth);
+        exigirGestorOuProfissionalVinculado(pacienteId, auth);
         if (!pacientes.existsById(pacienteId)) {
             throw new ResourceNotFoundException("Paciente nao encontrado.");
         }
@@ -87,5 +87,25 @@ public class VinculoProfissionalPacienteService {
             throw new AccessDeniedException(
                     "Somente administrador ou secretaria pode gerenciar vinculos profissionais.");
         }
+    }
+
+    private void exigirGestorOuProfissionalVinculado(String pacienteId, Authentication auth) {
+        if (auth == null) {
+            throw new AccessDeniedException("Usuario nao autenticado.");
+        }
+        boolean ehGestor = auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        || a.getAuthority().equals("ROLE_SECRETARIA"));
+        if (ehGestor) {
+            return;
+        }
+
+        boolean ehProfissional = auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_PROFISSIONAL"));
+        if (ehProfissional) {
+            return;
+        }
+
+        throw new AccessDeniedException("Perfil sem permissao para consultar vinculos de pacientes.");
     }
 }

@@ -20,4 +20,8 @@ public interface VinculoProfissionalPacienteRepository
     List<VinculoProfissionalPaciente>
             findByPacienteIdAndEncerradoEmIsNullOrderByIniciadoEmDesc(
                     String pacienteId);
+
+    List<VinculoProfissionalPaciente>
+            findByProfissionalIdAndEncerradoEmIsNull(
+                    String profissionalId);
 }

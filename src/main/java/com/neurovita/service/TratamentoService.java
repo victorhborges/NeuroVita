@@ -2,6 +2,7 @@
 package com.neurovita.service;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -13,11 +14,11 @@ import com.neurovita.dto.TratamentoResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Tratamento;
 import com.neurovita.model.Usuario;
-import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.TratamentoRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class TratamentoService {
@@ -26,24 +27,26 @@ public class TratamentoService {
     private final PacienteRepository pacienteRepository;
     private final ProfissionalRepository profissionalRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ConsultaRepository consultaRepository;
+    private final VinculoProfissionalPacienteRepository vinculoRepository;
 
     public TratamentoService(
             TratamentoRepository tratamentoRepository,
             PacienteRepository pacienteRepository,
             ProfissionalRepository profissionalRepository,
             UsuarioRepository usuarioRepository,
-            ConsultaRepository consultaRepository) {
+            VinculoProfissionalPacienteRepository vinculoRepository) {
 
         this.tratamentoRepository = tratamentoRepository;
         this.pacienteRepository = pacienteRepository;
         this.profissionalRepository = profissionalRepository;
         this.usuarioRepository = usuarioRepository;
-        this.consultaRepository = consultaRepository;
+        this.vinculoRepository = vinculoRepository;
     }
 
     public TratamentoResponse salvar(TratamentoRequest request) {
-        validarVinculos(request);
+        validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
+        validarProfissionalSolicitante(request.getProfissionalId());
+        validarAcessoPaciente(request.getPacienteId());
 
         Tratamento tratamento = new Tratamento();
         preencherTratamento(tratamento, request);
@@ -71,7 +74,7 @@ public class TratamentoService {
 
     public TratamentoResponse buscarPorId(String id) {
         Tratamento tratamento = buscarTratamento(id);
-        validarAcesso(tratamento);
+        validarAcessoLeitura(tratamento);
 
         return new TratamentoResponse(tratamento);
     }
@@ -80,12 +83,15 @@ public class TratamentoService {
             String id, TratamentoRequest request) {
 
         Tratamento tratamento = buscarTratamento(id);
+        validarAcessoEdicaoExclusao(tratamento);
 
-        // Confere o acesso ao registro antes de permitir a alteração.
-        validarAcesso(tratamento);
+        if (!Objects.equals(tratamento.getPacienteId(), request.getPacienteId())) {
+            throw new AccessDeniedException("O paciente de um tratamento não pode ser alterado.");
+        }
 
-        // Confere os vínculos dos novos dados.
-        validarVinculos(request);
+        validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
+        validarProfissionalSolicitante(request.getProfissionalId());
+        validarAcessoPaciente(request.getPacienteId());
 
         preencherTratamento(tratamento, request);
 
@@ -95,7 +101,7 @@ public class TratamentoService {
 
     public void deletar(String id) {
         Tratamento tratamento = buscarTratamento(id);
-        validarAcesso(tratamento);
+        validarAcessoEdicaoExclusao(tratamento);
 
         tratamentoRepository.delete(tratamento);
     }
@@ -106,52 +112,26 @@ public class TratamentoService {
                     "Paciente não encontrado");
         }
 
-        if (ehProfissional()) {
-            String profissionalId = obterProfissionalId();
-
-            return tratamentoRepository.findByPacienteId(pacienteId).stream()
-                    .filter(t -> profissionalId.equals(t.getProfissionalId()))
-                    .map(TratamentoResponse::new)
-                    .toList();
-        }
-
-        exigirAdministrador();
+        validarAcessoPaciente(pacienteId);
 
         return tratamentoRepository.findByPacienteId(pacienteId).stream()
                 .map(TratamentoResponse::new)
                 .toList();
     }
 
-    private void validarVinculos(TratamentoRequest request) {
-        if (request.getPacienteId() == null
-                || request.getPacienteId().isBlank()
-                || !pacienteRepository.existsById(request.getPacienteId())) {
+    private void validarDadosEntidade(String pacienteId, String profissionalId) {
+        if (pacienteId == null
+                || pacienteId.isBlank()
+                || !pacienteRepository.existsById(pacienteId)) {
             throw new ResourceNotFoundException(
                     "Paciente não encontrado");
         }
 
-        if (request.getProfissionalId() == null
-                || request.getProfissionalId().isBlank()
-                || !profissionalRepository.existsById(
-                        request.getProfissionalId())) {
+        if (profissionalId == null
+                || profissionalId.isBlank()
+                || !profissionalRepository.existsById(profissionalId)) {
             throw new ResourceNotFoundException(
                     "Profissional não encontrado");
-        }
-
-        validarProfissionalSolicitante(request.getProfissionalId());
-
-        boolean existeConsulta = consultaRepository
-                .findByPacienteIdAndProfissionalId(
-                        request.getPacienteId(),
-                        request.getProfissionalId())
-                .stream()
-                .findAny()
-                .isPresent();
-
-        if (!existeConsulta) {
-            throw new AccessDeniedException(
-                    "É necessário existir uma consulta entre o paciente "
-                    + "e o profissional para registrar o tratamento");
         }
     }
 
@@ -174,17 +154,43 @@ public class TratamentoService {
                                 "Tratamento não encontrado"));
     }
 
-    private void validarAcesso(Tratamento tratamento) {
+    private void validarAcessoLeitura(Tratamento tratamento) {
+        validarAcessoPaciente(tratamento.getPacienteId());
+    }
+
+    private void validarAcessoEdicaoExclusao(Tratamento tratamento) {
+        if (ehAdministrador()) {
+            return;
+        }
+
         if (ehProfissional()) {
-            if (!obterProfissionalId().equals(
-                    tratamento.getProfissionalId())) {
+            validarAcessoPaciente(tratamento.getPacienteId());
+            if (!obterProfissionalId().equals(tratamento.getProfissionalId())) {
                 throw new AccessDeniedException(
-                        "Acesso permitido somente aos próprios tratamentos");
+                        "Apenas o profissional autor do tratamento pode editá-lo ou excluí-lo.");
             }
             return;
         }
 
-        exigirAdministrador();
+        throw new AccessDeniedException("Perfil sem permissão para gerenciar tratamentos");
+    }
+
+    private void validarAcessoPaciente(String pacienteId) {
+        if (ehAdministrador()) {
+            return;
+        }
+
+        if (ehProfissional()) {
+            String profissionalId = obterProfissionalId();
+            if (vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                    pacienteId, profissionalId).isEmpty()) {
+                throw new AccessDeniedException(
+                        "Acesso aos registros clínicos do paciente requer vínculo profissional ativo.");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("Perfil sem permissão para acessar registros clínicos");
     }
 
     private void validarProfissionalSolicitante(String profissionalId) {
@@ -202,12 +208,14 @@ public class TratamentoService {
                         a.getAuthority().equals("ROLE_PROFISSIONAL"));
     }
 
-    private void exigirAdministrador() {
-        boolean autorizado = obterAutenticacao().getAuthorities().stream()
+    private boolean ehAdministrador() {
+        return obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+    }
 
-        if (!autorizado) {
+    private void exigirAdministrador() {
+        if (!ehAdministrador()) {
             throw new AccessDeniedException(
                     "Perfil sem permissão para gerenciar tratamentos");
         }

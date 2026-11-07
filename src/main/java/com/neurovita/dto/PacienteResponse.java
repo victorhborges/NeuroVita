@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.neurovita.model.Paciente;
 import com.neurovita.model.VinculoResponsavel;
+import com.neurovita.model.VinculoProfissionalPaciente;
 
 public class PacienteResponse {
 
@@ -18,6 +19,7 @@ public class PacienteResponse {
     private Boolean ativo;
 
     private List<VinculoResponsavelResponse> responsaveis;
+    private List<VinculoProfissionalPacienteResponse> profissionais;
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
@@ -27,6 +29,13 @@ public class PacienteResponse {
     public PacienteResponse(
             Paciente paciente,
             List<VinculoResponsavel> vinculos) {
+        this(paciente, vinculos, java.util.Collections.emptyList());
+    }
+
+    public PacienteResponse(
+            Paciente paciente,
+            List<VinculoResponsavel> vinculos,
+            List<VinculoProfissionalPaciente> vinculosProfissionais) {
 
         this.id = paciente.getId();
         this.nome = paciente.getNome();
@@ -37,9 +46,13 @@ public class PacienteResponse {
         this.endereco = paciente.getEndereco();
         this.ativo = paciente.getAtivo();
 
-        this.responsaveis = vinculos.stream()
+        this.responsaveis = vinculos != null ? vinculos.stream()
                 .map(VinculoResponsavelResponse::new)
-                .toList();
+                .toList() : java.util.Collections.emptyList();
+
+        this.profissionais = vinculosProfissionais != null ? vinculosProfissionais.stream()
+                .map(VinculoProfissionalPacienteResponse::new)
+                .toList() : java.util.Collections.emptyList();
 
         this.possuiPlanoSaude = paciente.getPossuiPlanoSaude();
         this.planoSaude = paciente.getPlanoSaude();
@@ -76,6 +89,10 @@ public class PacienteResponse {
 
     public List<VinculoResponsavelResponse> getResponsaveis() {
         return responsaveis;
+    }
+
+    public List<VinculoProfissionalPacienteResponse> getProfissionais() {
+        return profissionais;
     }
 
     public Boolean getPossuiPlanoSaude() {
