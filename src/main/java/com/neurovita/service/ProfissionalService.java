@@ -54,6 +54,7 @@ public class ProfissionalService {
     public CadastroProfissionalResponse salvar(ProfissionalRequest request) {
         exigirAdministradorOuSecretaria();
         validarEmailDisponivel(request.getEmail(), null);
+        validarModalidades(request);
 
         Profissional profissional = new Profissional();
         preencherProfissional(profissional, request);
@@ -115,35 +116,54 @@ public class ProfissionalService {
         exigirAdministrador();
 
         Profissional profissional = buscarProfissional(id);
+        boolean estadoAnterior = Boolean.TRUE.equals(profissional.getAtivo());
 
         validarEmailDisponivel(request.getEmail(), id);
+        validarModalidades(request);
         preencherProfissional(profissional, request);
 
-        Profissional atualizado = profissionalRepository.save(profissional);
+        Usuario usuario = usuarioRepository.findByEntidadeId(id)
+                .orElse(null);
 
-        usuarioRepository.findByEntidadeId(id)
-                .filter(this::ehProfissional)
-                .ifPresent(usuario -> {
-                    usuario.setNome(atualizado.getNome());
-                    usuario.setEmail(atualizado.getEmail());
-                    usuario.setAtivo(
-                            Boolean.TRUE.equals(atualizado.getAtivo()));
-                    usuarioRepository.save(usuario);
-                });
+        if (usuario == null) {
+            profissionalRepository.save(profissional);
+        } else {
+            boolean estadoContaAnterior = usuario.isAtivo();
+            boolean novoEstado = Boolean.TRUE.equals(profissional.getAtivo());
+            usuario.setNome(profissional.getNome());
+            usuario.setEmail(profissional.getEmail());
+            SincronizacaoAtivo.salvar(
+                    estadoAnterior,
+                    estadoContaAnterior,
+                    novoEstado,
+                    profissional::setAtivo,
+                    () -> profissionalRepository.save(profissional),
+                    usuario::setAtivo,
+                    () -> usuarioRepository.save(usuario));
+        }
 
-        return new ProfissionalResponse(atualizado);
+        return new ProfissionalResponse(profissional);
     }
 
     public void deletar(String id) {
         exigirAdministrador();
 
         Profissional profissional = buscarProfissional(id);
+        Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
+        if (usuario == null) {
+            profissional.setAtivo(false);
+            profissionalRepository.save(profissional);
+            return;
+        }
 
-        usuarioRepository.findByEntidadeId(id)
-                .filter(this::ehProfissional)
-                .ifPresent(usuarioRepository::delete);
-
-        profissionalRepository.delete(profissional);
+        SincronizacaoAtivo.salvar(
+                Boolean.TRUE.equals(profissional.getAtivo()),
+                usuario.isAtivo(),
+                false,
+                profissional::setAtivo,
+                () -> profissionalRepository.save(profissional),
+                usuario::setAtivo,
+                () -> usuarioRepository.save(usuario));
     }
 
     public ProfissionalResponse adicionarDisponibilidade(
@@ -235,7 +255,18 @@ public class ProfissionalService {
         profissional.setAnoConclusao(request.getAnoConclusao());
 
         profissional.setAtendeOnline(request.getAtendeOnline());
+        profissional.setAtendePresencial(request.getAtendePresencial() == null
+                || request.getAtendePresencial());
         profissional.setAtivo(request.getAtivo());
+    }
+
+    private void validarModalidades(ProfissionalRequest request) {
+        if (!Boolean.TRUE.equals(request.getAtendeOnline())
+                && Boolean.FALSE.equals(request.getAtendePresencial())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O profissional deve atender em pelo menos uma modalidade.");
+        }
     }
 
     private void validarEmailDisponivel(

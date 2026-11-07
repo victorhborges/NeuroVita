@@ -1,5 +1,7 @@
 package com.neurovita.dto;
 
+import java.time.LocalDateTime;
+
 import com.neurovita.model.Prontuario;
 
 public class ProntuarioResponse {
@@ -14,6 +16,8 @@ public class ProntuarioResponse {
     private String avaliacao;
     private String planoTratamento;
     private String prescricao;
+    private LocalDateTime criadoEm;
+    private LocalDateTime atualizadoEm;
 
     public ProntuarioResponse(Prontuario prontuario) {
 
@@ -27,6 +31,8 @@ public class ProntuarioResponse {
         this.avaliacao = prontuario.getAvaliacao();
         this.planoTratamento = prontuario.getPlanoTratamento();
         this.prescricao = prontuario.getPrescricao();
+        this.criadoEm = prontuario.getCriadoEm();
+        this.atualizadoEm = prontuario.getAtualizadoEm();
     }
 
     public String getId() {
@@ -60,4 +66,7 @@ public class ProntuarioResponse {
     public String getPrescricao() {
         return prescricao;
     }
+
+    public LocalDateTime getCriadoEm() { return criadoEm; }
+    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
 }

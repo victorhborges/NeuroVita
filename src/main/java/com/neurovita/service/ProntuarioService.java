@@ -2,6 +2,7 @@
 package com.neurovita.service;
 
 import java.util.Objects;
+import java.time.LocalDateTime;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.ProntuarioRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class ProntuarioService {
@@ -28,26 +30,37 @@ public class ProntuarioService {
     private final PacienteRepository pacienteRepository;
     private final ProfissionalRepository profissionalRepository;
     private final UsuarioRepository usuarioRepository;
+    private final VinculoProfissionalPacienteRepository vinculos;
 
     public ProntuarioService(
             ProntuarioRepository prontuarioRepository,
             ConsultaRepository consultaRepository,
             PacienteRepository pacienteRepository,
             ProfissionalRepository profissionalRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            VinculoProfissionalPacienteRepository vinculos) {
 
         this.prontuarioRepository = prontuarioRepository;
         this.consultaRepository = consultaRepository;
         this.pacienteRepository = pacienteRepository;
         this.profissionalRepository = profissionalRepository;
         this.usuarioRepository = usuarioRepository;
+        this.vinculos = vinculos;
     }
 
     public ProntuarioResponse salvar(ProntuarioRequest request) {
         validarVinculos(request);
+        if (prontuarioRepository.existsByPacienteId(request.getPacienteId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "O paciente ja possui prontuario central.");
+        }
 
         Prontuario prontuario = new Prontuario();
         preencherProntuario(prontuario, request);
+        LocalDateTime agora = LocalDateTime.now();
+        prontuario.setCriadoEm(agora);
+        prontuario.setAtualizadoEm(agora);
 
         return new ProntuarioResponse(
                 prontuarioRepository.save(prontuario));
@@ -55,7 +68,7 @@ public class ProntuarioService {
 
     public ProntuarioResponse buscarPorId(String id) {
         Prontuario prontuario = buscarProntuario(id);
-        validarAcessoProfissional(prontuario.getProfissionalId());
+        validarAcessoPaciente(prontuario.getPacienteId());
 
         return new ProntuarioResponse(prontuario);
     }
@@ -65,12 +78,12 @@ public class ProntuarioService {
 
         Prontuario prontuario = buscarProntuario(id);
 
-        validarAcessoProfissional(prontuario.getProfissionalId());
+        validarAcessoPaciente(prontuario.getPacienteId());
 
         if (ehProfissionalAutenticado()
-                && !Objects.equals(
-                        prontuario.getProfissionalId(),
-                        request.getProfissionalId())) {
+                && (!Objects.equals(prontuario.getProfissionalId(), profissionalIdAutenticado())
+                        || !Objects.equals(prontuario.getPacienteId(), request.getPacienteId())
+                        || !Objects.equals(prontuario.getProfissionalId(), request.getProfissionalId()))) {
             throw new AccessDeniedException(
                     "O profissional não pode alterar o vínculo "
                             + "do prontuário para outro profissional.");
@@ -78,6 +91,10 @@ public class ProntuarioService {
 
         validarVinculos(request);
         preencherProntuario(prontuario, request);
+        if (prontuario.getCriadoEm() == null) {
+            prontuario.setCriadoEm(LocalDateTime.now());
+        }
+        prontuario.setAtualizadoEm(LocalDateTime.now());
 
         return new ProntuarioResponse(
                 prontuarioRepository.save(prontuario));
@@ -90,7 +107,7 @@ public class ProntuarioService {
                         new ResourceNotFoundException(
                                 "Prontuário não encontrado para o paciente"));
 
-        validarAcessoProfissional(prontuario.getProfissionalId());
+        validarAcessoPaciente(pacienteId);
 
         return new ProntuarioResponse(prontuario);
     }
@@ -131,8 +148,9 @@ public class ProntuarioService {
         }
 
         validarAcessoProfissional(profissionalId);
-
-        boolean profissionalAutenticado = ehProfissionalAutenticado();
+        if (ehProfissionalAutenticado()) {
+            validarVinculoAtivo(pacienteId, profissionalId);
+        }
 
         if (request.getConsultaId() != null
                 && !request.getConsultaId().isBlank()) {
@@ -144,19 +162,6 @@ public class ProntuarioService {
                                     "Consulta não encontrada"));
 
             validarConsulta(consulta, pacienteId, profissionalId);
-        } else if (profissionalAutenticado) {
-            boolean possuiVinculo = consultaRepository
-                    .findByPacienteIdAndProfissionalId(
-                            pacienteId, profissionalId)
-                    .stream()
-                    .findAny()
-                    .isPresent();
-
-            if (!possuiVinculo) {
-                throw new AccessDeniedException(
-                        "Não existe consulta vinculando este paciente "
-                                + "ao profissional autenticado.");
-            }
         }
     }
 
@@ -212,6 +217,33 @@ public class ProntuarioService {
             throw new AccessDeniedException(
                     "Acesso permitido somente aos próprios atendimentos");
         }
+    }
+
+    private void validarAcessoPaciente(String pacienteId) {
+        Authentication autenticacao = obterAutenticacao();
+        boolean administrador = autenticacao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        if (!administrador) {
+            validarVinculoAtivo(pacienteId, profissionalIdAutenticado());
+        }
+    }
+
+    private void validarVinculoAtivo(String pacienteId, String profissionalId) {
+        if (vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                pacienteId, profissionalId).isEmpty()) {
+            throw new AccessDeniedException(
+                    "Acesso ao prontuario compartilhado requer vinculo profissional ativo.");
+        }
+    }
+
+    private String profissionalIdAutenticado() {
+        Authentication autenticacao = obterAutenticacao();
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(autenticacao.getName())
+                .orElseThrow(() -> new AccessDeniedException("Usuario nao encontrado"));
+        if (usuario.getEntidadeId() == null || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException("Usuario sem vinculo profissional");
+        }
+        return usuario.getEntidadeId();
     }
 
     private Authentication obterAutenticacao() {

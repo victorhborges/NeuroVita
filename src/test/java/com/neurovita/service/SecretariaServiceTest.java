@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.util.List;
@@ -8,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
@@ -315,33 +315,31 @@ class SecretariaServiceTest {
         verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
-    @Test
-    void deveInformarErroQuandoNaoConseguirSincronizarContaNaAtualizacao() {
-        Secretaria secretaria = criarSecretaria("secretaria-123");
+   @Test
+void naoDevePersistirAtualizacaoQuandoContaDeAcessoNaoExiste() {
+    Secretaria secretaria = criarSecretaria("secretaria-123");
 
-        when(secretariaRepository.findById("secretaria-123"))
-                .thenReturn(Optional.of(secretaria));
+    when(secretariaRepository.findById("secretaria-123"))
+            .thenReturn(Optional.of(secretaria));
 
-        when(secretariaRepository.save(any(Secretaria.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    when(usuarioRepository.findByEntidadeId("secretaria-123"))
+            .thenReturn(Optional.empty());
 
-        when(usuarioRepository.findByEntidadeId("secretaria-123"))
-                .thenReturn(Optional.empty());
+    ResponseStatusException exception = assertThrows(
+            ResponseStatusException.class,
+            () -> secretariaService.atualizar(
+                    "secretaria-123", criarRequest()));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> secretariaService.atualizar(
-                        "secretaria-123", criarRequest()));
+    assertEquals(
+            HttpStatus.CONFLICT,
+            exception.getStatusCode());
 
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                exception.getStatusCode());
-
-        verify(secretariaRepository).save(secretaria);
-    }
+    verify(secretariaRepository, never()).save(any(Secretaria.class));
+    verify(usuarioRepository, never()).save(any(Usuario.class));
+}
 
     @Test
-    void deveExcluirSecretariaEContaDeAcesso() {
+    void deveInativarSecretariaEContaDeAcessoSemApagarHistorico() {
         Secretaria secretaria = criarSecretaria("secretaria-123");
         Usuario usuario = criarUsuarioSecretaria("secretaria-123");
 
@@ -353,8 +351,37 @@ class SecretariaServiceTest {
 
         secretariaService.deletar("secretaria-123");
 
-        verify(usuarioRepository).delete(usuario);
-        verify(secretariaRepository).delete(secretaria);
+        assertFalse(secretaria.getAtivo());
+        assertFalse(usuario.isAtivo());
+        verify(usuarioRepository).save(usuario);
+        verify(secretariaRepository).save(secretaria);
+        verify(usuarioRepository, never()).delete(usuario);
+        verify(secretariaRepository, never()).delete(secretaria);
+    }
+
+    @Test
+    void restauraEstadoDaSecretariaQuandoFalhaAoRevogarConta() {
+        Secretaria secretaria = criarSecretaria("secretaria-123");
+        secretaria.setAtivo(true);
+        Usuario usuario = criarUsuarioSecretaria("secretaria-123");
+        when(secretariaRepository.findById("secretaria-123"))
+                .thenReturn(Optional.of(secretaria));
+        when(usuarioRepository.findByEntidadeId("secretaria-123"))
+                .thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(usuario))
+                .thenThrow(new IllegalStateException("falha simulada"))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(secretariaRepository.save(secretaria))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> secretariaService.deletar("secretaria-123"));
+
+        assertTrue(secretaria.getAtivo());
+        assertTrue(usuario.isAtivo());
+        verify(usuarioRepository, org.mockito.Mockito.times(2)).save(usuario);
+        verify(secretariaRepository).save(secretaria);
     }
 
     @Test

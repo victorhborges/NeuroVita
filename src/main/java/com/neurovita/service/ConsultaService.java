@@ -217,6 +217,14 @@ public class ConsultaService {
             throw new ResourceNotFoundException("Paciente não encontrado");
         }
 
+        pacienteRepository.findById(request.getPacienteId())
+                .filter(paciente -> Boolean.FALSE.equals(paciente.getAtivo()))
+                .ifPresent(paciente -> {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Pacientes inativos não podem receber novas consultas.");
+                });
+
         if (request.getProfissionalId() == null
                 || request.getProfissionalId().isBlank()
                 || !profissionalRepository.existsById(request.getProfissionalId())) {
@@ -249,7 +257,9 @@ public class ConsultaService {
                     "A consulta deve terminar no mesmo dia em que começa.");
         }
 
-        validarDisponibilidade(request.getProfissionalId(), inicio, fim);
+        validarDisponibilidade(
+                request.getProfissionalId(), inicio, fim,
+                request.getModalidade());
 
         List<Consulta> consultasProfissional =
                 consultaRepository.findByProfissionalId(request.getProfissionalId());
@@ -285,11 +295,34 @@ public class ConsultaService {
     private void validarDisponibilidade(
             String profissionalId,
             LocalDateTime inicio,
-            LocalDateTime fim) {
+            LocalDateTime fim,
+            String modalidadeInformada) {
 
         Profissional profissional = profissionalRepository.findById(profissionalId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Profissional não encontrado"));
+
+        if (Boolean.FALSE.equals(profissional.getAtivo())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Profissionais inativos não podem receber novas consultas.");
+        }
+
+        String modalidade = modalidadeInformada == null
+                ? ""
+                : modalidadeInformada.trim().toUpperCase(Locale.ROOT);
+        boolean modalidadePermitida = switch (modalidade) {
+            case "ONLINE" -> Boolean.TRUE.equals(profissional.getAtendeOnline());
+            case "PRESENCIAL" -> profissional.getAtendePresencial() == null
+                    || Boolean.TRUE.equals(profissional.getAtendePresencial());
+            default -> false;
+        };
+
+        if (!modalidadePermitida) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A modalidade informada não é oferecida pelo profissional.");
+        }
 
         if (profissional.getDisponibilidadeIds() == null
                 || profissional.getDisponibilidadeIds().isEmpty()) {

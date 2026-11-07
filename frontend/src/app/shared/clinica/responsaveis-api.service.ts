@@ -36,4 +36,8 @@ export class ResponsaveisApiService {
     atualizar(id: string, dados: ResponsavelRequestApi): Observable<ResponsavelApi> {
         return this.http.put<ResponsavelApi>(`${this.api}/${id}`, dados);
     }
+
+    excluir(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.api}/${id}`);
+    }
 }

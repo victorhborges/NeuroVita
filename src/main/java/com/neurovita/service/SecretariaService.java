@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.security.SecureRandom;
@@ -48,8 +47,11 @@ public class SecretariaService {
         preencher(secretaria, request);
 
         Secretaria salva = secretariaRepository.save(secretaria);
-        String senhaProvisoria = request.getSenhaProvisoria() == null || request.getSenhaProvisoria().isBlank()
-                ? gerarSenhaProvisoria() : request.getSenhaProvisoria();
+
+        String senhaProvisoria = request.getSenhaProvisoria() == null
+                || request.getSenhaProvisoria().isBlank()
+                        ? gerarSenhaProvisoria()
+                        : request.getSenhaProvisoria();
 
         try {
             Usuario usuario = new Usuario();
@@ -58,7 +60,7 @@ public class SecretariaService {
             usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
             usuario.setPerfil(PERFIL_SECRETARIA);
             usuario.setSenhaProvisoria(true);
-            usuario.setAtivo(true);
+            usuario.setAtivo(Boolean.TRUE.equals(salva.getAtivo()));
             usuario.setEntidadeId(salva.getId());
 
             usuarioRepository.save(usuario);
@@ -99,12 +101,11 @@ public class SecretariaService {
         validarRequest(request);
 
         Secretaria secretaria = buscarSecretaria(id);
+
+        boolean estadoAnterior = Boolean.TRUE.equals(secretaria.getAtivo());
         String emailAnterior = secretaria.getEmail();
 
         validarEmailDisponivel(request.getEmail(), emailAnterior);
-
-        preencher(secretaria, request);
-        Secretaria atualizada = secretariaRepository.save(secretaria);
 
         try {
             Usuario usuario = usuarioRepository
@@ -114,29 +115,60 @@ public class SecretariaService {
                             HttpStatus.CONFLICT,
                             "A conta de acesso da secretaria não foi encontrada."));
 
-            usuario.setNome(atualizada.getNome());
-            usuario.setEmail(atualizada.getEmail());
+            boolean estadoContaAnterior = usuario.isAtivo();
 
-            usuarioRepository.save(usuario);
+            // Somente depois da validação da conta, prepara a atualização.
+            preencher(secretaria, request);
+
+            boolean novoEstado = Boolean.TRUE.equals(secretaria.getAtivo());
+
+            usuario.setNome(secretaria.getNome());
+            usuario.setEmail(secretaria.getEmail());
+
+            // Centraliza a persistência e a tentativa de compensação.
+            SincronizacaoAtivo.salvar(
+                    estadoAnterior,
+                    estadoContaAnterior,
+                    novoEstado,
+                    secretaria::setAtivo,
+                    () -> secretariaRepository.save(secretaria),
+                    usuario::setAtivo,
+                    () -> usuarioRepository.save(usuario));
+
+        } catch (ResponseStatusException e) {
+            // Preserva erros HTTP de negócio, como 409 CONFLICT.
+            throw e;
 
         } catch (RuntimeException e) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "A secretaria foi atualizada, mas não foi possível sincronizar sua conta.",
+                    "Não foi possível atualizar a secretaria e sincronizar sua conta de acesso.",
                     e);
         }
 
-        return new SecretariaResponse(atualizada);
+        return new SecretariaResponse(secretaria);
     }
 
     public void deletar(String id) {
         Secretaria secretaria = buscarSecretaria(id);
 
-        usuarioRepository.findByEntidadeId(id)
-                .filter(this::ehSecretaria)
-                .ifPresent(usuarioRepository::delete);
+        Usuario usuario = usuarioRepository.findByEntidadeId(id)
+                .orElse(null);
 
-        secretariaRepository.delete(secretaria);
+        if (usuario == null) {
+            secretaria.setAtivo(false);
+            secretariaRepository.save(secretaria);
+            return;
+        }
+
+        SincronizacaoAtivo.salvar(
+                Boolean.TRUE.equals(secretaria.getAtivo()),
+                usuario.isAtivo(),
+                false,
+                secretaria::setAtivo,
+                () -> secretariaRepository.save(secretaria),
+                usuario::setAtivo,
+                () -> usuarioRepository.save(usuario));
     }
 
     private Secretaria buscarSecretaria(String id) {
@@ -152,17 +184,20 @@ public class SecretariaService {
 
         secretaria.setNome(request.getNome().trim());
         secretaria.setEmail(request.getEmail().trim());
+
         secretaria.setTelefone(
                 request.getTelefone() == null
                         ? null
                         : request.getTelefone().trim());
+
         secretaria.setEmailContato(request.getEmailContato());
         secretaria.setDataNascimento(request.getDataNascimento());
         secretaria.setCpf(request.getCpf());
         secretaria.setEndereco(request.getEndereco());
         secretaria.setCargo(request.getCargo());
         secretaria.setAdmissao(request.getAdmissao());
-        secretaria.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
+        secretaria.setAtivo(
+                request.getAtivo() == null ? true : request.getAtivo());
     }
 
     private void validarRequest(SecretariaRequest request) {

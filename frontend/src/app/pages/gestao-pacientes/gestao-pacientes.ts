@@ -61,7 +61,7 @@ export class GestaoPacientes {
     try {
     await this.clinica.removerPaciente(paciente.id);
     this.excluindo.set(null);
-    this.aviso.mostrar('Paciente excluído com sucesso.');
+    this.aviso.mostrar('Paciente inativado. O prontuário e o histórico foram preservados.');
     } catch (erro) {
       console.error('Falha ao excluir paciente:', erro);
       this.aviso.mostrar('Não foi possível excluir o paciente.');

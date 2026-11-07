@@ -53,8 +53,9 @@
             @if (mostrarErro('carteirinha'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
           </label>
           <label class="campo-form">
-            <input type="date" aria-label="Validade" [disabled]="!f().possuiPlano" [value]="f().validade" (input)="digitar('validade', $event)" [class.campo-vazio]="!f().validade" />
+            <input type="date" aria-label="Validade" [disabled]="!f().possuiPlano" [value]="f().validade" (input)="digitar('validade', $event)" [class.campo-vazio]="!f().validade" [class.campo-form-erro]="mostrarErro('validade')" />
             @if (!f().validade) { <span class="campo-falso">Validade</span> }
+            @if (mostrarErro('validade'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
           </label>
           <fieldset class="radios radios-status">
             <legend>Status do paciente</legend>
@@ -94,6 +95,30 @@
               @if (mostrarErro('rCpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
           </div>
+          @for (r of f().responsaveisExtras; track $index) {
+            <div class="form-pac-duas">
+              <label class="campo-form">
+                <input type="text" placeholder="Nome completo" [value]="r.nome" (input)="digitarExtra($index, 'nome', $event)" />
+              </label>
+              <label class="campo-form">
+                <input type="text" placeholder="Grau de parentesco" [value]="r.parentesco" (input)="digitarExtra($index, 'parentesco', $event)" />
+              </label>
+              <label class="campo-form">
+                <input type="date" aria-label="Data de nascimento do responsável" [max]="hoje" [value]="r.nascimento" (input)="digitarExtra($index, 'nascimento', $event)" />
+              </label>
+              <label class="campo-form">
+                <input type="tel" placeholder="Telefone" [value]="r.telefone" (input)="digitarExtra($index, 'telefone', $event)" />
+              </label>
+              <label class="campo-form">
+                <input type="email" placeholder="E-mail" [value]="r.email" (input)="digitarExtra($index, 'email', $event)" />
+              </label>
+              <label class="campo-form">
+                <input type="text" placeholder="CPF" [value]="r.cpf" (input)="digitarExtra($index, 'cpf', $event)" />
+              </label>
+              <button type="button" class="botao-claro" (click)="removerResponsavel($index)">Remover responsável</button>
+            </div>
+          }
+          <button type="button" class="botao-claro" (click)="adicionarResponsavel()">+ Adicionar responsável</button>
         </section>
       </div>
 

@@ -25,6 +25,7 @@ public class Profissional {
     private Integer anoConclusao;
 
     private Boolean atendeOnline;
+    private Boolean atendePresencial = true;
     private Boolean ativo;
 
     private List<String> disponibilidadeIds;
@@ -115,6 +116,14 @@ public class Profissional {
 
     public void setAtendeOnline(Boolean atendeOnline) {
         this.atendeOnline = atendeOnline;
+    }
+
+    public Boolean getAtendePresencial() {
+        return atendePresencial;
+    }
+
+    public void setAtendePresencial(Boolean atendePresencial) {
+        this.atendePresencial = atendePresencial;
     }
 
     public Boolean getAtivo() {

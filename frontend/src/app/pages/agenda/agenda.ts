@@ -759,6 +759,16 @@ export class Agenda {
       return undefined;
     }
 
+    if (
+      atual.atendimento === 'Presencial' &&
+      profissional?.atendePresencial === false
+    ) {
+      this.aviso.mostrar(
+        'O profissional selecionado não está habilitado para atendimento presencial.',
+      );
+      return undefined;
+    }
+
     return {
       pacienteId: atual.pacienteId,
       profissionalId: this.editProf(),

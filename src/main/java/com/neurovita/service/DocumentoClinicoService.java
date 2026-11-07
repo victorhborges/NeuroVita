@@ -19,6 +19,7 @@ import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class DocumentoClinicoService {
@@ -27,24 +28,25 @@ public class DocumentoClinicoService {
     private final ProfissionalRepository profissionais;
     private final UsuarioRepository usuarios;
     private final ConsultaRepository consultas;
+    private final VinculoProfissionalPacienteRepository vinculos;
 
     public DocumentoClinicoService(DocumentoClinicoRepository repository,
             PacienteRepository pacientes, ProfissionalRepository profissionais,
-            UsuarioRepository usuarios, ConsultaRepository consultas) {
+            UsuarioRepository usuarios, ConsultaRepository consultas,
+            VinculoProfissionalPacienteRepository vinculos) {
         this.repository = repository;
         this.pacientes = pacientes;
         this.profissionais = profissionais;
         this.usuarios = usuarios;
         this.consultas = consultas;
+        this.vinculos = vinculos;
     }
 
     public List<DocumentoClinicoResponse> porPaciente(String pacienteId, Authentication auth) {
         exigirProfissionalOuAdmin(auth);
         if (!pacientes.existsById(pacienteId)) throw new ResourceNotFoundException("Paciente não encontrado.");
         validarAcessoPaciente(pacienteId, auth);
-        List<DocumentoClinico> itens = ehAdmin(auth)
-                ? repository.findByPacienteIdOrderByDataSessaoDesc(pacienteId)
-                : repository.findByPacienteIdAndProfissionalIdOrderByDataSessaoDesc(pacienteId, profissionalId(auth));
+        List<DocumentoClinico> itens = repository.findByPacienteIdOrderByDataSessaoDesc(pacienteId);
         return itens.stream().map(DocumentoClinicoResponse::new).toList();
     }
 
@@ -65,6 +67,10 @@ public class DocumentoClinicoService {
 
         DocumentoClinico documento = id == null ? new DocumentoClinico() : repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Documento clínico não encontrado."));
+        if (id != null && !ehAdmin(auth)
+                && !documento.getPacienteId().equals(request.getPacienteId())) {
+            throw new AccessDeniedException("O paciente de um documento clÃ­nico nÃ£o pode ser alterado.");
+        }
         if (id != null && !ehAdmin(auth) && !profissionalId(auth).equals(documento.getProfissionalId())) {
             throw new AccessDeniedException("Acesso permitido somente aos próprios documentos clínicos.");
         }
@@ -87,6 +93,7 @@ public class DocumentoClinicoService {
         exigirProfissionalOuAdmin(auth);
         DocumentoClinico documento = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Documento clínico não encontrado."));
+        validarAcessoPaciente(documento.getPacienteId(), auth);
         if (!ehAdmin(auth) && !profissionalId(auth).equals(documento.getProfissionalId())) {
             throw new AccessDeniedException("Acesso permitido somente aos próprios documentos clínicos.");
         }
@@ -110,8 +117,9 @@ public class DocumentoClinicoService {
     }
 
     private void validarAcessoPaciente(String pacienteId, Authentication auth) {
-        if (!ehAdmin(auth) && consultas.findByPacienteIdAndProfissionalId(pacienteId, profissionalId(auth)).isEmpty()) {
-            throw new AccessDeniedException("O profissional só pode acessar pacientes vinculados à sua agenda.");
+        if (!ehAdmin(auth) && vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                pacienteId, profissionalId(auth)).isEmpty()) {
+            throw new AccessDeniedException("Acesso ao prontuario compartilhado requer vinculo profissional ativo.");
         }
     }
 }

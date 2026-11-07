@@ -46,7 +46,7 @@ export class Secretarias {
     try {
     await this.clinica.removerSecretaria(s.id);
     this.excluindo.set(null);
-    this.aviso.mostrar('Secretária excluída com sucesso.');
+    this.aviso.mostrar('Secretária inativada.');
     } catch (erro) {
       console.error('Falha ao excluir secretária:', erro);
       this.aviso.mostrar('Não foi possível excluir a secretária.');

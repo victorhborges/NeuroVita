@@ -72,6 +72,7 @@ public class PacienteService {
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
+        validarPlanoSaude(request);
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request);
@@ -90,7 +91,7 @@ public class PacienteService {
                         usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
                         usuario.setPerfil(PERFIL_PACIENTE);
                         usuario.setSenhaProvisoria(true);
-                        usuario.setAtivo(true);
+                        usuario.setAtivo(Boolean.TRUE.equals(pacienteSalvo.getAtivo()));
                         usuario.setEntidadeId(pacienteSalvo.getId());
                         usuarioSalvo = usuarioRepository.save(usuario);
                 }
@@ -153,11 +154,13 @@ public class PacienteService {
         exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
+        boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
         validarEmailDisponivel(request.getEmail(), id);
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
+        validarPlanoSaude(request);
 
         preencherPaciente(paciente, request);
 
@@ -165,12 +168,21 @@ public class PacienteService {
 
         atualizarVinculos(atualizado.getId(), responsaveis);
 
-        usuarioRepository.findByEntidadeId(id)
-                .ifPresent(usuario -> {
-                    usuario.setNome(atualizado.getNome());
-                    usuario.setEmail(atualizado.getEmail());
-                    usuarioRepository.save(usuario);
-                });
+        Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
+        if (usuario != null) {
+            boolean estadoContaAnterior = usuario.isAtivo();
+            boolean novoEstado = Boolean.TRUE.equals(atualizado.getAtivo());
+            usuario.setNome(atualizado.getNome());
+            usuario.setEmail(atualizado.getEmail());
+            SincronizacaoAtivo.salvar(
+                    estadoAnterior,
+                    estadoContaAnterior,
+                    novoEstado,
+                    paciente::setAtivo,
+                    () -> pacienteRepository.save(paciente),
+                    usuario::setAtivo,
+                    () -> usuarioRepository.save(usuario));
+        }
 
         return criarResposta(atualizado);
     }
@@ -179,18 +191,23 @@ public class PacienteService {
         exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
+        // Exclusão pela interface significa inativação para preservar
+        // consultas, documentos clínicos e relacionamentos do paciente.
+        Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
+        if (usuario == null) {
+            paciente.setAtivo(false);
+            pacienteRepository.save(paciente);
+            return;
+        }
 
-        // Remove somente os vínculos deste paciente.
-        // Os responsáveis permanecem cadastrados.
-        List<VinculoResponsavel> vinculos =
-                vinculoRepository.findByPacienteId(id);
-
-        vinculoRepository.deleteAll(vinculos);
-
-        usuarioRepository.findByEntidadeId(id)
-                .ifPresent(usuarioRepository::delete);
-
-        pacienteRepository.delete(paciente);
+        SincronizacaoAtivo.salvar(
+                Boolean.TRUE.equals(paciente.getAtivo()),
+                usuario.isAtivo(),
+                false,
+                paciente::setAtivo,
+                () -> pacienteRepository.save(paciente),
+                usuario::setAtivo,
+                () -> usuarioRepository.save(usuario));
     }
 
     private Paciente buscarPaciente(String id) {
@@ -216,6 +233,20 @@ public class PacienteService {
         paciente.setPlanoSaude(request.getPlanoSaude());
         paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
         paciente.setValidadePlano(request.getValidadePlano());
+    }
+
+    private void validarPlanoSaude(PacienteRequest request) {
+        if (!Boolean.TRUE.equals(request.getPossuiPlanoSaude())) {
+            return;
+        }
+
+        if (request.getPlanoSaude() == null || request.getPlanoSaude().isBlank()
+                || request.getNumeroCarteirinha() == null || request.getNumeroCarteirinha().isBlank()
+                || request.getValidadePlano() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe o plano, o número da carteirinha e a validade quando o paciente possuir plano de saúde.");
+        }
     }
 
     private List<VinculoResponsavelRequest> validarResponsaveis(
