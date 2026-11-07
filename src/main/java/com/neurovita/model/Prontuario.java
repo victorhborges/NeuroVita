@@ -1,5 +1,7 @@
 package com.neurovita.model;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -17,6 +19,8 @@ public class Prontuario {
     private String avaliacao;
     private String planoTratamento;
     private String prescricao;
+    private LocalDateTime criadoEm;
+    private LocalDateTime atualizadoEm;
 
     public Prontuario() {
     }
@@ -84,4 +88,9 @@ public class Prontuario {
     public void setPrescricao(String prescricao) {
         this.prescricao = prescricao;
     }
+
+    public LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
+    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
+    public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }

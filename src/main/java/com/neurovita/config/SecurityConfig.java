@@ -239,6 +239,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/responsaveis/**")
                         .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 
+                        // Vínculos profissionais ativos com pacientes
+                        .requestMatchers("/api/vinculos-profissionais-pacientes/**")
+                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+
                         // Demais endpoints da API exigem autenticação
                         .anyRequest().authenticated()
                 )

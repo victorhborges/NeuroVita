@@ -6,7 +6,7 @@ O projeto possui arquitetura integrada, composta por frontend Angular, backend J
 
 O backend disponibiliza uma API REST para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico. O frontend Angular é compilado e servido pela própria aplicação Spring Boot.
 
-> 🚧 **Status do projeto:** a integração entre frontend Angular e backend Spring Boot está implementada localmente. A última revisão reportada concluiu 28 testes Maven sem falhas, gerou o JAR e concluiu a compilação de desenvolvimento do Angular. A versão atualizada ainda não foi publicada. A validação com Docker e MongoDB Atlas real permanece pendente.
+> 🚧 **Status do projeto:** a integração entre frontend Angular e backend Spring Boot está implementada localmente. A última validação Maven executou 36 testes, todos aprovados, sem falhas ou erros. A geração do JAR e a compilação de desenvolvimento do Angular já foram realizadas em etapas anteriores. A validação da implementação mais recente com Docker e MongoDB Atlas real, assim como a publicação da nova versão integrada, permanece pendente.
 
 ---
 
@@ -40,6 +40,7 @@ O projeto contempla os seguintes módulos e recursos:
 - 👥 Responsáveis.
 - 🔗 Vínculos entre pacientes e responsáveis.
 - 🧑‍⚕️ Profissionais.
+- 🔗 Vínculos entre profissionais e pacientes, com histórico de atendimento.
 - ⏰ Disponibilidades.
 - 📅 Consultas.
 - 🗓️ Agenda.
@@ -47,6 +48,7 @@ O projeto contempla os seguintes módulos e recursos:
 - 🧠 Diagnósticos.
 - 💊 Tratamentos.
 - 🧪 Exames.
+- 📄 Documentos clínicos.
 - 👨‍💼 Administradores.
 - 🏢 Secretarias.
 - 🔐 Autenticação e segurança.
@@ -61,6 +63,8 @@ O projeto contempla os seguintes módulos e recursos:
 - 👥 Suporte a múltiplos responsáveis por paciente.
 - 🚫 Inativação de cadastros sem exclusão do histórico.
 - 🔒 Bloqueio de novos agendamentos para pacientes e profissionais inativos.
+- 🔐 Controle de leitura compartilhada de informações clínicas conforme vínculo ativo.
+- 📝 Preservação da autoria dos registros clínicos.
 
 O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
 
@@ -81,7 +85,7 @@ O NeuroVita utiliza uma arquitetura integrada. O Spring Boot disponibiliza a API
                   Frontend Angular
                          |
                          v
-                 Aplicação Spring Boot
+                Aplicação Spring Boot
                          |
             +------------+------------+
             |                         |
@@ -375,6 +379,56 @@ Profissionais inativos não podem receber novos agendamentos nem participar de a
 
 ---
 
+## 🔗 Vínculos entre profissionais e pacientes
+
+O NeuroVita utiliza vínculos explícitos para controlar o relacionamento de atendimento entre profissionais e pacientes.
+
+Essa estrutura permite que um paciente seja acompanhado por mais de um profissional, mantendo o histórico dos períodos de atendimento.
+
+### Estrutura dos vínculos
+
+Os vínculos são armazenados separadamente na coleção:
+
+`vinculos_profissional_paciente`
+
+Cada registro representa um período de relacionamento entre um profissional e um paciente.
+
+A estrutura contempla a identificação do profissional, a identificação do paciente e os dados necessários para registrar a abertura e o encerramento do vínculo.
+
+O encerramento de um vínculo não apaga seu registro anterior, preservando o histórico de atendimento.
+
+### Gestão dos vínculos
+
+A abertura e o encerramento dos vínculos são restritos aos perfis autorizados de administrador e secretaria.
+
+O profissional não pode conceder acesso a si próprio por meio da criação de um vínculo.
+
+A gestão dos vínculos é realizada por meio de operações específicas do backend, com validação das permissões do usuário autenticado.
+
+### Controle de acesso às informações clínicas
+
+A leitura compartilhada de informações clínicas depende da existência de vínculo ativo entre o profissional autenticado e o paciente.
+
+As regras implementadas contemplam:
+
+- Profissionais com vínculo ativo podem consultar as informações clínicas compartilhadas do paciente.
+- Profissionais sem vínculo ativo não possuem acesso de leitura compartilhada.
+- O encerramento do vínculo retira o acesso compartilhado correspondente.
+- O histórico dos vínculos encerrados permanece preservado.
+- O acesso não deve ser concedido somente por conhecer o identificador do paciente ou do documento.
+
+### Preservação da autoria
+
+O compartilhamento de leitura não transfere a autoria dos registros clínicos.
+
+As operações de edição e remoção permanecem restritas ao profissional autor do registro, respeitadas as demais permissões do sistema.
+
+Dessa forma, profissionais vinculados podem consultar informações clínicas compartilhadas sem adquirir automaticamente permissão para modificar registros produzidos por outros profissionais.
+
+A validação funcional completa dessas regras permanece necessária.
+
+---
+
 ## ⏰ Disponibilidades
 
 O módulo permite cadastrar, consultar, atualizar e excluir disponibilidades.
@@ -484,7 +538,7 @@ A apresentação dos status e o tratamento das consultas canceladas na agenda de
 
 ## 📋 Prontuários
 
-Armazenam informações relacionadas ao acompanhamento clínico.
+Os prontuários armazenam informações relacionadas ao acompanhamento clínico dos pacientes.
 
 ### Endpoints
 
@@ -495,11 +549,71 @@ PUT  /api/prontuarios/{id}
 GET  /api/prontuarios/paciente/{pacienteId}
 ```
 
-Os DTOs possuem validações para campos obrigatórios.
+### Prontuário centralizado por paciente
+
+O prontuário permanece associado ao paciente, permitindo uma visão centralizada do acompanhamento clínico.
+
+A implementação estabelece a regra de um único prontuário central por paciente, impedindo a criação de um segundo prontuário para o mesmo paciente.
+
+A verificação é realizada pelo backend antes da criação de um novo registro.
+
+### Compatibilidade com os dados existentes
+
+Durante a implementação, foi realizada uma consulta somente de leitura à coleção `prontuarios` no MongoDB Atlas.
+
+O resultado identificou:
+
+- Cinco documentos existentes.
+- Nenhum prontuário sem `pacienteId`.
+- Nenhuma duplicidade de `pacienteId`.
+- Nenhum vínculo profissional-paciente preexistente na nova estrutura.
+
+Também foram identificados os campos `criadoEm` e `atualizadoEm` nos documentos existentes.
+
+Esses campos foram incorporados ao mapeamento do modelo e da resposta para preservar a compatibilidade com os registros já persistidos.
+
+As atualizações preservam a data original de criação do prontuário.
+
+Nenhum prontuário existente foi removido ou alterado pela auditoria.
+
+### Controle de acesso
 
 O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes.
 
+Profissionais com vínculo ativo podem realizar a leitura compartilhada conforme as regras implementadas.
+
+O acesso de escrita e as alterações nos registros permanecem sujeitos às regras de autorização e autoria.
+
 A validação completa dessas restrições permanece necessária.
+
+---
+
+## 📄 Documentos clínicos
+
+O módulo de documentos clínicos permite consultar e gerenciar documentos relacionados ao acompanhamento dos pacientes.
+
+A implementação considera o compartilhamento de leitura entre profissionais vinculados ao paciente.
+
+### Leitura compartilhada
+
+A consulta dos documentos clínicos considera o vínculo ativo entre o profissional autenticado e o paciente.
+
+Dessa forma:
+
+- Profissionais com vínculo ativo podem consultar os documentos clínicos compartilhados do paciente.
+- Profissionais sem vínculo ativo não possuem acesso de leitura compartilhada.
+- O encerramento do vínculo impede a leitura compartilhada correspondente.
+- A autoria original do documento é preservada.
+
+### Edição e remoção
+
+A leitura compartilhada não concede automaticamente permissão de edição ou remoção.
+
+Somente o profissional autor pode editar ou remover seu próprio registro, respeitadas as demais regras de autorização do backend.
+
+Os documentos clínicos existentes e seus dados devem ser preservados durante as alterações da estrutura.
+
+A validação funcional completa do compartilhamento e das permissões permanece pendente.
 
 ---
 
@@ -584,6 +698,8 @@ O cadastro de secretárias participa do fluxo de criação de credenciais.
 A inativação preserva o registro e sincroniza o estado da conta de usuário associada.
 
 Secretárias criadas com estado inativo também devem receber contas inativas.
+
+As permissões administrativas das secretarias devem ser respeitadas nas operações de gerenciamento de vínculos entre profissionais e pacientes.
 
 ---
 
@@ -745,13 +861,13 @@ A API possui documentação interativa por meio do Swagger/OpenAPI.
 
 ### Localmente
 
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
+- **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **Documentação OpenAPI:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ### Produção anterior
 
-- **Swagger UI:** https://neurovita.onrender.com/swagger-ui/index.html
-- **API:** https://neurovita.onrender.com
+- **Swagger UI:** [https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
+- **API:** [https://neurovita.onrender.com](https://neurovita.onrender.com)
 
 ### Autenticação no Swagger
 
@@ -821,7 +937,7 @@ O projeto utiliza **um único repositório GitHub**, organizado por branches par
 
 Repositório:
 
-https://github.com/victorhborges/NeuroVita
+[https://github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
 
 ### Organização das branches
 
@@ -888,8 +1004,8 @@ As equipes devem alinhar alterações que envolvam contratos da API, modelos com
 
 A versão anterior do backend está hospedada no Render.
 
-- **URL:** https://neurovita.onrender.com
-- **Swagger:** https://neurovita.onrender.com/swagger-ui/index.html
+- **URL:** [https://neurovita.onrender.com](https://neurovita.onrender.com)
+- **Swagger:** [https://neurovita.onrender.com/swagger-ui/index.html](https://neurovita.onrender.com/swagger-ui/index.html)
 
 O login autenticado e consultas de administradores e pacientes foram verificados na versão anterior.
 
@@ -927,6 +1043,7 @@ A aplicação utiliza coleções para persistir os documentos dos módulos, incl
 - `tratamentos`
 - `usuarios`
 - `vinculosResponsaveis`
+- `vinculos_profissional_paciente`
 
 A existência e a estrutura efetiva de cada coleção dependem dos modelos, repositórios e operações executadas.
 
@@ -939,6 +1056,18 @@ A existência e a estrutura efetiva de cada coleção dependem dos modelos, repo
 | `pacientes` | Dados cadastrais dos pacientes |
 
 O relacionamento entre paciente e responsável é armazenado separadamente, evitando duplicação dos dados pessoais.
+
+### Vínculos entre profissionais e pacientes
+
+| Coleção | Finalidade |
+|---|---|
+| `vinculos_profissional_paciente` | Registro dos vínculos entre profissionais e pacientes, incluindo períodos de atendimento e histórico de encerramento |
+
+A estrutura permite registrar mais de um profissional associado a um paciente, mantendo o histórico dos vínculos anteriores.
+
+O acesso de leitura compartilhada às informações clínicas depende da existência de vínculo ativo.
+
+O encerramento do vínculo não remove o registro histórico.
 
 ### Configuração da conexão
 
@@ -962,13 +1091,19 @@ A URI precisa incluir o nome do banco de dados e os parâmetros necessários.
 
 ### Status da conexão
 
-A conexão com MongoDB Atlas foi estabelecida e utilizada em verificações da versão anterior.
+A conexão com MongoDB Atlas foi estabelecida e utilizada em verificações anteriores.
 
-Entretanto, as alterações mais recentes ainda não foram validadas com o MongoDB Atlas real.
+Durante a implementação dos vínculos entre profissionais e pacientes, foi realizada uma consulta somente de leitura à coleção `prontuarios`, identificando cinco documentos, sem duplicidades de `pacienteId` e sem registros sem identificação de paciente.
+
+Também foram verificados os nomes dos campos existentes, sem exposição dos valores clínicos.
+
+A auditoria não realizou migração ou escrita nos documentos existentes.
+
+Entretanto, as alterações mais recentes ainda não foram validadas integralmente com MongoDB Atlas real.
 
 Os testes Maven mais recentes utilizam repositórios mockados. Portanto, a aprovação desses testes não comprova a persistência correta de todos os novos fluxos no banco real.
 
-A compatibilidade das operações de responsáveis, vínculos, inativação e sincronização de contas deve ser confirmada com a equipe responsável pelo banco de dados.
+A compatibilidade das operações de responsáveis, vínculos, prontuários, documentos clínicos, inativação e sincronização de contas deve ser confirmada com a equipe responsável pelo banco de dados.
 
 ---
 
@@ -1106,7 +1241,7 @@ mvnw.cmd spring-boot:run
 
 A aplicação estará disponível em:
 
-http://localhost:8080
+[http://localhost:8080](http://localhost:8080)
 
 ### Executar com Docker
 
@@ -1124,13 +1259,13 @@ docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-in
 
 A aplicação estará disponível em:
 
-http://localhost:8080
+[http://localhost:8080](http://localhost:8080)
 
 ### Endpoints locais
 
-- **Frontend:** http://localhost:8080
-- **Swagger:** http://localhost:8080/swagger-ui/index.html
-- **OpenAPI:** http://localhost:8080/v3/api-docs
+- **Frontend:** [http://localhost:8080](http://localhost:8080)
+- **Swagger:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **OpenAPI:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ---
 
@@ -1182,24 +1317,40 @@ mvnw.cmd -DskipTests package
 
 ### Última validação reportada
 
-Na última revisão das alterações locais:
+Na última execução local das alterações de vínculos entre profissionais e pacientes:
 
 | Verificação | Resultado |
 |---|---|
-| Testes Maven | 28 aprovados, sem falhas |
-| Empacotamento Maven | `BUILD SUCCESS` |
-| Geração do JAR | Concluída |
-| Build de desenvolvimento Angular | Concluído |
+| Testes Maven | 36 aprovados, sem falhas ou erros |
+| `NeurovitaApplicationTests` | 1 aprovado |
+| `ConsultaServiceTest` | 7 aprovados |
+| `DocumentoClinicoServiceTest` | 2 aprovados |
+| `PacienteServiceTest` | 3 aprovados |
+| `ProfissionalServiceTest` | 3 aprovados |
+| `ProntuarioServiceTest` | 2 aprovados |
+| `SecretariaServiceTest` | 14 aprovados |
+| `VinculoProfissionalPacienteServiceTest` | 4 aprovados |
+| Compilação Maven | `BUILD SUCCESS` |
 | `git diff --check` | Sem erros |
 | Docker com alterações recentes | Pendente |
 | MongoDB Atlas com alterações recentes | Pendente |
 | Deploy da nova versão | Pendente |
 
-O build Angular foi executado com `--delete-output-path=false` para contornar uma falha `EPERM` na limpeza do diretório `dist` no ambiente utilizado.
+A suíte foi executada por meio de:
 
-O build otimizado também apresentou falha ao tentar acessar o Google Fonts devido à indisponibilidade de rede/DNS naquele ambiente. Isso não equivale a uma validação bem-sucedida do build otimizado.
+```cmd
+mvnw.cmd test
+```
 
-Os testes Maven mais recentes utilizam repositórios mockados. O teste de contexto Spring carregou, mas não houve conexão com MongoDB real durante essa validação.
+Resultado:
+
+```text
+Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+
+BUILD SUCCESS
+```
+
+Os testes unitários dos serviços utilizam repositórios mockados. O resultado positivo não substitui a validação das operações no MongoDB Atlas real.
 
 **Os resultados acima representam a última execução informada e não garantem que todas as operações estejam validadas em ambiente real.**
 
@@ -1222,6 +1373,10 @@ Os testes funcionais completos são responsabilidade da equipe designada. As ver
 | Plano de saúde | 🟢 Validações implementadas localmente |
 | Profissionais | 🟢 CRUD e modalidades implementados localmente |
 | Atendimento presencial e online | 🟢 Regras implementadas localmente |
+| Vínculos entre profissionais e pacientes | 🟢 Estrutura e serviços implementados localmente |
+| Histórico de vínculos | 🟢 Implementado localmente |
+| Leitura clínica compartilhada | 🟢 Regras implementadas localmente |
+| Preservação da autoria clínica | 🟢 Regras implementadas localmente |
 | Disponibilidades | 🟡 Implementadas; revisão de permissões pendente |
 | Consultas | 🟢 Regras de atividade, modalidade e agendamento implementadas localmente |
 | Agenda | 🟢 Implementada; validação funcional pendente |
@@ -1229,7 +1384,8 @@ Os testes funcionais completos são responsabilidade da equipe designada. As ver
 | Inativação de profissionais | 🟢 Implementada localmente |
 | Inativação de secretárias | 🟢 Implementada localmente |
 | Sincronização entidade/usuário | 🟡 Implementada com compensação; validação com MongoDB real pendente |
-| Prontuários | 🟡 Implementados; validação das permissões pendente |
+| Prontuários | 🟢 Estrutura centralizada e prevenção de duplicidade implementadas localmente |
+| Documentos clínicos | 🟢 Leitura compartilhada e preservação de autoria implementadas localmente |
 | Diagnósticos | 🟢 Implementados |
 | Tratamentos | 🟢 Implementados; validação funcional pendente |
 | Exames | 🟢 Implementados; validação funcional pendente |
@@ -1241,9 +1397,9 @@ Os testes funcionais completos são responsabilidade da equipe designada. As ver
 | Spring Security | 🟡 Configurado; revisão de permissões pendente |
 | Swagger/OpenAPI | 🟢 Implementado |
 | Tratamento global de exceções | 🟢 Implementado |
-| Testes Maven | 🟢 28 aprovados na última execução informada |
+| Testes Maven | 🟢 36 aprovados na última execução informada |
 | Docker multi-stage | 🟢 Configurado; validação da versão atual pendente |
-| MongoDB Atlas | 🟡 Conexão da versão atual ainda não validada |
+| MongoDB Atlas | 🟡 Auditoria somente de leitura realizada; validação integral da versão atual pendente |
 | Deploy da nova arquitetura | ⚪ Pendente |
 | Receitas | ⚪ Aguardando requisitos |
 | Testes funcionais completos | 🟡 Sob responsabilidade da equipe designada |
@@ -1266,9 +1422,13 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [x] Bloquear agendamentos para pacientes e profissionais inativos.
 - [x] Implementar inativação de pacientes, profissionais e secretárias.
 - [x] Implementar sincronização de estado entre entidades e contas.
-- [x] Adicionar testes para pacientes, profissionais e consultas.
-- [x] Atualizar testes de secretarias.
-- [x] Executar testes Maven: 28 aprovados na última execução informada.
+- [x] Implementar vínculos entre profissionais e pacientes.
+- [x] Implementar histórico de abertura e encerramento de vínculos.
+- [x] Implementar leitura compartilhada de informações clínicas conforme vínculo ativo.
+- [x] Preservar autoria dos registros clínicos.
+- [x] Implementar prevenção de prontuários centrais duplicados por paciente.
+- [x] Adicionar testes para vínculos, prontuários e documentos clínicos.
+- [x] Executar testes Maven: 36 aprovados na última execução informada.
 - [x] Gerar o JAR localmente.
 - [x] Executar build de desenvolvimento Angular.
 - [x] Verificar `git diff --check`.
@@ -1276,9 +1436,14 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 ### Validação técnica pendente
 
 - [ ] Validar a nova versão com Docker.
-- [ ] Validar a conexão com MongoDB Atlas na versão atual.
+- [ ] Validar integralmente a conexão com MongoDB Atlas na versão atual.
 - [ ] Verificar persistência de pacientes e responsáveis.
 - [ ] Verificar criação, atualização e remoção de vínculos.
+- [ ] Verificar abertura e encerramento de vínculos entre profissionais e pacientes.
+- [ ] Verificar leitura compartilhada com vínculo ativo.
+- [ ] Verificar bloqueio de leitura após encerramento do vínculo.
+- [ ] Verificar preservação de autoria em documentos clínicos.
+- [ ] Verificar prevenção de prontuários duplicados no banco real.
 - [ ] Verificar compensação em cenários de falha de salvamento.
 - [ ] Verificar sincronização de entidade e conta de usuário.
 - [ ] Verificar reativação e inativação no banco real.
@@ -1300,7 +1465,8 @@ Os status indicam o estado de desenvolvimento conhecido. Não substituem a valid
 - [ ] Validar consultas, remarcações e cancelamentos.
 - [ ] Validar inativação e reativação de cadastros.
 - [ ] Validar prontuários, diagnósticos, tratamentos e exames.
-- [ ] Validar acesso aos dados clínicos conforme o perfil.
+- [ ] Validar acesso compartilhado aos dados clínicos conforme vínculo ativo.
+- [ ] Validar edição e remoção de documentos conforme autoria.
 - [ ] Definir o módulo de Receitas após a especificação no Figma.
 - [ ] Disponibilizar a aplicação para a equipe de testes.
 
@@ -1322,7 +1488,7 @@ O projeto utiliza Git e GitHub para controle de versão, revisão de código e o
 
 **Repositório oficial:**
 
-https://github.com/victorhborges/NeuroVita
+[https://github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
 
 ### Estratégia de branches
 

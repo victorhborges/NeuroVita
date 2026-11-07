@@ -8,4 +8,5 @@ import com.neurovita.model.Prontuario;
 
 public interface ProntuarioRepository extends MongoRepository<Prontuario, String> {
     Optional<Prontuario> findByPacienteId(String pacienteId);
+    boolean existsByPacienteId(String pacienteId);
 }
