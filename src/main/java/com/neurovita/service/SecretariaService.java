@@ -194,6 +194,12 @@ public class SecretariaService {
         secretaria.setDataNascimento(request.getDataNascimento());
         secretaria.setCpf(request.getCpf());
         secretaria.setEndereco(request.getEndereco());
+        if (request.getCep() != null && !request.getCep().isBlank()) {
+            secretaria.setCep(request.getCep());
+        }
+        if (request.getCidade() != null && !request.getCidade().isBlank()) {
+            secretaria.setCidade(request.getCidade());
+        }
         secretaria.setCargo(request.getCargo());
         secretaria.setAdmissao(request.getAdmissao());
         secretaria.setAtivo(

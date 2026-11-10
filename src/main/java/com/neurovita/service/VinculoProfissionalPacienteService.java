@@ -14,9 +14,11 @@ import com.neurovita.dto.VinculoProfissionalPacienteResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Paciente;
 import com.neurovita.model.Profissional;
+import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
+import com.neurovita.repository.UsuarioRepository;
 import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
@@ -24,14 +26,17 @@ public class VinculoProfissionalPacienteService {
     private final VinculoProfissionalPacienteRepository vinculos;
     private final PacienteRepository pacientes;
     private final ProfissionalRepository profissionais;
+    private final UsuarioRepository usuarios;
 
     public VinculoProfissionalPacienteService(
             VinculoProfissionalPacienteRepository vinculos,
             PacienteRepository pacientes,
-            ProfissionalRepository profissionais) {
+            ProfissionalRepository profissionais,
+            UsuarioRepository usuarios) {
         this.vinculos = vinculos;
         this.pacientes = pacientes;
         this.profissionais = profissionais;
+        this.usuarios = usuarios;
     }
 
     public VinculoProfissionalPacienteResponse abrir(
@@ -103,6 +108,14 @@ public class VinculoProfissionalPacienteService {
         boolean ehProfissional = auth.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals("ROLE_PROFISSIONAL"));
         if (ehProfissional) {
+            Usuario usuario = usuarios.findByEmailIgnoreCase(auth.getName())
+                    .orElseThrow(() -> new AccessDeniedException("Usuario nao encontrado."));
+            if (usuario.getEntidadeId() == null || usuario.getEntidadeId().isBlank()
+                    || vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                            pacienteId, usuario.getEntidadeId()).isEmpty()) {
+                throw new AccessDeniedException(
+                        "A consulta dos vinculos requer um vinculo profissional ativo com o paciente.");
+            }
             return;
         }
 

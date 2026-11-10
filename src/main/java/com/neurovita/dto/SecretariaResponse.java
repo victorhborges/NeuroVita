@@ -14,6 +14,8 @@ public class SecretariaResponse {
     private LocalDate dataNascimento;
     private String cpf;
     private String endereco;
+    private String cep;
+    private String cidade;
     private String cargo;
     private LocalDate admissao;
     private Boolean ativo;
@@ -27,6 +29,8 @@ public class SecretariaResponse {
         this.dataNascimento = secretaria.getDataNascimento();
         this.cpf = secretaria.getCpf();
         this.endereco = secretaria.getEndereco();
+        this.cep = secretaria.getCep();
+        this.cidade = secretaria.getCidade();
         this.cargo = secretaria.getCargo();
         this.admissao = secretaria.getAdmissao();
         this.ativo = secretaria.getAtivo();
@@ -52,6 +56,8 @@ public class SecretariaResponse {
     public LocalDate getDataNascimento() { return dataNascimento; }
     public String getCpf() { return cpf; }
     public String getEndereco() { return endereco; }
+    public String getCep() { return cep; }
+    public String getCidade() { return cidade; }
     public String getCargo() { return cargo; }
     public LocalDate getAdmissao() { return admissao; }
     public Boolean getAtivo() { return ativo; }

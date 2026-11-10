@@ -11,6 +11,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.neurovita.dto.ConsultaResponse;
+import com.neurovita.dto.AgendaResumoResponse;
+import com.neurovita.model.Consulta;
+import com.neurovita.model.StatusConsulta;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
@@ -71,6 +74,45 @@ public class AgendaService {
                 .toList();
     }
 
+    public AgendaResumoResponse resumo(LocalDate data) {
+        LocalDate dataResumo = data == null ? LocalDate.now() : data;
+        List<Consulta> consultas;
+        if (ehProfissional()) {
+            String profissionalId = obterProfissionalId();
+            LocalDateTime inicio = dataResumo.atStartOfDay();
+            LocalDateTime fim = dataResumo.plusDays(1).atStartOfDay();
+            consultas = consultaRepository
+                    .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                            profissionalId, inicio, fim);
+        } else {
+            exigirAdministradorOuSecretaria();
+            LocalDateTime inicio = dataResumo.atStartOfDay();
+            LocalDateTime fim = dataResumo.plusDays(1).atStartOfDay();
+            consultas = consultaRepository
+                    .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
+        }
+
+        long confirmadas = contar(consultas, StatusConsulta.CONFIRMADA);
+        long pendentes = contar(consultas, StatusConsulta.PENDENTE);
+        long canceladas = contar(consultas, StatusConsulta.CANCELADA);
+        long remarcadas = contar(consultas, StatusConsulta.REMARCADA);
+        LocalDateTime agora = LocalDateTime.now();
+        Consulta proxima = consultas.stream()
+                .filter(consulta -> status(consulta) != StatusConsulta.CANCELADA)
+                .filter(consulta -> consulta.getDataHora() != null
+                        && !consulta.getDataHora().isBefore(agora))
+                .min(java.util.Comparator.comparing(consulta -> consulta.getDataHora()))
+                .orElse(null);
+
+        return new AgendaResumoResponse(
+                dataResumo,
+                confirmadas,
+                pendentes,
+                canceladas,
+                remarcadas,
+                proxima == null ? null : new ConsultaResponse(proxima));
+    }
+
     public List<ConsultaResponse> listarPorProfissional(
             String profissionalId, LocalDate data) {
 
@@ -127,6 +169,18 @@ public class AgendaService {
         return obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_PROFISSIONAL"));
+    }
+
+    private long contar(List<Consulta> consultas, StatusConsulta status) {
+        return consultas.stream()
+                .filter(consulta -> status(consulta) == status)
+                .count();
+    }
+
+    private StatusConsulta status(Consulta consulta) {
+        return consulta.getStatus() == null
+                ? StatusConsulta.PENDENTE
+                : consulta.getStatus();
     }
 
     private void exigirAdministradorOuSecretaria() {

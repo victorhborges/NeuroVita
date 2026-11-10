@@ -3,6 +3,7 @@ package com.neurovita.service;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -149,5 +150,90 @@ class PacienteServiceTest {
         assertTrue(usuario.isAtivo());
         verify(usuarioRepository, org.mockito.Mockito.times(2)).save(usuario);
         verify(pacienteRepository, org.mockito.Mockito.times(2)).save(paciente);
+    }
+
+    @Test
+    void naoExigeNumeroNemValidadeDoPlanoQuandoPacienteInformaQuePossuiPlano() {
+        Paciente paciente = paciente("pac-1");
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Teste");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        request.setAtivo(true);
+        request.setPossuiPlanoSaude(true);
+
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+
+        var response = pacienteService.atualizar("pac-1", request);
+
+        assertTrue(response.getPossuiPlanoSaude());
+        assertEquals("pac-1", response.getId());
+    }
+
+    @Test
+    void mantemCepECidadeAoAtualizarComClienteAntigoSemEssesCampos() {
+        Paciente paciente = paciente("pac-1");
+        paciente.setCep("70000000");
+        paciente.setCidade("Brasília");
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Teste");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        request.setAtivo(true);
+
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+
+        var response = pacienteService.atualizar("pac-1", request);
+
+        assertEquals("70000000", response.getCep());
+        assertEquals("Brasília", response.getCidade());
+    }
+
+    @Test
+    void rejeitaPacienteMenorSemResponsavelAntesDePersistir() {
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Menor");
+        request.setDataNascimento(LocalDate.now().minusYears(10));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> pacienteService.salvar(request));
+        verify(pacienteRepository, never()).save(any(Paciente.class));
+    }
+
+    @Test
+    void permiteVariosResponsaveisParaPacienteMenor() {
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Menor");
+        request.setDataNascimento(LocalDate.now().minusYears(10));
+        for (String id : List.of("resp-1", "resp-2")) {
+            Responsavel responsavel = new Responsavel();
+            responsavel.setId(id);
+            when(responsavelRepository.findById(id)).thenReturn(Optional.of(responsavel));
+            VinculoResponsavelRequest vinculo = new VinculoResponsavelRequest();
+            vinculo.setResponsavelId(id);
+            vinculo.setGrauParentesco("Responsável");
+            if (request.getResponsaveis().isEmpty()) {
+                request.setResponsaveis(new java.util.ArrayList<>());
+            }
+            request.getResponsaveis().add(vinculo);
+        }
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(invocation -> {
+            Paciente salvo = invocation.getArgument(0);
+            salvo.setId("pac-menor");
+            return salvo;
+        });
+        when(vinculoRepository.findByPacienteId("pac-menor")).thenReturn(List.of());
+        when(vinculoRepository.save(any(VinculoResponsavel.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        pacienteService.salvar(request);
+
+        verify(vinculoRepository, org.mockito.Mockito.times(2))
+                .save(any(VinculoResponsavel.class));
     }
 }

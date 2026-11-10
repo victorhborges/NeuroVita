@@ -6,7 +6,7 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status:** backend e frontend integrados localmente. A última execução da suíte Maven apresentou 47 testes aprovados, sem falhas ou erros. A validação completa da versão atual com Docker, MongoDB Atlas real e publicação nos ambientes ainda está pendente.
+> **Status:** backend e frontend integrados localmente. Os testes automatizados da revisão atual ainda precisam ser executados; a execução pelo wrapper Maven foi bloqueada neste ambiente. A validação com Docker, MongoDB Atlas real e publicação nos ambientes também está pendente.
 
 ---
 
@@ -45,7 +45,10 @@ O projeto contempla:
 - Consultas, agenda, confirmação, remarcação e cancelamento.
 - Prontuário centralizado por paciente.
 - Diagnósticos, tratamentos e exames.
+- Solicitações de exames e registro separado dos resultados.
+- Prescrições em texto livre, com autoria e histórico de revisões.
 - Documentos clínicos e anexos.
+- Preferências individuais persistidas por usuário.
 - Administradores e secretarias.
 - Autenticação JWT e controle de acesso por perfil.
 - Primeiro acesso e recuperação de senha.
@@ -55,8 +58,6 @@ O projeto contempla:
 - Frontend Angular integrado à aplicação Spring Boot.
 
 O mecanismo de documentos clínicos contempla diferentes seções, incluindo acolhimento, assistência social, relatórios escolares, declarações escolares, rastreio, devolutiva e evoluções, conforme os tipos suportados pela implementação.
-
-O módulo de Receitas aguarda a definição dos campos e das regras de negócio.
 
 A existência de uma funcionalidade implementada não substitui sua validação funcional.
 
@@ -186,7 +187,8 @@ DELETE /api/pacientes/{id}
 - O cadastro pessoal do responsável é independente do vínculo com o paciente.
 - A remoção de um vínculo não apaga o cadastro pessoal do responsável.
 - Responsáveis com vínculos ativos não podem ser excluídos.
-- Quando o paciente possui plano de saúde, os campos correspondentes devem ser informados.
+- Os dados do plano de saúde são opcionais; operadora, carteirinha e validade não são obrigatórias.
+- CEP e cidade são aceitos pelo backend, mas ainda são opcionais para compatibilidade com o frontend atual; não se pode garantir o preenchimento do CEP exigido visualmente no MVP até o contrato integrado ser atualizado.
 
 Os dados de responsáveis são armazenados separadamente dos pacientes, com os relacionamentos registrados na coleção `vinculosResponsaveis`.
 
@@ -302,7 +304,17 @@ GET /api/agenda
 GET /api/agenda/dia?data=2026-09-20
 GET /api/agenda/profissional/{id}?data=2026-09-20
 GET /api/agenda/paciente/{id}
+GET /api/agenda/resumo?data=2026-09-20
 ```
+
+O resumo diário retorna as contagens persistidas de consultas confirmadas,
+pendentes, canceladas e remarcadas, além do próximo atendimento não cancelado.
+Para profissionais, o endpoint limita os resultados à própria agenda.
+
+As remarcações preservam no histórico embutido da consulta os dados anteriores
+do horário e do profissional, a situação anterior e quem realizou a alteração.
+O paciente associado a uma consulta existente não pode ser substituído; para
+atender outra pessoa, deve ser criado um novo agendamento.
 
 ---
 
@@ -319,6 +331,7 @@ O prontuário reúne informações do acompanhamento clínico, enquanto os regis
 /api/diagnosticos
 /api/tratamentos
 /api/exames
+/api/prescricoes
 /api/documentos-clinicos
 ```
 
@@ -346,6 +359,30 @@ A consulta pode ser filtrada por seção:
 GET /api/documentos-clinicos/paciente/{pacienteId}?secao=ACOLHIMENTO
 ```
 
+Resultados de exames têm atualização própria para separar a solicitação do registro do resultado:
+
+```text
+PUT /api/exames/{id}/resultado
+```
+
+Prescrições são registradas como texto livre, sem campos de dose ou protocolo não definidos pelo MVP. O histórico mantém as revisões e a autoria:
+
+```text
+POST /api/prescricoes
+GET  /api/prescricoes/{id}
+GET  /api/prescricoes/paciente/{pacienteId}
+PUT  /api/prescricoes/{id}
+```
+
+Preferências individuais de tema, idioma, formato de data, notificações, duração padrão de consulta e início da semana podem ser persistidas pelo próprio usuário autenticado:
+
+```text
+GET /api/preferencias
+PUT /api/preferencias
+```
+
+O salvamento das preferências de notificação não envia e-mails ou notificações por si só. A integração de envio permanece dependente de configuração externa.
+
 Exemplos de valores de seção:
 
 ```text
@@ -360,11 +397,15 @@ EVOLUCAO
 
 Quando o parâmetro `secao` não é informado, a consulta retorna os documentos clínicos do paciente, ordenados cronologicamente.
 
-Os registros contemplam informações de autoria, profissional responsável, data da sessão, tipo de atendimento e atualização.
+Os registros contemplam informações de autoria, profissional responsável, data da sessão, tipo de atendimento, criação e atualização. A autoria e o paciente associados não podem ser substituídos durante uma edição.
 
 O mecanismo de anexos possui validações de tamanho e tipo MIME.
 
 O compartilhamento de leitura respeita os vínculos profissionais ativos, preservando a autoria dos registros.
+
+Documentos preexistentes continuam legíveis sem migração: registros antigos sem
+`criadoEm` retornam esse campo como `null`; documentos novos recebem a data de
+criação no momento do cadastro.
 
 ---
 
@@ -421,6 +462,15 @@ POST /api/auth/primeiro-acesso/alterar-senha
 
 O fluxo contempla troca obrigatória de senha provisória, validação da nova senha e atualização das credenciais.
 
+Contas já ativadas podem alterar a senha autenticada usando a senha atual:
+
+```text
+POST /api/auth/alterar-senha
+```
+
+Após alterar ou redefinir a senha, os tokens anteriores deixam de ser aceitos e é necessário autenticar novamente.
+Essa invalidação utiliza a claim `tokenVersion`, comparada à versão atual do usuário; usuários antigos e tokens sem essa claim são tratados como versão zero até uma alteração de senha incrementar a versão.
+
 ### Recuperação de senha
 
 A recuperação utiliza código temporário enviado por e-mail.
@@ -473,6 +523,8 @@ Entre as coleções utilizadas estão:
 | `diagnosticos` | Diagnósticos |
 | `tratamentos` | Tratamentos |
 | `exames` | Exames |
+| `prescricoes` | Prescrições textuais e revisões |
+| `preferencias_usuarios` | Preferências individuais |
 | `usuarios` | Credenciais e perfis |
 
 A agenda é derivada das consultas, não possuindo coleção própria.
@@ -673,18 +725,16 @@ Linux/macOS:
 ./mvnw -DskipTests package
 ```
 
-### Última validação local — 07/11/2026
+### Validação anterior e revisão atual
 
 | Verificação | Resultado |
 |---|---:|
-| Testes executados | 47 |
-| Falhas | 0 |
-| Erros | 0 |
-| Ignorados | 0 |
-| Build Maven | `BUILD SUCCESS` |
+| Última suíte concluída antes das alterações atuais | 54 testes aprovados |
+| Testes das alterações atuais | Pendente |
+| Wrapper Maven nesta revisão | Bloqueado pelo ambiente (`Acesso negado`) |
 | `git diff --check` | Sem erros |
 
-A suíte contempla testes de aplicação, consultas, diagnósticos, documentos clínicos, exames, pacientes, profissionais, prontuários, secretarias, tratamentos e vínculos profissionais-pacientes.
+Os 54 testes registrados acima pertencem à revisão anterior e não validam as alterações descritas nesta revisão. A execução do executor de testes do VS Code não retornou resultado; portanto, não há aprovação dos testes atuais a declarar.
 
 Os testes unitários utilizam mocks em parte das operações. Portanto, o resultado positivo não substitui a validação funcional e a verificação da persistência no MongoDB Atlas real.
 
@@ -714,11 +764,13 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Autenticação JWT | Implementada |
 | Recuperação de senha | Implementada; requer SMTP |
 | Swagger / OpenAPI | Implementado |
-| Testes Maven | 47 aprovados na última execução |
+| Prescrições textuais com histórico | Implementadas; testes atuais pendentes |
+| Preferências individuais | Persistência implementada; integração de notificações pendente |
+| Testes Java | Validação desta revisão pendente |
 | Docker da versão atual | Validação pendente |
 | Deploy integrado atual | Pendente |
 | Testes funcionais completos | Pendentes |
-| Receitas | Aguardando requisitos |
+| 2FA | Pendente de requisito de segurança e fluxo de autenticação definidos |
 
 ---
 
@@ -805,7 +857,8 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Preservar autoria dos registros clínicos.
 - [x] Implementar consulta de documentos por seção.
 - [x] Criar testes para diagnósticos, exames e tratamentos.
-- [x] Executar suíte Maven com 47 testes aprovados.
+- [x] Executar suíte Java com 54 testes aprovados na revisão anterior.
+- [ ] Executar testes das alterações atuais; o wrapper Maven foi bloqueado pelo ambiente.
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.

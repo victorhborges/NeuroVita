@@ -18,6 +18,7 @@ public class DocumentoClinico {
     private LocalDate dataSessao;
     private String tipoAtendimento;
     private String conteudo;
+    private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
     private List<AnexoClinico> anexos = new ArrayList<>();
 
@@ -37,6 +38,8 @@ public class DocumentoClinico {
     public void setTipoAtendimento(String tipoAtendimento) { this.tipoAtendimento = tipoAtendimento; }
     public String getConteudo() { return conteudo; }
     public void setConteudo(String conteudo) { this.conteudo = conteudo; }
+    public LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
     public List<AnexoClinico> getAnexos() { return anexos; }

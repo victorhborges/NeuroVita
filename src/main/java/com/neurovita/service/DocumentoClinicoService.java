@@ -76,18 +76,34 @@ public class DocumentoClinicoService {
 
         DocumentoClinico documento = id == null ? new DocumentoClinico() : repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Documento clínico não encontrado."));
-        if (id != null && !ehAdmin(auth)
-                && !documento.getPacienteId().equals(request.getPacienteId())) {
-            throw new AccessDeniedException("O paciente de um documento clÃ­nico nÃ£o pode ser alterado.");
+        if (id != null
+                && !java.util.Objects.equals(documento.getPacienteId(), request.getPacienteId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "O paciente de um documento clínico existente não pode ser alterado.");
         }
         if (id != null && !ehAdmin(auth) && !profissionalId(auth).equals(documento.getProfissionalId())) {
             throw new AccessDeniedException("Acesso permitido somente aos próprios documentos clínicos.");
         }
-        String autor = ehAdmin(auth) ? request.getProfissionalId() : profissionalId(auth);
-        if (autor == null || !profissionais.existsById(autor)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profissional responsável inválido.");
+        if (id != null && request.getProfissionalId() != null
+                && !request.getProfissionalId().isBlank()
+                && !java.util.Objects.equals(request.getProfissionalId(), documento.getProfissionalId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A autoria de um documento clínico não pode ser alterada.");
+        }
+        String autor = id != null
+                ? documento.getProfissionalId()
+                : (ehAdmin(auth) ? request.getProfissionalId() : profissionalId(auth));
+        if (id == null && (autor == null || !profissionais.existsById(autor))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profissional responsável inválido.");
+        }
 
         documento.setPacienteId(request.getPacienteId());
-        documento.setProfissionalId(autor);
+        if (id == null) {
+            documento.setProfissionalId(autor);
+            documento.setCriadoEm(LocalDateTime.now());
+        }
         documento.setSecao(request.getSecao());
         documento.setTitulo(request.getTitulo());
         documento.setDataSessao(request.getDataSessao());

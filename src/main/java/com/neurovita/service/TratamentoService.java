@@ -3,6 +3,8 @@ package com.neurovita.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -58,9 +60,16 @@ public class TratamentoService {
     public List<TratamentoResponse> listarTodos() {
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
+            Set<String> pacientesVinculados = vinculoRepository
+                    .findByProfissionalIdAndEncerradoEmIsNull(profissionalId)
+                    .stream()
+                    .map(com.neurovita.model.VinculoProfissionalPaciente::getPacienteId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
             return tratamentoRepository.findAll().stream()
-                    .filter(t -> profissionalId.equals(t.getProfissionalId()))
+                    .filter(t -> profissionalId.equals(t.getProfissionalId())
+                            && pacientesVinculados.contains(t.getPacienteId()))
                     .map(TratamentoResponse::new)
                     .toList();
         }
@@ -86,7 +95,14 @@ public class TratamentoService {
         validarAcessoEdicaoExclusao(tratamento);
 
         if (!Objects.equals(tratamento.getPacienteId(), request.getPacienteId())) {
-            throw new AccessDeniedException("O paciente de um tratamento não pode ser alterado.");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "O paciente de um tratamento existente não pode ser alterado.");
+        }
+        if (!Objects.equals(tratamento.getProfissionalId(), request.getProfissionalId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "A autoria de um tratamento existente não pode ser alterada.");
         }
 
         validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());

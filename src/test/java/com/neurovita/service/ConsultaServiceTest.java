@@ -231,4 +231,55 @@ class ConsultaServiceTest {
 
         verify(consultaRepository).save(any(Consulta.class));
     }
+
+    @Test
+    void remarcacaoPreservaSnapshotDaConsultaAnterior() {
+        Consulta existente = consultaExistente();
+        LocalDateTime dataHoraAnterior = existente.getDataHora();
+        when(consultaRepository.findById("consulta-1")).thenReturn(Optional.of(existente));
+        pacienteAtivo();
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(profissionalRepository.findById("prof-1"))
+                .thenAnswer(invocation -> {
+                    Profissional profissional = new Profissional();
+                    profissional.setId("prof-1");
+                    profissional.setAtivo(true);
+                    profissional.setAtendeOnline(true);
+                    profissional.setDisponibilidadeIds(List.of("disp-1"));
+                    return Optional.of(profissional);
+                });
+        Disponibilidade disponibilidade = new Disponibilidade();
+        disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
+        disponibilidade.setHoraInicio(LocalTime.of(9, 0));
+        disponibilidade.setHoraFim(LocalTime.of(12, 0));
+        disponibilidade.setAtivo(true);
+        when(disponibilidadeRepository.findById("disp-1"))
+                .thenReturn(Optional.of(disponibilidade));
+        when(consultaRepository.findByProfissionalId("prof-1"))
+                .thenReturn(List.of(existente));
+        when(consultaRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of(existente));
+        when(consultaRepository.save(any(Consulta.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = consultaService.atualizar("consulta-1", request("ONLINE"));
+
+        assertEquals(StatusConsulta.REMARCADA, response.getStatus());
+        assertEquals(1, response.getHistorico().size());
+        assertEquals(dataHoraAnterior, response.getHistorico().get(0).getDataHora());
+        assertEquals("prof-1", response.getHistorico().get(0).getProfissionalId());
+        assertEquals("admin@neurovita.com", response.getHistorico().get(0).getAlteradaPor());
+    }
+
+    @Test
+    void atualizacaoSemDadosRetornaErroDeRequisicao() {
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(consultaExistente()));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> consultaService.atualizar("consulta-1", null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
 }

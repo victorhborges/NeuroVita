@@ -38,7 +38,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("https://frontend-neurovita-lz6o.onrender.com"));
+                List.of("https://neurovita-dev.onrender.com"));
 
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -110,6 +110,16 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/auth/primeiro-acesso/alterar-senha"
                         ).hasRole("PRIMEIRO_ACESSO")
+
+                        // Troca autenticada de senha
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/alterar-senha"
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL",
+                                "PACIENTE")
 
                         // Administração do sistema
                         .requestMatchers("/api/administradores/**")
@@ -232,6 +242,7 @@ public class SecurityConfig {
                                 "/api/diagnosticos/**",
                                 "/api/tratamentos/**",
                                 "/api/exames/**",
+                                "/api/prescricoes/**",
                                 "/api/documentos-clinicos/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 

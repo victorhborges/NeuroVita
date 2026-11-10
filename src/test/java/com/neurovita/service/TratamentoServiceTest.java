@@ -88,6 +88,19 @@ class TratamentoServiceTest {
     }
 
     @Test
+    void listarTodosNaoExpõeTratamentosApósEncerramentoDoVinculo() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Tratamento anterior = new Tratamento();
+        anterior.setPacienteId("pac-1");
+        anterior.setProfissionalId("prof-1");
+        when(vinculoRepository.findByProfissionalIdAndEncerradoEmIsNull("prof-1"))
+                .thenReturn(List.of());
+        when(tratamentoRepository.findAll()).thenReturn(List.of(anterior));
+
+        assertTrue(service.listarTodos().isEmpty());
+    }
+
+    @Test
     void profissionalComVinculoAtivoNaoPodeDeletarTratamentoDeOutroAutor() {
         autenticarProfissional("prof1@neurovita.test", "prof-1");
 

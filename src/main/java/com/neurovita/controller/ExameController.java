@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.neurovita.dto.ExameRequest;
+import com.neurovita.dto.ExameResultadoRequest;
 import com.neurovita.dto.ExameResponse;
 import com.neurovita.service.ExameService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -56,6 +58,15 @@ public class ExameController {
             @Valid @RequestBody ExameRequest request) {
 
         return ResponseEntity.ok(exameService.atualizar(id, request));
+    }
+
+    @PutMapping("/{id}/resultado")
+    @Operation(summary = "Registrar ou atualizar resultado do exame",
+            description = "Mantém a solicitação original e registra o resultado, anexos e histórico de revisões.")
+    public ResponseEntity<ExameResponse> registrarResultado(
+            @PathVariable String id,
+            @Valid @RequestBody ExameResultadoRequest request) {
+        return ResponseEntity.ok(exameService.registrarResultado(id, request));
     }
 
     @DeleteMapping("/{id}")

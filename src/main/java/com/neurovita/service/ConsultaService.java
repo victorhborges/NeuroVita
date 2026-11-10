@@ -91,6 +91,18 @@ public class ConsultaService {
         Consulta consulta = buscarConsulta(id);
         validarAcessoConsulta(consulta);
 
+        if (request == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Os dados da consulta são obrigatórios.");
+        }
+
+        if (!Objects.equals(consulta.getPacienteId(), request.getPacienteId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "O paciente de uma consulta existente não pode ser alterado.");
+        }
+
         if (consulta.getStatus() == StatusConsulta.CANCELADA) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -103,12 +115,19 @@ public class ConsultaService {
 
         LocalDateTime dataHoraAnterior = consulta.getDataHora();
 
-        boolean dataHoraAlterada = dataHoraAnterior != null
-                && !dataHoraAnterior.equals(request.getDataHora());
+        boolean dataHoraAlterada = !Objects.equals(
+                dataHoraAnterior,
+                request.getDataHora());
 
         boolean profissionalAlterado = !Objects.equals(
                 consulta.getProfissionalId(),
                 request.getProfissionalId());
+
+        if (dataHoraAlterada || profissionalAlterado) {
+            consulta.registrarHistorico(
+                    LocalDateTime.now(),
+                    obterAutenticacao().getName());
+        }
 
         preencherConsulta(consulta, request);
 
@@ -140,6 +159,9 @@ public class ConsultaService {
         }
 
         if (consulta.getStatus() == StatusConsulta.PENDENTE) {
+            consulta.registrarHistorico(
+                    LocalDateTime.now(),
+                    obterAutenticacao().getName());
             consulta.setStatus(StatusConsulta.CONFIRMADA);
             consulta = consultaRepository.save(consulta);
         }
@@ -152,6 +174,9 @@ public class ConsultaService {
         validarAcessoConsulta(consulta);
 
         if (consulta.getStatus() != StatusConsulta.CANCELADA) {
+            consulta.registrarHistorico(
+                    LocalDateTime.now(),
+                    obterAutenticacao().getName());
             consulta.setStatus(StatusConsulta.CANCELADA);
             consultaRepository.save(consulta);
         }

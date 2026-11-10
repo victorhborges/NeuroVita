@@ -1,5 +1,6 @@
 package com.neurovita.service;
 
+import java.time.Instant;
 import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.AlterarSenhaRequest;
+import com.neurovita.dto.AlterarSenhaAutenticadaRequest;
 import com.neurovita.dto.LoginRequest;
 import com.neurovita.dto.LoginResponse;
 import com.neurovita.exception.InvalidCredentialsException;
@@ -70,9 +72,7 @@ public class AuthService {
                         "E-mail ou senha inválidos");
         }
 
-        String token = jwtService.gerarToken(
-                usuario.getEmail(),
-                usuario.isSenhaProvisoria());
+        String token = jwtService.gerarToken(usuario);
 
         String perfil = usuario.getPerfil();
         String categoriaProfissional = null;
@@ -157,7 +157,47 @@ public class AuthService {
 
         usuario.setSenha(passwordEncoder.encode(novaSenha));
         usuario.setSenhaProvisoria(false);
+        usuario.setSenhaAlteradaEm(Instant.now());
+        usuario.incrementarTokenVersion();
 
+        usuarioRepository.save(usuario);
+        }
+
+        public void alterarSenhaAutenticada(
+                String email,
+                AlterarSenhaAutenticadaRequest request) {
+        if (email == null || email.isBlank() || request == null
+                || request.getSenhaAtual() == null || request.getSenhaAtual().isBlank()
+                || request.getNovaSenha() == null || request.getNovaSenha().isBlank()
+                || request.getConfirmarSenha() == null || request.getConfirmarSenha().isBlank()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Senha atual, nova senha e confirmação são obrigatórias.");
+        }
+        if (request.getNovaSenha().length() < 8 || request.getNovaSenha().length() > 72) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "A nova senha deve ter entre 8 e 72 caracteres.");
+        }
+        if (!request.getNovaSenha().equals(request.getConfirmarSenha())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "A nova senha e a confirmação devem ser iguais.");
+        }
+
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email.trim())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Credenciais inválidas."));
+        if (!usuario.isAtivo() || usuario.isSenhaProvisoria()
+                || usuario.getSenha() == null
+                || !passwordEncoder.matches(request.getSenhaAtual(), usuario.getSenha())) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Credenciais inválidas.");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(request.getNovaSenha()));
+        usuario.setSenhaAlteradaEm(Instant.now());
+        usuario.incrementarTokenVersion();
         usuarioRepository.save(usuario);
         }
 }

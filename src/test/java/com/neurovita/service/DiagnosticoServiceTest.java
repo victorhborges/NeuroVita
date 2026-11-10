@@ -94,6 +94,19 @@ class DiagnosticoServiceTest {
     }
 
     @Test
+    void listarTodosNaoExpõeDiagnosticosApósEncerramentoDoVinculo() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Diagnostico anterior = new Diagnostico();
+        anterior.setPacienteId("pac-1");
+        anterior.setProfissionalId("prof-1");
+        when(vinculoRepository.findByProfissionalIdAndEncerradoEmIsNull("prof-1"))
+                .thenReturn(List.of());
+        when(diagnosticoRepository.findAll()).thenReturn(List.of(anterior));
+
+        assertTrue(service.listarTodos().isEmpty());
+    }
+
+    @Test
     void profissionalComVinculoAtivoNaoPodeEditarDiagnosticoDeOutroAutor() {
         autenticarProfissional("prof1@neurovita.test", "prof-1");
 

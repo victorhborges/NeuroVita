@@ -77,7 +77,6 @@ public class PacienteService {
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
-        validarPlanoSaude(request);
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request);
@@ -174,7 +173,6 @@ public class PacienteService {
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
-        validarPlanoSaude(request);
 
         preencherPaciente(paciente, request);
 
@@ -241,26 +239,18 @@ public class PacienteService {
         paciente.setCpf(request.getCpf());
         paciente.setTelefone(request.getTelefone());
         paciente.setEndereco(request.getEndereco());
+        if (request.getCep() != null && !request.getCep().isBlank()) {
+                paciente.setCep(request.getCep());
+        }
+        if (request.getCidade() != null && !request.getCidade().isBlank()) {
+                paciente.setCidade(request.getCidade());
+        }
         paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
 
         paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
         paciente.setPlanoSaude(request.getPlanoSaude());
         paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
         paciente.setValidadePlano(request.getValidadePlano());
-    }
-
-    private void validarPlanoSaude(PacienteRequest request) {
-        if (!Boolean.TRUE.equals(request.getPossuiPlanoSaude())) {
-            return;
-        }
-
-        if (request.getPlanoSaude() == null || request.getPlanoSaude().isBlank()
-                || request.getNumeroCarteirinha() == null || request.getNumeroCarteirinha().isBlank()
-                || request.getValidadePlano() == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Informe o plano, o número da carteirinha e a validade quando o paciente possuir plano de saúde.");
-        }
     }
 
     private List<VinculoResponsavelRequest> validarResponsaveis(

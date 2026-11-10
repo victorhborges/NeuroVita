@@ -82,13 +82,29 @@ public class RecuperacaoSenhaService {
     }
 
     public void redefinir(RedefinirSenhaRequest request) {
+        if (request == null || request.token() == null || request.token().isBlank()
+                || request.novaSenha() == null || request.novaSenha().isBlank()
+                || request.confirmarSenha() == null || request.confirmarSenha().isBlank()
+                || request.novaSenha().length() < 8 || request.novaSenha().length() > 72) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dados para redefinição inválidos.");
+        }
         if (!request.novaSenha().equals(request.confirmarSenha())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "As senhas informadas não conferem.");
         RecuperacaoSenha registro = recuperacoes.findByTokenHash(hashToken(request.token()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido ou expirado."));
-        if (!registro.getExpiraEm().isAfter(Instant.now())) { recuperacoes.delete(registro); throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido ou expirado."); }
+        if (registro.getExpiraEm() == null || !registro.getExpiraEm().isAfter(Instant.now())) {
+            recuperacoes.delete(registro);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido ou expirado.");
+        }
         var usuario = usuarios.findByEmailIgnoreCase(registro.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido ou expirado."));
-        usuario.setSenha(encoder.encode(request.novaSenha())); usuario.setSenhaProvisoria(false); usuarios.save(usuario);
+        if (!usuario.isAtivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido ou expirado.");
+        }
+        usuario.setSenha(encoder.encode(request.novaSenha()));
+        usuario.setSenhaProvisoria(false);
+        usuario.setSenhaAlteradaEm(Instant.now());
+        usuario.incrementarTokenVersion();
+        usuarios.save(usuario);
         recuperacoes.delete(registro);
     }
 

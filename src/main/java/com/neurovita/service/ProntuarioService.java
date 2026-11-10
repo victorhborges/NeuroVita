@@ -76,17 +76,24 @@ public class ProntuarioService {
     public ProntuarioResponse atualizar(
             String id, ProntuarioRequest request) {
 
+        if (request == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Os dados do prontuário são obrigatórios.");
+        }
         Prontuario prontuario = buscarProntuario(id);
 
         validarAcessoPaciente(prontuario.getPacienteId());
 
-        if (ehProfissionalAutenticado()
-                && (!Objects.equals(prontuario.getProfissionalId(), profissionalIdAutenticado())
-                        || !Objects.equals(prontuario.getPacienteId(), request.getPacienteId())
-                        || !Objects.equals(prontuario.getProfissionalId(), request.getProfissionalId()))) {
-            throw new AccessDeniedException(
-                    "O profissional não pode alterar o vínculo "
-                            + "do prontuário para outro profissional.");
+        if (!Objects.equals(prontuario.getPacienteId(), request.getPacienteId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "O paciente de um prontuário existente não pode ser alterado.");
+        }
+        if (!Objects.equals(prontuario.getProfissionalId(), request.getProfissionalId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "A autoria de um prontuário existente não pode ser alterada.");
         }
 
         validarVinculos(request);

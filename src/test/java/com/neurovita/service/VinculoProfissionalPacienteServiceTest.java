@@ -24,6 +24,7 @@ import com.neurovita.model.Profissional;
 import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
+import com.neurovita.repository.UsuarioRepository;
 import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +32,7 @@ class VinculoProfissionalPacienteServiceTest {
     @Mock private VinculoProfissionalPacienteRepository vinculos;
     @Mock private PacienteRepository pacientes;
     @Mock private ProfissionalRepository profissionais;
+    @Mock private UsuarioRepository usuarios;
     @InjectMocks private VinculoProfissionalPacienteService service;
 
     private UsernamePasswordAuthenticationToken gestor() {
@@ -94,6 +96,37 @@ class VinculoProfissionalPacienteServiceTest {
                 List.of(new SimpleGrantedAuthority("ROLE_PROFISSIONAL")));
         assertThrows(AccessDeniedException.class, () -> service.abrir(request(), profissional));
         verifyNoInteractions(pacientes, profissionais, vinculos);
+    }
+
+    @Test
+    void profissionalSoConsultaHistoricoDePacienteComVinculoAtivo() {
+        var profissional = new UsernamePasswordAuthenticationToken("p@neurovita.test", "token",
+                List.of(new SimpleGrantedAuthority("ROLE_PROFISSIONAL")));
+        var usuario = new com.neurovita.model.Usuario();
+        usuario.setEntidadeId("prof1");
+        when(usuarios.findByEmailIgnoreCase("p@neurovita.test")).thenReturn(Optional.of(usuario));
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("p1", "prof1"))
+                .thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(pacientes.existsById("p1")).thenReturn(true);
+        when(vinculos.findByPacienteIdOrderByIniciadoEmDesc("p1")).thenReturn(List.of());
+
+        assertTrue(service.listarPorPaciente("p1", profissional).isEmpty());
+        verify(vinculos).findByPacienteIdOrderByIniciadoEmDesc("p1");
+    }
+
+    @Test
+    void profissionalSemVinculoAtivoNaoConsultaHistoricoDePaciente() {
+        var profissional = new UsernamePasswordAuthenticationToken("p@neurovita.test", "token",
+                List.of(new SimpleGrantedAuthority("ROLE_PROFISSIONAL")));
+        var usuario = new com.neurovita.model.Usuario();
+        usuario.setEntidadeId("prof2");
+        when(usuarios.findByEmailIgnoreCase("p@neurovita.test")).thenReturn(Optional.of(usuario));
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("p1", "prof2"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.listarPorPaciente("p1", profissional));
+        verify(vinculos, never()).findByPacienteIdOrderByIniciadoEmDesc(anyString());
     }
 
     private Paciente ativoPaciente() { Paciente p = new Paciente(); p.setAtivo(true); return p; }

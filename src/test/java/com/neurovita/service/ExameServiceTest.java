@@ -18,6 +18,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.neurovita.model.Exame;
+import com.neurovita.dto.ExameResultadoRequest;
 import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.ExameRepository;
@@ -87,6 +88,19 @@ class ExameServiceTest {
     }
 
     @Test
+    void listarTodosNaoExpõeExamesApósEncerramentoDoVinculo() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame anterior = new Exame();
+        anterior.setPacienteId("pac-1");
+        anterior.setProfissionalId("prof-1");
+        when(vinculoRepository.findByProfissionalIdAndEncerradoEmIsNull("prof-1"))
+                .thenReturn(List.of());
+        when(exameRepository.findAll()).thenReturn(List.of(anterior));
+
+        assertTrue(service.listarTodos().isEmpty());
+    }
+
+    @Test
     void profissionalComVinculoAtivoNaoPodeDeletarExameDeOutroAutor() {
         autenticarProfissional("prof1@neurovita.test", "prof-1");
 
@@ -101,5 +115,50 @@ class ExameServiceTest {
 
         assertThrows(AccessDeniedException.class, () -> service.deletar("e1"));
         verify(exameRepository, never()).delete(any());
+    }
+
+    @Test
+    void profissionalRegistraResultadoSeparadoDaSolicitacaoEPreservaSeuHistorico() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setNome("Exame solicitado");
+        exame.setSolicitadoEm(java.time.LocalDateTime.now().minusDays(1));
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ExameResultadoRequest resultado = new ExameResultadoRequest();
+        resultado.setDataRealizacao(java.time.LocalDate.now());
+        resultado.setResultado("Resultado registrado");
+
+        var response = service.registrarResultado("e1", resultado);
+
+        assertEquals("Exame solicitado", response.getNome());
+        assertEquals("Resultado registrado", response.getResultado());
+        assertEquals("prof-1", response.getProfissionalId());
+        assertEquals(exame.getSolicitadoEm(), response.getSolicitadoEm());
+        assertNotNull(response.getResultadoAtualizadoEm());
+        verify(exameRepository).save(exame);
+    }
+
+    @Test
+    void resultadoExigeTextoOuAnexo() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        ExameResultadoRequest resultado = new ExameResultadoRequest();
+        resultado.setDataRealizacao(java.time.LocalDate.now());
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.registrarResultado("e1", resultado));
+        verify(exameRepository, never()).save(any());
     }
 }
