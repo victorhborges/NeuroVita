@@ -31,7 +31,7 @@ public class PrescricaoController {
 
     @PostMapping
     @Operation(summary = "Registrar prescrição textual",
-            description = "Cria uma prescrição de texto livre preservando paciente, profissional autor e datas.")
+            description = "Cria uma prescrição com conteúdo livre opcionalmente acompanhado de itens estruturados de medicamento, dosagem, posologia, frequência e duração.")
     public ResponseEntity<PrescricaoResponse> criar(@Valid @RequestBody PrescricaoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request));
     }

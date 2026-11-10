@@ -63,18 +63,40 @@ public class ConsultaService {
     }
 
     public List<ConsultaResponse> listarTodos() {
-        if (ehProfissional()) {
-            String profissionalId = obterProfissionalId();
+        return listarTodos(null, null);
+    }
 
-            return consultaRepository.findByProfissionalId(profissionalId)
-                    .stream()
-                    .map(ConsultaResponse::new)
-                    .toList();
+    public List<ConsultaResponse> listarTodos(
+            LocalDateTime dataInicio, LocalDateTime dataFim) {
+        if ((dataInicio == null) != (dataFim == null)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe dataInicio e dataFim juntos.");
+        }
+        if (dataInicio != null && !dataInicio.isBefore(dataFim)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "dataInicio deve ser anterior a dataFim.");
         }
 
-        exigirAdministradorOuSecretaria();
+        List<Consulta> consultas;
+        if (ehProfissional()) {
+            String profissionalId = obterProfissionalId();
+            consultas = dataInicio == null
+                    ? consultaRepository.findByProfissionalId(profissionalId)
+                    : consultaRepository
+                            .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                    profissionalId, dataInicio, dataFim);
+        } else {
+            exigirAdministradorOuSecretaria();
+            consultas = dataInicio == null
+                    ? consultaRepository.findAll()
+                    : consultaRepository
+                            .findByDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                    dataInicio, dataFim);
+        }
 
-        return consultaRepository.findAll()
+        return consultas
                 .stream()
                 .map(ConsultaResponse::new)
                 .toList();
@@ -185,15 +207,24 @@ public class ConsultaService {
     }
 
     public void deletar(String id) {
-        Consulta consulta = buscarConsulta(id);
-        validarAcessoConsulta(consulta);
-
-        consultaRepository.deleteById(id);
+        cancelar(id);
     }
 
     public List<ConsultaResponse> listarPorPaciente(String pacienteId) {
+        if (ehPaciente() && !obterPacienteId().equals(pacienteId)) {
+            throw new AccessDeniedException(
+                    "Pacientes podem consultar somente as próprias consultas");
+        }
+
         if (!pacienteRepository.existsById(pacienteId)) {
             throw new ResourceNotFoundException("Paciente não encontrado");
+        }
+
+        if (ehPaciente()) {
+            return consultaRepository.findByPacienteId(pacienteId)
+                    .stream()
+                    .map(ConsultaResponse::new)
+                    .toList();
         }
 
         if (ehProfissional()) {
@@ -467,7 +498,13 @@ public class ConsultaService {
                     "Acesso permitido somente às próprias consultas");
         }
 
-        if (!ehProfissional()) {
+        if (ehPaciente()
+                && !obterPacienteId().equals(consulta.getPacienteId())) {
+            throw new AccessDeniedException(
+                    "Pacientes podem consultar somente as próprias consultas");
+        }
+
+        if (!ehProfissional() && !ehPaciente()) {
             exigirAdministradorOuSecretaria();
         }
     }
@@ -484,6 +521,12 @@ public class ConsultaService {
         return obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_PROFISSIONAL"));
+    }
+
+    private boolean ehPaciente() {
+        return obterAutenticacao().getAuthorities().stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_PACIENTE"));
     }
 
     private void exigirAdministradorOuSecretaria() {
@@ -512,6 +555,19 @@ public class ConsultaService {
                     "Usuário sem vínculo com um profissional");
         }
 
+        return usuario.getEntidadeId();
+    }
+
+    private String obterPacienteId() {
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(obterAutenticacao().getName())
+                .orElseThrow(() ->
+                        new AccessDeniedException("Usuário não encontrado"));
+        if (usuario.getEntidadeId() == null
+                || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException(
+                    "Usuário sem vínculo com um paciente");
+        }
         return usuario.getEntidadeId();
     }
 

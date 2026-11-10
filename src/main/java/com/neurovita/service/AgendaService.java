@@ -143,9 +143,21 @@ public class AgendaService {
     }
 
     public List<ConsultaResponse> listarPorPaciente(String pacienteId) {
+        if (ehPaciente() && !obterPacienteId().equals(pacienteId)) {
+            throw new AccessDeniedException(
+                    "Pacientes podem consultar somente a própria agenda");
+        }
+
         if (!pacienteRepository.existsById(pacienteId)) {
             throw new AccessDeniedException(
                     "Paciente não encontrado ou sem acesso");
+        }
+
+        if (ehPaciente()) {
+            return consultaRepository.findByPacienteId(pacienteId)
+                    .stream()
+                    .map(ConsultaResponse::new)
+                    .toList();
         }
 
         if (ehProfissional()) {
@@ -169,6 +181,12 @@ public class AgendaService {
         return obterAutenticacao().getAuthorities().stream()
                 .anyMatch(a ->
                         a.getAuthority().equals("ROLE_PROFISSIONAL"));
+    }
+
+    private boolean ehPaciente() {
+        return obterAutenticacao().getAuthorities().stream()
+                .anyMatch(a ->
+                        a.getAuthority().equals("ROLE_PACIENTE"));
     }
 
     private long contar(List<Consulta> consultas, StatusConsulta status) {
@@ -207,6 +225,21 @@ public class AgendaService {
                 || usuario.getEntidadeId().isBlank()) {
             throw new AccessDeniedException(
                     "Usuário sem vínculo com um profissional");
+        }
+
+        return usuario.getEntidadeId();
+    }
+
+    private String obterPacienteId() {
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(obterAutenticacao().getName())
+                .orElseThrow(() ->
+                        new AccessDeniedException("Usuário não encontrado"));
+
+        if (usuario.getEntidadeId() == null
+                || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException(
+                    "Usuário sem vínculo com um paciente");
         }
 
         return usuario.getEntidadeId();

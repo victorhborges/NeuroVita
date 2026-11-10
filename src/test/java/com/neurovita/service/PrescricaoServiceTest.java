@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -25,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.PrescricaoRequest;
 import com.neurovita.model.Prescricao;
+import com.neurovita.model.Prescricao.MedicamentoPrescrito;
 import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.PacienteRepository;
@@ -86,6 +88,46 @@ class PrescricaoServiceTest {
     }
 
     @Test
+    void profissionalPodeRegistrarCamposEstruturadosDaPrescricao() {
+        autenticarProfissional("prof@neurovita.test", "prof-1");
+        when(pacientes.existsById("pac-1")).thenReturn(true);
+        when(profissionais.existsById("prof-1")).thenReturn(true);
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
+                .thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(prescricoes.save(any(Prescricao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        MedicamentoPrescrito medicamento = new MedicamentoPrescrito();
+        medicamento.setMedicamento("Medicamento A");
+        medicamento.setDosagem("10 mg");
+        medicamento.setPosologia("Tomar conforme orientação profissional");
+        medicamento.setFrequencia("1 vez ao dia");
+        medicamento.setDuracao("7 dias");
+        PrescricaoRequest request = request("pac-1", null, "Orientações adicionais");
+        request.setMedicamentos(List.of(medicamento));
+
+        var response = service.criar(request);
+
+        assertEquals(1, response.medicamentos().size());
+        assertEquals("Medicamento A", response.medicamentos().get(0).getMedicamento());
+        assertEquals("10 mg", response.medicamentos().get(0).getDosagem());
+        assertEquals("Tomar conforme orientação profissional",
+                response.medicamentos().get(0).getPosologia());
+        assertEquals("1 vez ao dia", response.medicamentos().get(0).getFrequencia());
+        assertEquals("7 dias", response.medicamentos().get(0).getDuracao());
+    }
+
+    @Test
+    void itemEstruturadoExigeIdentificacaoDoMedicamento() {
+        PrescricaoRequest request = request("pac-1", null, "Orientações");
+        request.setMedicamentos(List.of(new MedicamentoPrescrito()));
+
+        ResponseStatusException erro = assertThrows(ResponseStatusException.class,
+                () -> service.criar(request));
+
+        assertEquals(400, erro.getStatusCode().value());
+        verifyNoInteractions(prescricoes);
+    }
+
+    @Test
     void profissionalSemVinculoAtivoNaoPodeCriarPrescricao() {
         autenticarProfissional("prof@neurovita.test", "prof-1");
         when(pacientes.existsById("pac-1")).thenReturn(true);
@@ -106,6 +148,10 @@ class PrescricaoServiceTest {
         prescricao.setPacienteId("pac-1");
         prescricao.setProfissionalId("prof-1");
         prescricao.setConteudo("Conteúdo anterior");
+        MedicamentoPrescrito medicamentoAnterior = new MedicamentoPrescrito();
+        medicamentoAnterior.setMedicamento("Medicamento anterior");
+        medicamentoAnterior.setDosagem("5 mg");
+        prescricao.setMedicamentos(List.of(medicamentoAnterior));
         when(prescricoes.findById("presc-1")).thenReturn(Optional.of(prescricao));
         when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
                 .thenReturn(Optional.of(new VinculoProfissionalPaciente()));
@@ -118,6 +164,9 @@ class PrescricaoServiceTest {
         assertEquals(1, response.historico().size());
         assertEquals("Conteúdo anterior", response.historico().get(0).getConteudo());
         assertEquals("prof@neurovita.test", response.historico().get(0).getRegistradaPor());
+        assertEquals("Medicamento anterior",
+                response.historico().get(0).getMedicamentos().get(0).getMedicamento());
+        assertEquals("Medicamento anterior", response.medicamentos().get(0).getMedicamento());
         assertEquals("prof-1", response.profissionalId());
     }
 

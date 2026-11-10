@@ -60,6 +60,7 @@ public class PrescricaoService {
         prescricao.setPacienteId(request.getPacienteId());
         prescricao.setProfissionalId(autor);
         prescricao.setConteudo(request.getConteudo().trim());
+        prescricao.setMedicamentos(request.getMedicamentos());
         prescricao.setCriadaEm(agora);
         prescricao.setAtualizadaEm(agora);
         return new PrescricaoResponse(prescricoes.save(prescricao));
@@ -96,6 +97,9 @@ public class PrescricaoService {
         LocalDateTime agora = LocalDateTime.now();
         atual.registrarRevisao(agora, autenticacao().getName());
         atual.setConteudo(request.getConteudo().trim());
+        if (request.getMedicamentos() != null) {
+            atual.setMedicamentos(request.getMedicamentos());
+        }
         atual.setAtualizadaEm(agora);
         return new PrescricaoResponse(prescricoes.save(atual));
     }
@@ -105,6 +109,13 @@ public class PrescricaoService {
                 || request.getConteudo() == null || request.getConteudo().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Paciente e conteúdo textual da prescrição são obrigatórios.");
+        }
+        if (request.getMedicamentos() != null
+                && request.getMedicamentos().stream().anyMatch(medicamento ->
+                        medicamento == null || medicamento.getMedicamento() == null
+                                || medicamento.getMedicamento().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cada item estruturado deve informar o medicamento.");
         }
     }
 

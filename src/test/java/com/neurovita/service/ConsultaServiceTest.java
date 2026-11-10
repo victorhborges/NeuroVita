@@ -3,6 +3,7 @@ package com.neurovita.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -34,6 +36,7 @@ import com.neurovita.model.Disponibilidade;
 import com.neurovita.model.Paciente;
 import com.neurovita.model.Profissional;
 import com.neurovita.model.StatusConsulta;
+import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DisponibilidadeRepository;
 import com.neurovita.repository.PacienteRepository;
@@ -281,5 +284,87 @@ class ConsultaServiceTest {
                 () -> consultaService.atualizar("consulta-1", null));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void listarPorIntervaloUsaLimitesInclusivoEExclusivo() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
+        LocalDateTime fim = inicio.plusDays(1);
+        Consulta consulta = consultaExistente();
+        when(consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(
+                inicio, fim)).thenReturn(List.of(consulta));
+
+        var resultado = consultaService.listarTodos(inicio, fim);
+
+        assertEquals(1, resultado.size());
+        verify(consultaRepository)
+                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
+        verify(consultaRepository, never()).findAll();
+    }
+
+    @Test
+    void rejeitaIntervaloDeConsultasIncompletoOuInvertido() {
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(
+                ResponseStatusException.class,
+                () -> consultaService.listarTodos(
+                        LocalDateTime.now(), null)).getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(
+                ResponseStatusException.class,
+                () -> consultaService.listarTodos(
+                        LocalDateTime.of(2026, 11, 2, 0, 0),
+                        LocalDateTime.of(2026, 11, 1, 0, 0))).getStatusCode());
+
+        verify(consultaRepository, never()).findAll();
+    }
+
+    @Test
+    void deleteCancelaEPreservaConsultaEHistorico() {
+        Consulta consulta = consultaExistente();
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(consulta));
+        doReturn(consulta).when(consultaRepository).save(consulta);
+
+        consultaService.deletar("consulta-1");
+
+        assertEquals(StatusConsulta.CANCELADA, consulta.getStatus());
+        assertEquals(1, consulta.getHistorico().size());
+        verify(consultaRepository).save(consulta);
+        verify(consultaRepository, never()).deleteById("consulta-1");
+    }
+
+    @Test
+    void pacienteListaSomenteAsPropriasConsultas() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.com",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        Usuario usuario = new Usuario();
+        usuario.setEntidadeId("pac-1");
+        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
+                .thenReturn(Optional.of(usuario));
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(consultaRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of(consultaExistente()));
+
+        assertEquals(1, consultaService.listarPorPaciente("pac-1").size());
+    }
+
+    @Test
+    void pacienteNaoPodeConsultarAgendaDeOutroPaciente() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.com",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        Usuario usuario = new Usuario();
+        usuario.setEntidadeId("pac-1");
+        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
+                .thenReturn(Optional.of(usuario));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> consultaService.listarPorPaciente("pac-2"));
+        verify(pacienteRepository, never()).existsById("pac-2");
     }
 }

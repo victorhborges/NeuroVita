@@ -115,6 +115,7 @@ public class ExameService {
         }
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
+        exigirAtivo(exame);
 
         if (!Objects.equals(exame.getPacienteId(), request.getPacienteId())) {
             throw new AccessDeniedException("O paciente de um exame não pode ser alterado.");
@@ -150,6 +151,7 @@ public class ExameService {
         }
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
+        exigirAtivo(exame);
         validarAnexos(request.getAnexos());
         if ((request.getResultado() == null || request.getResultado().isBlank())
                 && (request.getAnexos() == null || request.getAnexos().isEmpty())) {
@@ -171,7 +173,11 @@ public class ExameService {
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
 
-        exameRepository.delete(exame);
+        if (exame.isAtivo()) {
+            exame.setAtivo(false);
+            exame.setArquivadoEm(LocalDateTime.now());
+            exameRepository.save(exame);
+        }
     }
 
     public List<ExameResponse> listarPorPaciente(String pacienteId) {
@@ -239,6 +245,14 @@ public class ExameService {
         return exameRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Exame não encontrado"));
+    }
+
+    private void exigirAtivo(Exame exame) {
+        if (!exame.isAtivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Um exame arquivado não pode ser alterado.");
+        }
     }
 
     private void validarAcessoLeitura(Exame exame) {

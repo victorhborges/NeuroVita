@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -160,6 +161,7 @@ class PacienteServiceTest {
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
         request.setAtivo(true);
         request.setPossuiPlanoSaude(true);
+        request.setPlanoSaude("Plano Teste");
 
         when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
         when(pacienteRepository.save(any(Paciente.class)))
@@ -171,6 +173,23 @@ class PacienteServiceTest {
 
         assertTrue(response.getPossuiPlanoSaude());
         assertEquals("pac-1", response.getId());
+    }
+
+    @Test
+    void exigeIdentificacaoDoPlanoQuandoPacientePossuiPlano() {
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Teste");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        request.setPossuiPlanoSaude(true);
+
+        var exception = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> pacienteService.salvar(request));
+
+        assertEquals(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                exception.getStatusCode());
+        verify(pacienteRepository, never()).save(any(Paciente.class));
     }
 
     @Test
@@ -192,6 +211,38 @@ class PacienteServiceTest {
 
         assertEquals("70000000", response.getCep());
         assertEquals("Brasília", response.getCidade());
+    }
+
+    @Test
+    void pacientePodeConsultarSomenteSeuProprioCadastro() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.com",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        Paciente paciente = paciente("pac-1");
+        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
+                .thenReturn(Optional.of(usuario("pac-1")));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        assertEquals("pac-1", pacienteService.buscarPorId("pac-1").getId());
+    }
+
+    @Test
+    void pacienteNaoPodeConsultarCadastroDeOutroPaciente() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.com",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
+                .thenReturn(Optional.of(usuario("pac-1")));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> pacienteService.buscarPorId("pac-2"));
+        verify(pacienteRepository, never()).findById("pac-2");
     }
 
     @Test

@@ -17,6 +17,7 @@ import com.neurovita.dto.TratamentoRequest;
 import com.neurovita.dto.TratamentoResponse;
 import com.neurovita.service.TratamentoService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -60,6 +61,8 @@ public class TratamentoController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Arquivar tratamento",
+            description = "Preserva o tratamento no histórico e o identifica como inativo.")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         tratamentoService.deletar(id);
 

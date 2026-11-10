@@ -93,6 +93,7 @@ public class TratamentoService {
 
         Tratamento tratamento = buscarTratamento(id);
         validarAcessoEdicaoExclusao(tratamento);
+        exigirAtivo(tratamento);
 
         if (!Objects.equals(tratamento.getPacienteId(), request.getPacienteId())) {
             throw new org.springframework.web.server.ResponseStatusException(
@@ -119,7 +120,11 @@ public class TratamentoService {
         Tratamento tratamento = buscarTratamento(id);
         validarAcessoEdicaoExclusao(tratamento);
 
-        tratamentoRepository.delete(tratamento);
+        if (tratamento.isAtivo()) {
+            tratamento.setAtivo(false);
+            tratamento.setArquivadoEm(java.time.LocalDateTime.now());
+            tratamentoRepository.save(tratamento);
+        }
     }
 
     public List<TratamentoResponse> listarPorPaciente(String pacienteId) {
@@ -161,6 +166,14 @@ public class TratamentoService {
         tratamento.setFrequencia(request.getFrequencia());
         tratamento.setDuracao(request.getDuracao());
         tratamento.setObservacoes(request.getObservacoes());
+    }
+
+    private void exigirAtivo(Tratamento tratamento) {
+        if (!tratamento.isAtivo()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Um tratamento arquivado não pode ser alterado.");
+        }
     }
 
     private Tratamento buscarTratamento(String id) {

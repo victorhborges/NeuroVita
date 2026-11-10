@@ -82,6 +82,11 @@ public class DocumentoClinicoService {
                     HttpStatus.CONFLICT,
                     "O paciente de um documento clínico existente não pode ser alterado.");
         }
+        if (id != null && !documento.isAtivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Um documento clínico arquivado não pode ser alterado.");
+        }
         if (id != null && !ehAdmin(auth) && !profissionalId(auth).equals(documento.getProfissionalId())) {
             throw new AccessDeniedException("Acesso permitido somente aos próprios documentos clínicos.");
         }
@@ -122,7 +127,11 @@ public class DocumentoClinicoService {
         if (!ehAdmin(auth) && !profissionalId(auth).equals(documento.getProfissionalId())) {
             throw new AccessDeniedException("Acesso permitido somente aos próprios documentos clínicos.");
         }
-        repository.delete(documento);
+        if (documento.isAtivo()) {
+            documento.setAtivo(false);
+            documento.setArquivadoEm(LocalDateTime.now());
+            repository.save(documento);
+        }
     }
 
     private void exigirProfissionalOuAdmin(Authentication auth) {

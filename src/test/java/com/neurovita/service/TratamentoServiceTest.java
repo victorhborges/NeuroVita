@@ -116,4 +116,46 @@ class TratamentoServiceTest {
         assertThrows(AccessDeniedException.class, () -> service.deletar("t1"));
         verify(tratamentoRepository, never()).delete(any());
     }
+
+    @Test
+    void exclusaoArquivaTratamentoSemApagarHistorico() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Tratamento tratamento = new Tratamento();
+        tratamento.setId("t1");
+        tratamento.setPacienteId("pac-1");
+        tratamento.setProfissionalId("prof-1");
+        when(tratamentoRepository.findById("t1")).thenReturn(Optional.of(tratamento));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(tratamentoRepository.save(any(Tratamento.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.deletar("t1");
+
+        assertFalse(tratamento.isAtivo());
+        assertNotNull(tratamento.getArquivadoEm());
+        verify(tratamentoRepository).save(tratamento);
+        verify(tratamentoRepository, never()).delete(any());
+    }
+
+    @Test
+    void tratamentoArquivadoNaoPodeSerAtualizado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Tratamento tratamento = new Tratamento();
+        tratamento.setId("t1");
+        tratamento.setPacienteId("pac-1");
+        tratamento.setProfissionalId("prof-1");
+        tratamento.setAtivo(false);
+        when(tratamentoRepository.findById("t1")).thenReturn(Optional.of(tratamento));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        TratamentoRequest request = new TratamentoRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setDescricao("Atualização");
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.atualizar("t1", request));
+        verify(tratamentoRepository, never()).save(any());
+    }
 }

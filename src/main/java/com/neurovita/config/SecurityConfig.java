@@ -147,7 +147,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/pacientes/*"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PACIENTE")
 
                         .requestMatchers(
                                 HttpMethod.PUT,
@@ -192,6 +195,18 @@ public class SecurityConfig {
                         // Demais operações com profissionais
                         .requestMatchers("/api/profissionais/**")
                         .hasRole("ADMINISTRADOR")
+
+                        // Leitura das próprias consultas do paciente
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/consultas/paciente/*",
+                                "/api/consultas/*",
+                                "/api/agenda/paciente/*")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL",
+                                "SECRETARIA",
+                                "PACIENTE")
 
                         // Consultas e agenda
                         .requestMatchers(

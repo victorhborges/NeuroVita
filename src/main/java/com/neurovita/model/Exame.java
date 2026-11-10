@@ -27,6 +27,8 @@ public class Exame {
     private LocalDateTime resultadoAtualizadoEm;
     private List<DocumentoClinico.AnexoClinico> anexosResultado = new ArrayList<>();
     private List<HistoricoResultado> historicoResultados = new ArrayList<>();
+    private Boolean ativo = true;
+    private LocalDateTime arquivadoEm;
 
     public Exame() {
     }
@@ -111,6 +113,10 @@ public class Exame {
     public void setHistoricoResultados(List<HistoricoResultado> historicoResultados) {
         this.historicoResultados = historicoResultados == null ? new ArrayList<>() : historicoResultados;
     }
+    public boolean isAtivo() { return ativo == null || ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public LocalDateTime getArquivadoEm() { return arquivadoEm; }
+    public void setArquivadoEm(LocalDateTime arquivadoEm) { this.arquivadoEm = arquivadoEm; }
 
     public void registrarResultadoAnterior(LocalDateTime atualizadoEm, String atualizadoPor) {
         if (resultado == null && dataRealizacao == null

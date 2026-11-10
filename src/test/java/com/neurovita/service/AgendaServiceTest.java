@@ -2,8 +2,10 @@ package com.neurovita.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,12 +17,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.neurovita.model.Consulta;
 import com.neurovita.model.StatusConsulta;
+import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
@@ -66,6 +70,42 @@ class AgendaServiceTest {
         assertEquals(confirmada.getDataHora(), resumo.proximoAtendimento().getDataHora());
         verify(consultas).findByDataHoraGreaterThanEqualAndDataHoraLessThan(
                 data.atStartOfDay(), data.plusDays(1).atStartOfDay());
+    }
+
+    @Test
+    void pacientePodeConsultarSomenteSuaPropriaAgenda() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.test",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        Usuario usuario = new Usuario();
+        usuario.setEntidadeId("pac-1");
+        when(usuarios.findByEmailIgnoreCase("paciente@neurovita.test"))
+                .thenReturn(java.util.Optional.of(usuario));
+        when(pacientes.existsById("pac-1")).thenReturn(true);
+        when(consultas.findByPacienteId("pac-1"))
+                .thenReturn(List.of(consulta(LocalDateTime.now(), StatusConsulta.PENDENTE)));
+
+        assertEquals(1, service.listarPorPaciente("pac-1").size());
+    }
+
+    @Test
+    void pacienteNaoPodeConsultarAgendaDeOutroPaciente() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "paciente@neurovita.test",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+        Usuario usuario = new Usuario();
+        usuario.setEntidadeId("pac-1");
+        when(usuarios.findByEmailIgnoreCase("paciente@neurovita.test"))
+                .thenReturn(java.util.Optional.of(usuario));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> service.listarPorPaciente("pac-2"));
+        verify(pacientes, never()).existsById("pac-2");
     }
 
     private Consulta consulta(LocalDateTime dataHora, StatusConsulta status) {

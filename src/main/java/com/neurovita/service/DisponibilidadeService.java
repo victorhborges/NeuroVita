@@ -13,6 +13,7 @@ import com.neurovita.dto.DisponibilidadeResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Disponibilidade;
 import com.neurovita.repository.DisponibilidadeRepository;
+import com.neurovita.repository.ProfissionalRepository;
 
 @Service
 public class DisponibilidadeService {
@@ -32,10 +33,13 @@ public class DisponibilidadeService {
             + "QUARTA_FEIRA, QUINTA_FEIRA, SEXTA_FEIRA, SABADO ou DOMINGO.";
 
     private final DisponibilidadeRepository disponibilidadeRepository;
+    private final ProfissionalRepository profissionalRepository;
 
     public DisponibilidadeService(
-            DisponibilidadeRepository disponibilidadeRepository) {
+            DisponibilidadeRepository disponibilidadeRepository,
+            ProfissionalRepository profissionalRepository) {
         this.disponibilidadeRepository = disponibilidadeRepository;
+        this.profissionalRepository = profissionalRepository;
     }
 
     public DisponibilidadeResponse salvar(DisponibilidadeRequest request) {
@@ -90,6 +94,12 @@ public class DisponibilidadeService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Disponibilidade não encontrada"));
+
+        for (var profissional :
+                profissionalRepository.findByDisponibilidadeIdsContaining(id)) {
+            profissional.getDisponibilidadeIds().removeIf(id::equals);
+            profissionalRepository.save(profissional);
+        }
 
         disponibilidadeRepository.delete(disponibilidade);
     }

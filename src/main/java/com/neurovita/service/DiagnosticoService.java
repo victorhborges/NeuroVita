@@ -93,6 +93,7 @@ public class DiagnosticoService {
 
         Diagnostico diagnostico = buscarDiagnostico(id);
         validarAcessoEdicaoExclusao(diagnostico);
+        exigirAtivo(diagnostico);
 
         if (!Objects.equals(diagnostico.getPacienteId(), request.getPacienteId())) {
             throw new org.springframework.web.server.ResponseStatusException(
@@ -119,7 +120,11 @@ public class DiagnosticoService {
         Diagnostico diagnostico = buscarDiagnostico(id);
         validarAcessoEdicaoExclusao(diagnostico);
 
-        diagnosticoRepository.delete(diagnostico);
+        if (diagnostico.isAtivo()) {
+            diagnostico.setAtivo(false);
+            diagnostico.setArquivadoEm(java.time.LocalDateTime.now());
+            diagnosticoRepository.save(diagnostico);
+        }
     }
 
     public List<DiagnosticoResponse> listarPorPaciente(String pacienteId) {
@@ -154,6 +159,14 @@ public class DiagnosticoService {
         diagnostico.setPacienteId(request.getPacienteId());
         diagnostico.setProfissionalId(request.getProfissionalId());
         diagnostico.setDescricao(request.getDescricao());
+    }
+
+    private void exigirAtivo(Diagnostico diagnostico) {
+        if (!diagnostico.isAtivo()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Um diagnóstico arquivado não pode ser alterado.");
+        }
     }
 
     private Diagnostico buscarDiagnostico(String id) {

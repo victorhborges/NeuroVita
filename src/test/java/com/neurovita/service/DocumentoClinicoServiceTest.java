@@ -131,4 +131,20 @@ class DocumentoClinicoServiceTest {
                 () -> service.salvar("doc-1", request, administrador()));
         verify(documentos, never()).save(any());
     }
+
+    @Test
+    void exclusaoArquivaDocumentoSemApagarHistorico() {
+        DocumentoClinico documento = new DocumentoClinico();
+        documento.setId("doc-1");
+        documento.setPacienteId("pac-1");
+        documento.setProfissionalId("prof-ativo");
+        when(documentos.findById("doc-1")).thenReturn(Optional.of(documento));
+
+        service.excluir("doc-1", administrador());
+
+        assertFalse(documento.isAtivo());
+        assertNotNull(documento.getArquivadoEm());
+        verify(documentos).save(documento);
+        verify(documentos, never()).delete(any());
+    }
 }

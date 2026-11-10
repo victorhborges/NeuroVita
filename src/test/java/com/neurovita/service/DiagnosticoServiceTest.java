@@ -166,4 +166,46 @@ class DiagnosticoServiceTest {
         var lista = service.listarPorPaciente("pac-1");
         assertEquals(1, lista.size());
     }
+
+    @Test
+    void exclusaoArquivaDiagnosticoSemApagarHistorico() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Diagnostico diagnostico = new Diagnostico();
+        diagnostico.setId("d1");
+        diagnostico.setPacienteId("pac-1");
+        diagnostico.setProfissionalId("prof-1");
+        when(diagnosticoRepository.findById("d1")).thenReturn(Optional.of(diagnostico));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(diagnosticoRepository.save(any(Diagnostico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.deletar("d1");
+
+        assertFalse(diagnostico.isAtivo());
+        assertNotNull(diagnostico.getArquivadoEm());
+        verify(diagnosticoRepository).save(diagnostico);
+        verify(diagnosticoRepository, never()).delete(any());
+    }
+
+    @Test
+    void diagnosticoArquivadoNaoPodeSerAtualizado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Diagnostico diagnostico = new Diagnostico();
+        diagnostico.setId("d1");
+        diagnostico.setPacienteId("pac-1");
+        diagnostico.setProfissionalId("prof-1");
+        diagnostico.setAtivo(false);
+        when(diagnosticoRepository.findById("d1")).thenReturn(Optional.of(diagnostico));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        DiagnosticoRequest request = new DiagnosticoRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setDescricao("Atualização");
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.atualizar("d1", request));
+        verify(diagnosticoRepository, never()).save(any());
+    }
 }

@@ -70,6 +70,8 @@ public class ExameController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Arquivar exame",
+            description = "Preserva a solicitação, os resultados, os anexos e o histórico; exames arquivados não podem ser alterados.")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         exameService.deletar(id);
 

@@ -161,4 +161,47 @@ class ExameServiceTest {
                 () -> service.registrarResultado("e1", resultado));
         verify(exameRepository, never()).save(any());
     }
+
+    @Test
+    void exclusaoArquivaExameSemApagarSolicitacaoOuResultado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setResultado("Resultado existente");
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.deletar("e1");
+
+        assertFalse(exame.isAtivo());
+        assertNotNull(exame.getArquivadoEm());
+        assertEquals("Resultado existente", exame.getResultado());
+        verify(exameRepository).save(exame);
+        verify(exameRepository, never()).delete(any());
+    }
+
+    @Test
+    void exameArquivadoNaoPodeReceberNovoResultado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setAtivo(false);
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        ExameResultadoRequest resultado = new ExameResultadoRequest();
+        resultado.setDataRealizacao(java.time.LocalDate.now());
+        resultado.setResultado("Novo resultado");
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.registrarResultado("e1", resultado));
+        verify(exameRepository, never()).save(any());
+    }
 }

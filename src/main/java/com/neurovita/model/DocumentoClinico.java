@@ -20,6 +20,8 @@ public class DocumentoClinico {
     private String conteudo;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
+    private Boolean ativo = true;
+    private LocalDateTime arquivadoEm;
     private List<AnexoClinico> anexos = new ArrayList<>();
 
     public String getId() { return id; }
@@ -42,6 +44,10 @@ public class DocumentoClinico {
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
+    public boolean isAtivo() { return ativo == null || ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public LocalDateTime getArquivadoEm() { return arquivadoEm; }
+    public void setArquivadoEm(LocalDateTime arquivadoEm) { this.arquivadoEm = arquivadoEm; }
     public List<AnexoClinico> getAnexos() { return anexos; }
     public void setAnexos(List<AnexoClinico> anexos) { this.anexos = anexos == null ? new ArrayList<>() : anexos; }
 

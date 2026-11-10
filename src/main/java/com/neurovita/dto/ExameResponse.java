@@ -25,6 +25,8 @@ public class ExameResponse {
     private LocalDateTime resultadoAtualizadoEm;
     private List<AnexoClinico> anexosResultado;
     private List<HistoricoResultado> historicoResultados;
+    private boolean ativo;
+    private LocalDateTime arquivadoEm;
 
     public ExameResponse(Exame exame) {
 
@@ -45,6 +47,8 @@ public class ExameResponse {
                 ? List.of() : List.copyOf(exame.getAnexosResultado());
         this.historicoResultados = exame.getHistoricoResultados() == null
                 ? List.of() : List.copyOf(exame.getHistoricoResultados());
+        this.ativo = exame.isAtivo();
+        this.arquivadoEm = exame.getArquivadoEm();
     }
 
     public String getId() {
@@ -84,4 +88,6 @@ public class ExameResponse {
     public LocalDateTime getResultadoAtualizadoEm() { return resultadoAtualizadoEm; }
     public List<AnexoClinico> getAnexosResultado() { return anexosResultado; }
     public List<HistoricoResultado> getHistoricoResultados() { return historicoResultados; }
+    public boolean isAtivo() { return ativo; }
+    public LocalDateTime getArquivadoEm() { return arquivadoEm; }
 }

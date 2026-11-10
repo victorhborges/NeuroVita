@@ -74,6 +74,7 @@ public class PacienteService {
         exigirCadastroPaciente();
 
         validarEmailDisponivel(request.getEmail(), null);
+        validarPlanoSaude(request);
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
@@ -153,7 +154,22 @@ public class PacienteService {
 }
 
         public PacienteResponse buscarPorId(String id) {
-        exigirAdministradorOuSecretaria();
+        Authentication autenticacao = obterAutenticacao();
+        boolean ehPaciente = autenticacao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+        if (ehPaciente) {
+            Usuario usuario = usuarioRepository
+                    .findByEmailIgnoreCase(autenticacao.getName())
+                    .orElseThrow(() ->
+                            new AccessDeniedException("Usuário não encontrado"));
+            if (usuario.getEntidadeId() == null
+                    || !usuario.getEntidadeId().equals(id)) {
+                throw new AccessDeniedException(
+                        "Pacientes podem consultar somente os próprios dados.");
+            }
+        } else {
+            exigirAdministradorOuSecretaria();
+        }
 
         Paciente paciente = buscarPaciente(id);
 
@@ -170,6 +186,7 @@ public class PacienteService {
         boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
         validarEmailDisponivel(request.getEmail(), id);
+        validarPlanoSaude(request);
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
@@ -248,9 +265,21 @@ public class PacienteService {
         paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
 
         paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
-        paciente.setPlanoSaude(request.getPlanoSaude());
+        paciente.setPlanoSaude(request.getPlanoSaude() == null
+                ? null
+                : request.getPlanoSaude().trim());
         paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
         paciente.setValidadePlano(request.getValidadePlano());
+    }
+
+    private void validarPlanoSaude(PacienteRequest request) {
+        if (Boolean.TRUE.equals(request.getPossuiPlanoSaude())
+                && (request.getPlanoSaude() == null
+                        || request.getPlanoSaude().isBlank())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe o nome do plano de saúde.");
+        }
     }
 
     private List<VinculoResponsavelRequest> validarResponsaveis(

@@ -16,6 +16,7 @@ import com.neurovita.dto.DiagnosticoRequest;
 import com.neurovita.dto.DiagnosticoResponse;
 import com.neurovita.service.DiagnosticoService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -61,6 +62,8 @@ public class DiagnosticoController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Arquivar diagnóstico",
+            description = "Preserva o diagnóstico no histórico e o identifica como inativo.")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         diagnosticoService.deletar(id);
 
