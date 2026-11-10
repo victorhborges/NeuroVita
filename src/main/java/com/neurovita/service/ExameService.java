@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.util.List;
@@ -324,16 +323,5 @@ public class ExameService {
         }
 
         return usuario.getEntidadeId();
-    }
-
-    private Authentication obterAutenticacao() {
-        Authentication autenticacao =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (autenticacao == null || !autenticacao.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        return autenticacao;
     }
 }
