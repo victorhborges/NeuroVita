@@ -95,6 +95,11 @@ public class DisponibilidadeService {
                                 new ResourceNotFoundException(
                                         "Disponibilidade não encontrada"));
 
+        if (!Boolean.FALSE.equals(disponibilidade.getAtivo())) {
+            disponibilidade.setAtivo(false);
+            disponibilidadeRepository.save(disponibilidade);
+        }
+
         for (var profissional :
                 profissionalRepository.findByDisponibilidadeIdsContaining(id)) {
             profissional.getDisponibilidadeIds().removeIf(id::equals);

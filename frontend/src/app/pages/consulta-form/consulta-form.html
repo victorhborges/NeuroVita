@@ -72,7 +72,10 @@
         <div class="cons-horarios" role="group" aria-label="Horários">
           @for (h of horarios(); track h.hora) {
           <button type="button" class="cons-hora" [class.cons-hora-ativa]="h.hora === horaValida()"
-            [disabled]="!h.livre" [attr.aria-pressed]="h.hora === horaValida()" (click)="hora.set(h.hora)">
+            [disabled]="!h.livre" [attr.aria-pressed]="h.hora === horaValida()"
+            [attr.aria-label]="h.hora + (h.livre ? ', disponível' : ', indisponível')"
+            [title]="h.livre ? 'Selecionar horário' : 'Horário indisponível'"
+            (click)="hora.set(h.hora)">
             {{ h.hora }} <span class="cons-ponto" [class.cons-ponto-livre]="h.livre"></span>
           </button>
           }

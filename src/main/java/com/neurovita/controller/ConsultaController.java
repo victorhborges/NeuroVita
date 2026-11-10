@@ -61,19 +61,36 @@ public class ConsultaController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
+    @Operation(summary = "Listar consultas por paciente",
+            description = "dataInicio e dataFim são opcionais, mas devem ser informados juntos; o período é inclusivo no início e exclusivo no fim. Profissionais precisam de vínculo ativo com o paciente.")
     public ResponseEntity<List<ConsultaResponse>> listarPorPaciente(
-            @PathVariable String pacienteId) {
+            @PathVariable String pacienteId,
+            @Parameter(description = "Início inclusivo do intervalo, em ISO-8601.")
+            @RequestParam(name = "dataInicio", required = false)
+            LocalDateTime dataInicio,
+            @Parameter(description = "Fim exclusivo do intervalo, em ISO-8601.")
+            @RequestParam(name = "dataFim", required = false)
+            LocalDateTime dataFim) {
 
         return ResponseEntity.ok(
-                consultaService.listarPorPaciente(pacienteId));
+                consultaService.listarPorPaciente(pacienteId, dataInicio, dataFim));
     }
 
     @GetMapping("/profissional/{profissionalId}")
+    @Operation(summary = "Listar consultas por profissional",
+            description = "dataInicio e dataFim são opcionais, mas devem ser informados juntos; profissionais continuam limitados à própria agenda.")
     public ResponseEntity<List<ConsultaResponse>> listarPorProfissional(
-            @PathVariable String profissionalId) {
+            @PathVariable String profissionalId,
+            @Parameter(description = "Início inclusivo do intervalo, em ISO-8601.")
+            @RequestParam(name = "dataInicio", required = false)
+            LocalDateTime dataInicio,
+            @Parameter(description = "Fim exclusivo do intervalo, em ISO-8601.")
+            @RequestParam(name = "dataFim", required = false)
+            LocalDateTime dataFim) {
 
         return ResponseEntity.ok(
-                consultaService.listarPorProfissional(profissionalId));
+                consultaService.listarPorProfissional(
+                        profissionalId, dataInicio, dataFim));
     }
 
     @GetMapping("/{id}")

@@ -13,6 +13,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { Aviso } from '../../shared/aviso/aviso';
 import { Avatar } from '../../shared/avatar/avatar';
 import {
+  ConsultaApi,
   ConsultaRequestApi,
   ConsultasApiService,
 } from '../../shared/clinica/consultas-api.service';
@@ -95,6 +96,9 @@ export class ConsultaForm {
   protected readonly carregando = signal(true);
   protected readonly carregandoDisponibilidade = signal(false);
   protected readonly erroDisponibilidade = signal(false);
+  protected readonly consultasExistentes = signal<ConsultaApi[]>([]);
+  protected readonly carregandoConsultas = signal(false);
+  protected readonly erroConsultas = signal(false);
   protected readonly salvando = signal(false);
 
   protected readonly pacienteId = signal('');
@@ -243,8 +247,20 @@ export class ConsultaForm {
       return 'Não foi possível consultar a disponibilidade deste profissional.';
     }
 
+    if (this.carregandoConsultas()) {
+      return 'Consultando os horários já agendados.';
+    }
+
+    if (this.erroConsultas()) {
+      return 'Não foi possível verificar os conflitos de agenda. Tente novamente.';
+    }
+
     if (this.disponibilidadesAtivasDoDia().length === 0) {
       return 'Este profissional não possui disponibilidade cadastrada para este dia.';
+    }
+
+    if (!this.horarios().some((item) => item.livre)) {
+      return 'Não há horários disponíveis para este dia.';
     }
 
     return 'Os conflitos com outras consultas serão validados pelo servidor ao salvar.';
@@ -262,6 +278,67 @@ export class ConsultaForm {
 
   constructor() {
     this.carregarCadastros();
+
+    effect((onCleanup) => {
+      const profissionalId = this.profissionalId();
+      const pacienteId = this.pacienteId();
+      const semana = this.semana();
+
+      if (!profissionalId) {
+        this.consultasExistentes.set([]);
+        this.erroConsultas.set(false);
+        this.carregandoConsultas.set(false);
+        return;
+      }
+
+      const dataInicio = somarDias(
+        this.segundaInicial(),
+        semana * 7,
+      );
+      const dataFim = somarDias(dataInicio, 7);
+      const inicioPeriodo = `${dataInicio}T00:00:00`;
+      const fimPeriodo = `${dataFim}T00:00:00`;
+
+      this.carregandoConsultas.set(true);
+      this.erroConsultas.set(false);
+
+      const requisicaoPaciente = pacienteId
+        ? this.consultasApi.listarPorPacienteNoPeriodo(
+            pacienteId,
+            inicioPeriodo,
+            fimPeriodo,
+          )
+        : of([] as ConsultaApi[]);
+
+      const requisicao = forkJoin({
+        profissional: this.consultasApi.listarPorProfissionalNoPeriodo(
+          profissionalId,
+          inicioPeriodo,
+          fimPeriodo,
+        ),
+        paciente: requisicaoPaciente,
+      }).subscribe({
+        next: ({ profissional, paciente }) => {
+          const porId = new Map<string, ConsultaApi>();
+          [...profissional, ...paciente].forEach((consulta) =>
+            porId.set(consulta.id, consulta),
+          );
+          this.consultasExistentes.set([...porId.values()]);
+          this.erroConsultas.set(false);
+          this.carregandoConsultas.set(false);
+        },
+        error: () => {
+          this.consultasExistentes.set([]);
+          this.erroConsultas.set(true);
+          this.carregandoConsultas.set(false);
+          this.aviso.mostrar(
+            'Não foi possível consultar os conflitos de agenda.',
+          );
+        },
+      });
+
+      onCleanup(() => requisicao.unsubscribe());
+    });
 
     effect((onCleanup) => {
       const profissionalId = this.profissionalId();
@@ -464,7 +541,9 @@ export class ConsultaForm {
     if (
       !this.profissionalId() ||
       this.carregandoDisponibilidade() ||
-      this.erroDisponibilidade()
+      this.erroDisponibilidade() ||
+      this.carregandoConsultas() ||
+      this.erroConsultas()
     ) {
       return false;
     }
@@ -482,7 +561,7 @@ export class ConsultaForm {
     const inicioConsulta = minutosDe(hora);
     const fimConsulta = inicioConsulta + DURACAO;
 
-    return this.disponibilidadesAtivasDoDia().some(
+    const dentroDaDisponibilidade = this.disponibilidadesAtivasDoDia().some(
       (disponibilidade) => {
         const inicioDisponivel = minutosDe(
           disponibilidade.horaInicio,
@@ -498,6 +577,24 @@ export class ConsultaForm {
         );
       },
     );
+
+    if (!dentroDaDisponibilidade) return false;
+
+    return !this.consultasExistentes().some((consulta) => {
+      if (
+        consulta.status === 'CANCELADA' ||
+        consulta.dataHora.slice(0, 10) !== this.dia() ||
+        !consulta.duracao ||
+        consulta.duracao <= 0
+      ) {
+        return false;
+      }
+
+      const inicioExistente = minutosDe(consulta.dataHora.slice(11, 16));
+      const fimExistente = inicioExistente + consulta.duracao;
+
+      return inicioExistente < fimConsulta && fimExistente > inicioConsulta;
+    });
   }
 
   protected escolherDia(iso: string, passado: boolean): void {

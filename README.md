@@ -282,6 +282,16 @@ GET /api/consultas/paciente/{pacienteId}
 GET /api/consultas/profissional/{profissionalId}
 ```
 
+Esses dois endpoints também aceitam os parâmetros opcionais `dataInicio` e
+`dataFim` (ambos obrigatórios em conjunto). O formulário de agendamento usa
+essa consulta por intervalo para bloquear horários ocupados pela agenda do
+profissional ou do paciente; conflitos definitivos continuam sendo validados
+no servidor ao criar a consulta. Falhas ao consultar a agenda bloqueiam a
+seleção em vez de tratar o horário como livre. Profissionais só podem consultar
+a agenda de pacientes com os quais tenham vínculo ativo; nessa consulta, são
+incluídos os horários do paciente com outros profissionais para evitar
+conflitos, sem permitir a busca de pacientes não vinculados.
+
 ### Status
 
 | Status | Significado |

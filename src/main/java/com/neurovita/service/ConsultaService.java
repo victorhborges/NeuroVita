@@ -26,6 +26,7 @@ import com.neurovita.repository.DisponibilidadeRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class ConsultaService {
@@ -35,19 +36,22 @@ public class ConsultaService {
     private final ProfissionalRepository profissionalRepository;
     private final DisponibilidadeRepository disponibilidadeRepository;
     private final UsuarioRepository usuarioRepository;
+    private final VinculoProfissionalPacienteRepository vinculoRepository;
 
     public ConsultaService(
             ConsultaRepository consultaRepository,
             PacienteRepository pacienteRepository,
             ProfissionalRepository profissionalRepository,
             DisponibilidadeRepository disponibilidadeRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            VinculoProfissionalPacienteRepository vinculoRepository) {
 
         this.consultaRepository = consultaRepository;
         this.pacienteRepository = pacienteRepository;
         this.profissionalRepository = profissionalRepository;
         this.disponibilidadeRepository = disponibilidadeRepository;
         this.usuarioRepository = usuarioRepository;
+        this.vinculoRepository = vinculoRepository;
     }
 
     public ConsultaResponse salvar(ConsultaRequest request) {
@@ -211,6 +215,12 @@ public class ConsultaService {
     }
 
     public List<ConsultaResponse> listarPorPaciente(String pacienteId) {
+        return listarPorPaciente(pacienteId, null, null);
+    }
+
+    public List<ConsultaResponse> listarPorPaciente(
+            String pacienteId, LocalDateTime dataInicio, LocalDateTime dataFim) {
+        validarIntervaloConsulta(dataInicio, dataFim);
         if (ehPaciente() && !obterPacienteId().equals(pacienteId)) {
             throw new AccessDeniedException(
                     "Pacientes podem consultar somente as próprias consultas");
@@ -221,15 +231,33 @@ public class ConsultaService {
         }
 
         if (ehPaciente()) {
-            return consultaRepository.findByPacienteId(pacienteId)
+            List<Consulta> consultas = dataInicio == null
+                    ? consultaRepository.findByPacienteId(pacienteId)
+                    : consultaRepository
+                            .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                    pacienteId, dataInicio, dataFim);
+            return consultas
                     .stream()
                     .map(ConsultaResponse::new)
                     .toList();
         }
 
         if (ehProfissional()) {
-            return consultaRepository.findByPacienteIdAndProfissionalId(
-                    pacienteId, obterProfissionalId())
+            String profissionalId = obterProfissionalId();
+            if (vinculoRepository
+                    .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                            pacienteId, profissionalId)
+                    .isEmpty()) {
+                throw new AccessDeniedException(
+                        "A consulta da agenda do paciente requer vínculo profissional ativo.");
+            }
+
+            List<Consulta> consultas = dataInicio == null
+                    ? consultaRepository.findByPacienteId(pacienteId)
+                    : consultaRepository
+                            .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                    pacienteId, dataInicio, dataFim);
+            return consultas
                     .stream()
                     .map(ConsultaResponse::new)
                     .toList();
@@ -237,13 +265,24 @@ public class ConsultaService {
 
         exigirAdministradorOuSecretaria();
 
-        return consultaRepository.findByPacienteId(pacienteId)
+        List<Consulta> consultas = dataInicio == null
+                ? consultaRepository.findByPacienteId(pacienteId)
+                : consultaRepository
+                        .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                pacienteId, dataInicio, dataFim);
+        return consultas
                 .stream()
                 .map(ConsultaResponse::new)
                 .toList();
     }
 
     public List<ConsultaResponse> listarPorProfissional(String profissionalId) {
+        return listarPorProfissional(profissionalId, null, null);
+    }
+
+    public List<ConsultaResponse> listarPorProfissional(
+            String profissionalId, LocalDateTime dataInicio, LocalDateTime dataFim) {
+        validarIntervaloConsulta(dataInicio, dataFim);
         if (!profissionalRepository.existsById(profissionalId)) {
             throw new ResourceNotFoundException("Profissional não encontrado");
         }
@@ -254,10 +293,29 @@ public class ConsultaService {
             exigirAdministradorOuSecretaria();
         }
 
-        return consultaRepository.findByProfissionalId(profissionalId)
+        List<Consulta> consultas = dataInicio == null
+                ? consultaRepository.findByProfissionalId(profissionalId)
+                : consultaRepository
+                        .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                                profissionalId, dataInicio, dataFim);
+        return consultas
                 .stream()
                 .map(ConsultaResponse::new)
                 .toList();
+    }
+
+    private void validarIntervaloConsulta(
+            LocalDateTime dataInicio, LocalDateTime dataFim) {
+        if ((dataInicio == null) != (dataFim == null)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe dataInicio e dataFim juntos.");
+        }
+        if (dataInicio != null && !dataInicio.isBefore(dataFim)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "dataInicio deve ser anterior a dataFim.");
+        }
     }
 
     private void validarEntidades(ConsultaRequest request) {

@@ -81,6 +81,7 @@ public class PacienteService {
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request);
+        aplicarPlanoSaude(paciente, request, true);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
         Usuario usuarioSalvo = null;
@@ -186,12 +187,11 @@ public class PacienteService {
         boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
         validarEmailDisponivel(request.getEmail(), id);
-        validarPlanoSaude(request);
-
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
 
         preencherPaciente(paciente, request);
+        aplicarPlanoSaude(paciente, request, false);
 
         Paciente atualizado = pacienteRepository.save(paciente);
 
@@ -264,12 +264,6 @@ public class PacienteService {
         }
         paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
 
-        paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
-        paciente.setPlanoSaude(request.getPlanoSaude() == null
-                ? null
-                : request.getPlanoSaude().trim());
-        paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
-        paciente.setValidadePlano(request.getValidadePlano());
     }
 
     private void validarPlanoSaude(PacienteRequest request) {
@@ -280,6 +274,53 @@ public class PacienteService {
                     HttpStatus.BAD_REQUEST,
                     "Informe o nome do plano de saúde.");
         }
+    }
+
+    private void aplicarPlanoSaude(
+            Paciente paciente, PacienteRequest request, boolean novoCadastro) {
+        Boolean possuiPlanoSolicitado = request.getPossuiPlanoSaude();
+        if (possuiPlanoSolicitado == null) {
+            if (novoCadastro) {
+                limparPlanoSaude(paciente);
+            }
+            return;
+        }
+
+        if (!possuiPlanoSolicitado) {
+            limparPlanoSaude(paciente);
+            return;
+        }
+
+        String nomePlano = request.getPlanoSaude();
+        if (nomePlano == null) {
+            nomePlano = Boolean.TRUE.equals(paciente.getPossuiPlanoSaude())
+                    ? paciente.getPlanoSaude()
+                    : null;
+        }
+        if (nomePlano == null || nomePlano.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe o nome do plano de saúde.");
+        }
+
+        paciente.setPossuiPlanoSaude(true);
+        paciente.setPlanoSaude(nomePlano.trim());
+
+        if (request.getNumeroCarteirinha() != null) {
+            String numeroCarteirinha = request.getNumeroCarteirinha().trim();
+            paciente.setNumeroCarteirinha(
+                    numeroCarteirinha.isEmpty() ? null : numeroCarteirinha);
+        }
+        if (request.getValidadePlano() != null) {
+            paciente.setValidadePlano(request.getValidadePlano());
+        }
+    }
+
+    private void limparPlanoSaude(Paciente paciente) {
+        paciente.setPossuiPlanoSaude(false);
+        paciente.setPlanoSaude(null);
+        paciente.setNumeroCarteirinha(null);
+        paciente.setValidadePlano(null);
     }
 
     private List<VinculoResponsavelRequest> validarResponsaveis(

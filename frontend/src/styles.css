@@ -1212,7 +1212,7 @@ app-avatar {
 .cons-horarios { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
 .cons-hora {
   display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.55rem 0.3rem; border: 1px solid var(--painel-borda);
-  border-radius: 0.4rem; background: #fff; font-size: 0.95rem; font-weight: 500;
+  border-radius: 0.4rem; background: #fff; font-size: 0.95rem; font-weight: 500; cursor: pointer;
 }
 .cons-hora:disabled { cursor: not-allowed; color: #5b616b; }
 .cons-hora:hover:not(:disabled) { background: #f3f4f6; }

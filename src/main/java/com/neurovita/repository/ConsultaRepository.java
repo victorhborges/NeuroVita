@@ -25,4 +25,20 @@ List<Consulta> findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessTha
 List<Consulta> findByPacienteIdAndProfissionalId(
         String pacienteId,
         String profissionalId);
+
+List<Consulta> findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+        String pacienteId,
+        LocalDateTime inicio,
+        LocalDateTime fim);
+
+List<Consulta> findByPacienteIdAndProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+        String pacienteId,
+        String profissionalId,
+        LocalDateTime inicio,
+        LocalDateTime fim);
+
+List<Consulta> findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+        String profissionalId,
+        LocalDateTime inicio,
+        LocalDateTime fim);
 }
