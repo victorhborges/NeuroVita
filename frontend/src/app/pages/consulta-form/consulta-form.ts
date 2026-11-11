@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, of, throwError } from 'rxjs';
 
 import { Aviso } from '../../shared/aviso/aviso';
 import { Avatar } from '../../shared/avatar/avatar';
@@ -325,7 +325,10 @@ export class ConsultaForm {
           pacienteId,
           inicioPeriodo,
           fimPeriodo,
-        )
+        ).pipe(catchError((erro: unknown) => {
+          this.registrarFalhaConflito('paciente', erro);
+          return throwError(() => erro);
+        }))
         : of([] as ConsultaApi[]);
 
       const requisicao = forkJoin({
@@ -333,7 +336,10 @@ export class ConsultaForm {
           profissionalId,
           inicioPeriodo,
           fimPeriodo,
-        ),
+        ).pipe(catchError((erro: unknown) => {
+          this.registrarFalhaConflito('profissional', erro);
+          return throwError(() => erro);
+        })),
         paciente: requisicaoPaciente,
       }).subscribe({
         next: ({ profissional, paciente }) => {
@@ -465,6 +471,20 @@ export class ConsultaForm {
       });
 
       this.responsaveisPorId.set(mapa);
+    });
+  }
+
+  private registrarFalhaConflito(origem: 'paciente' | 'profissional', erro: unknown): void {
+    const status = erro instanceof HttpErrorResponse ? erro.status : 'sem resposta HTTP';
+    const statusTexto = erro instanceof HttpErrorResponse ? erro.statusText : 'erro inesperado';
+    const endpoint = origem === 'paciente'
+      ? 'GET /api/consultas/paciente/:id'
+      : 'GET /api/consultas/profissional/:id';
+    console.error('[ConsultaForm] Falha na consulta de conflitos', {
+      origem,
+      endpoint,
+      status,
+      statusTexto,
     });
   }
 

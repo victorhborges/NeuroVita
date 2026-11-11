@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,6 +32,8 @@ import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class ConsultaService {
+
+    private static final Logger LOGGER = Logger.getLogger(ConsultaService.class.getName());
 
     private final ConsultaRepository consultaRepository;
     private final PacienteRepository pacienteRepository;
@@ -88,16 +92,12 @@ public class ConsultaService {
             String profissionalId = obterProfissionalId();
             consultas = dataInicio == null
                     ? consultaRepository.findByProfissionalId(profissionalId)
-                    : consultaRepository
-                            .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                    profissionalId, dataInicio, dataFim);
+                    : buscarPorPeriodoProfissional(profissionalId, dataInicio, dataFim);
         } else {
             exigirAdministradorOuSecretaria();
             consultas = dataInicio == null
                     ? consultaRepository.findAll()
-                    : consultaRepository
-                            .findByDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                    dataInicio, dataFim);
+                    : buscarPorPeriodoGeral(dataInicio, dataFim);
         }
 
         return consultas
@@ -233,9 +233,7 @@ public class ConsultaService {
         if (ehPaciente()) {
             List<Consulta> consultas = dataInicio == null
                     ? consultaRepository.findByPacienteId(pacienteId)
-                    : consultaRepository
-                            .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                    pacienteId, dataInicio, dataFim);
+                    : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
             return consultas
                     .stream()
                     .map(ConsultaResponse::new)
@@ -254,9 +252,7 @@ public class ConsultaService {
 
             List<Consulta> consultas = dataInicio == null
                     ? consultaRepository.findByPacienteId(pacienteId)
-                    : consultaRepository
-                            .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                    pacienteId, dataInicio, dataFim);
+                    : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
             return consultas
                     .stream()
                     .map(ConsultaResponse::new)
@@ -267,9 +263,7 @@ public class ConsultaService {
 
         List<Consulta> consultas = dataInicio == null
                 ? consultaRepository.findByPacienteId(pacienteId)
-                : consultaRepository
-                        .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                pacienteId, dataInicio, dataFim);
+                : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
         return consultas
                 .stream()
                 .map(ConsultaResponse::new)
@@ -295,9 +289,7 @@ public class ConsultaService {
 
         List<Consulta> consultas = dataInicio == null
                 ? consultaRepository.findByProfissionalId(profissionalId)
-                : consultaRepository
-                        .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                                profissionalId, dataInicio, dataFim);
+                : buscarPorPeriodoProfissional(profissionalId, dataInicio, dataFim);
         return consultas
                 .stream()
                 .map(ConsultaResponse::new)
@@ -316,6 +308,53 @@ public class ConsultaService {
                     HttpStatus.BAD_REQUEST,
                     "dataInicio deve ser anterior a dataFim.");
         }
+    }
+
+    private List<Consulta> buscarPorPeriodoGeral(
+            LocalDateTime inicio, LocalDateTime fim) {
+        try {
+            return consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
+        } catch (RuntimeException erro) {
+            registrarFallbackPeriodo("geral", erro);
+            return filtrarPorPeriodo(consultaRepository.findAll(), inicio, fim);
+        }
+    }
+
+    private List<Consulta> buscarPorPeriodoPaciente(
+            String pacienteId, LocalDateTime inicio, LocalDateTime fim) {
+        try {
+            return consultaRepository.findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                    pacienteId, inicio, fim);
+        } catch (RuntimeException erro) {
+            registrarFallbackPeriodo("paciente", erro);
+            return filtrarPorPeriodo(consultaRepository.findByPacienteId(pacienteId), inicio, fim);
+        }
+    }
+
+    private List<Consulta> buscarPorPeriodoProfissional(
+            String profissionalId, LocalDateTime inicio, LocalDateTime fim) {
+        try {
+            return consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                    profissionalId, inicio, fim);
+        } catch (RuntimeException erro) {
+            registrarFallbackPeriodo("profissional", erro);
+            return filtrarPorPeriodo(consultaRepository.findByProfissionalId(profissionalId), inicio, fim);
+        }
+    }
+
+    private List<Consulta> filtrarPorPeriodo(
+            List<Consulta> consultas, LocalDateTime inicio, LocalDateTime fim) {
+        return consultas.stream()
+                .filter(consulta -> consulta.getDataHora() != null
+                        && !consulta.getDataHora().isBefore(inicio)
+                        && consulta.getDataHora().isBefore(fim))
+                .toList();
+    }
+
+    private void registrarFallbackPeriodo(String origem, RuntimeException erro) {
+        LOGGER.log(Level.WARNING,
+                "Falha no filtro Mongo de consultas por período ({0}); usando filtro em memória. Tipo: {1}",
+                new Object[] { origem, erro.getClass().getSimpleName() });
     }
 
     private void validarEntidades(ConsultaRequest request) {

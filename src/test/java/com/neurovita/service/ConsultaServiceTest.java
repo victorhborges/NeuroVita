@@ -30,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.ConsultaRequest;
@@ -354,6 +355,61 @@ class ConsultaServiceTest {
         verify(consultaRepository)
                 .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
         verify(consultaRepository, never()).findAll();
+    }
+
+    @Test
+    void filtroGeralUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
+        LocalDateTime fim = inicio.plusDays(1);
+        Consulta noInicio = consultaExistente();
+        noInicio.setDataHora(inicio);
+        Consulta noFim = consultaExistente();
+        noFim.setDataHora(fim);
+        Consulta semData = consultaExistente();
+        semData.setDataHora(null);
+
+        when(consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
+                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
+        when(consultaRepository.findAll()).thenReturn(List.of(noInicio, noFim, semData));
+
+        assertEquals(1, consultaService.listarTodos(inicio, fim).size());
+        verify(consultaRepository).findAll();
+    }
+
+    @Test
+    void filtroDePacienteUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
+        LocalDateTime fim = inicio.plusDays(1);
+        Consulta dentro = consultaExistente();
+        dentro.setDataHora(inicio.plusHours(10));
+        Consulta fora = consultaExistente();
+        fora.setDataHora(fim);
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(consultaRepository.findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                "pac-1", inicio, fim))
+                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
+        when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of(dentro, fora));
+
+        assertEquals(1, consultaService.listarPorPaciente("pac-1", inicio, fim).size());
+        verify(consultaRepository).findByPacienteId("pac-1");
+    }
+
+    @Test
+    void filtroDeProfissionalUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
+        LocalDateTime fim = inicio.plusDays(1);
+        Consulta dentro = consultaExistente();
+        dentro.setDataHora(inicio.plusHours(10));
+        Consulta fora = consultaExistente();
+        fora.setDataHora(fim);
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                "prof-1", inicio, fim))
+                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
+        when(consultaRepository.findByProfissionalId("prof-1")).thenReturn(List.of(dentro, fora));
+
+        assertEquals(1, consultaService.listarPorProfissional("prof-1", inicio, fim).size());
+        verify(consultaRepository).findByProfissionalId("prof-1");
     }
 
     @Test

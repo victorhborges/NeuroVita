@@ -381,6 +381,12 @@ A remarcação aplica a mesma grade de 60 minutos e mantém a duração já regi
 
 A API valida que o início pertence à grade contada a partir do início real de uma disponibilidade ativa, além de validar o intervalo completo contra a disponibilidade e os conflitos existentes.
 
+As listagens de consultas por período tentam primeiro o filtro Mongo. Se a
+consulta temporal do repositório falhar, o serviço registra o tipo da exceção
+sem IDs e aplica o mesmo intervalo inclusivo no início e exclusivo no fim
+sobre as consultas já filtradas por paciente/profissional (ou sobre a coleção
+geral para administradores e Secretaria).
+
 ### Status
 
 | Status | Significado |
