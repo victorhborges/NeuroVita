@@ -1,136 +1,141 @@
-# 🧠 NeuroVita — Plataforma Integrada
+# 🧠 NeuroVita - Plataforma Integrada
 
-Plataforma **NeuroVita**, desenvolvida como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
+Plataforma desenvolvida como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
-O projeto possui uma arquitetura integrada, composta por frontend Angular, backend Java com Spring Boot e banco de dados MongoDB Atlas.
+O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por frontend Angular, backend Java com Spring Boot e banco de dados MongoDB Atlas.
 
-O backend disponibiliza uma API REST para gerenciamento de pacientes, responsáveis, profissionais, consultas, agenda e informações relacionadas ao atendimento psicológico. O frontend Angular é compilado e servido pela própria aplicação Spring Boot.
+O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> 🚧 **Status:** Integração frontend e backend em desenvolvimento. A aplicação integrada foi compilada e executada localmente em Docker, com conexão ao MongoDB Atlas. O login JWT e a consulta autenticada de profissionais foram verificados localmente. A versão atualmente publicada no Render ainda corresponde à estrutura anterior. A validação funcional completa permanece sob responsabilidade da equipe designada para os testes.
+> **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros.
+>
+> Na revisão local de 11/11/2026, os testes Java e Angular passaram, o empacotamento Maven passou e o build Angular de desenvolvimento compilou. O build Angular de produção não foi confirmado neste ambiente porque a otimização tenta buscar fontes externas. Atlas, Docker e Render não foram validados.
 
 ---
 
 ## 🛠️ Tecnologias
 
-| Tecnologia | Versão / uso |
+| Tecnologia | Utilização |
 |---|---|
-| ☕ Java | 21 |
-| 🌱 Spring Boot | 4.0.8 |
-| 🅰️ Angular | 21 |
-| 🟢 Node.js / npm | Dependências e compilação do frontend |
-| 🗄️ MongoDB | Banco de dados NoSQL |
-| 🔗 Spring Data MongoDB | Persistência de dados |
-| 🔐 Spring Security | Autenticação e autorização |
-| 🎟️ JWT | Autenticação por token |
-| 🔑 BCrypt | Hash e verificação de senhas |
-| ✅ Jakarta Bean Validation | Validação de dados de entrada |
-| 📖 SpringDoc OpenAPI | Documentação da API |
-| 🐳 Docker | Containerização e build multi-stage |
-| ☁️ Render | Hospedagem |
-| 📦 Maven | Gerenciamento e construção do projeto |
-| 🧪 Maven Wrapper | Execução do Maven sem instalação global obrigatória |
+| Java 21 | Linguagem do backend |
+| Spring Boot 4.0.8 | Framework backend |
+| Angular 21 | Frontend |
+| Node.js / npm | Compilação do frontend |
+| MongoDB Atlas | Banco de dados |
+| Spring Data MongoDB | Persistência |
+| Spring Security | Segurança e autorização |
+| JWT | Autenticação |
+| BCrypt | Proteção de senhas |
+| Jakarta Bean Validation | Validação de dados |
+| SpringDoc OpenAPI | Documentação da API |
+| Maven | Gerenciamento e build |
+| Docker | Containerização |
+| Render | Hospedagem |
 
 ---
 
 ## 📌 Funcionalidades
 
-O projeto possui os seguintes módulos e recursos:
+O projeto contempla:
 
-- 👤 Pacientes
-- 👥 Responsáveis
-- 🔗 Vínculos entre pacientes e responsáveis
-- 🧑‍⚕️ Profissionais
-- ⏰ Disponibilidades
-- 📅 Consultas
-- 🗓️ Agenda
-- 📋 Prontuários
-- 🧠 Diagnósticos
-- 💊 Tratamentos
-- 🧪 Exames
-- 👨‍💼 Administradores
-- 🔐 Autenticação e segurança
-- 👤 Modelo centralizado de usuários
-- ✅ Validação de dados de entrada
-- 🔄 Status, remarcação e cancelamento de consultas
-- 🖥️ Frontend Angular integrado à aplicação Spring Boot
+- Cadastro, consulta, atualização e inativação de pacientes.
+- Cadastro e gerenciamento de responsáveis.
+- Múltiplos responsáveis por paciente.
+- Vínculos entre pacientes e responsáveis.
+- Cadastro e gerenciamento de profissionais.
+- Cadastro e gerenciamento de secretarias.
+- Vínculos entre profissionais e pacientes, com histórico.
+- Disponibilidades e modalidades de atendimento.
+- Consultas, agenda, confirmação, remarcação e cancelamento.
+- Prontuário centralizado por paciente.
+- Diagnósticos, tratamentos e exames.
+- Solicitações de exames e registro separado dos resultados.
+- Arquivamento lógico de documentos clínicos, diagnósticos, tratamentos e exames.
+- Prescrições em texto livre e itens estruturados de medicamento, dosagem, posologia, frequência e duração.
+- Histórico de revisões de prescrições.
+- Documentos clínicos e anexos.
+- Preferências individuais persistidas por usuário.
+- Autenticação JWT e controle de acesso por perfil.
+- Primeiro acesso e recuperação de senha.
+- Inativação de cadastros, preservando o histórico.
+- Validação condicional dos dados de plano de saúde.
+- Compartilhamento de leitura clínica conforme vínculo profissional ativo.
+- Preservação da autoria dos registros clínicos.
+- Limpeza dos dados clínicos mantidos em memória após o logout.
+- Tratamento de falhas de comunicação com a API, evitando apresentar dados antigos ou listas vazias como se fossem resultados válidos.
+- Frontend Angular integrado à aplicação Spring Boot.
 
-O módulo de **Receitas** aguarda a definição dos campos e das regras de negócio no Figma.
+O mecanismo de documentos clínicos contempla diferentes seções, incluindo acolhimento, assistência social, relatórios escolares, declarações escolares, rastreio, devolutiva e evoluções, conforme os tipos suportados pela implementação.
 
-A existência dos módulos não substitui a validação funcional de cada operação, das permissões e das regras de negócio.
+A existência de uma funcionalidade implementada não substitui sua validação funcional. Os requisitos específicos de telas e formulários ainda precisam ser conferidos com a versão definitiva do MVP.
 
 ---
 
 ## 🏗️ Arquitetura
 
-O NeuroVita utiliza uma arquitetura integrada, na qual o Spring Boot disponibiliza a API REST e também serve os arquivos estáticos compilados do Angular.
-
-### Visão geral
+A aplicação utiliza uma arquitetura integrada:
 
 ```text
-                  Usuário / Navegador
-                          |
-                          v
-                   Frontend Angular
-                          |
-                          v
-                  Aplicação Spring Boot
-                          |
-             +------------+------------+
-             |                         |
-             v                         v
-       Arquivos estáticos          API REST
-             |                         |
-             |                    Controller
-             |                         |
-             |                      Service
-             |                         |
-             |                    Repository
-             |                         |
-             |                       Model
-             |                         |
-             |                      MongoDB
-             |                    MongoDB Atlas
-             |
-             v
-          Interface
+Usuário / Navegador
+        |
+        v
+Frontend Angular
+        |
+        v
+Aplicação Spring Boot
+        |
+        +----------------------+
+        |                      |
+        v                      v
+Arquivos estáticos          API REST
+                               |
+                            Controller
+                               |
+                             Service
+                               |
+                           Repository
+                               |
+                             Model
+                               |
+                            MongoDB
+                               |
+                          MongoDB Atlas
 ```
+
+### Backend
+
+O backend Java utiliza Spring Boot e organiza as responsabilidades em:
+
+- `controller`: recebe requisições HTTP.
+- `service`: implementa as regras de negócio.
+- `repository`: realiza operações de persistência.
+- `model`: representa os documentos do banco.
+- `dto`: define os dados de entrada e saída da API.
+- `security`: contém autenticação e autorização.
 
 ### Frontend
 
-Desenvolvido em Angular, responsável pela interface utilizada pelos administradores, profissionais, secretarias e pacientes.
+O frontend é desenvolvido em Angular.
 
-O frontend é compilado durante a construção da imagem Docker. Os arquivos gerados são incorporados aos recursos estáticos do Spring Boot.
+Seus arquivos compilados são incorporados aos recursos estáticos do Spring Boot em:
 
-### Controller
+```text
+src/main/resources/static/
+```
 
-Recebe as requisições HTTP, aplica as validações de entrada configuradas e retorna as respostas da API.
+A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
 
-### Service
+O frontend utiliza serviços de integração para acessar os módulos da API, incluindo pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias e preferências.
 
-Implementa as regras de negócio e as operações da aplicação.
+O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
-### Repository
-
-Responsável pelo acesso aos dados utilizando Spring Data MongoDB.
-
-### Model
-
-Representa as entidades e os documentos persistidos no MongoDB.
-
-### DTO
-
-Separa os dados recebidos e enviados pela API dos modelos de persistência.
-
-### Security
-
-Contém os componentes responsáveis pela autenticação e pela aplicação das regras de segurança, incluindo o filtro JWT.
+A proteção de navegação do Angular não substitui as verificações de autorização do backend.
 
 ---
 
 ## 📁 Estrutura do projeto
 
 ```text
-neurovita/
+NeuroVita/
 ├── frontend/
 │   ├── src/
 │   │   └── app/
@@ -142,22 +147,19 @@ neurovita/
 │   ├── main/
 │   │   ├── java/com/neurovita/
 │   │   │   ├── config/
-│   │   │   │   ├── OpenApiConfig.java
-│   │   │   │   ├── SecurityConfig.java
-│   │   │   │   └── SpaRoutingConfig.java
 │   │   │   ├── controller/
 │   │   │   ├── dto/
 │   │   │   ├── exception/
 │   │   │   ├── model/
 │   │   │   ├── repository/
 │   │   │   ├── security/
-│   │   │   ├── service/
-│   │   │   └── NeurovitaApplication.java
+│   │   │   └── service/
 │   │   └── resources/
 │   │       ├── static/
 │   │       └── application.properties
 │   │
 │   └── test/
+│       └── java/com/neurovita/
 │
 ├── .dockerignore
 ├── .gitignore
@@ -168,21 +170,15 @@ neurovita/
 └── README.md
 ```
 
-A estrutura apresenta os principais componentes. Os arquivos específicos de cada módulo foram omitidos para facilitar a leitura.
-
-O diretório `frontend/` contém o projeto Angular. O diretório `src/` contém a aplicação Java Spring Boot.
-
-Os arquivos compilados do Angular são incorporados aos recursos estáticos do Spring Boot durante a construção da imagem Docker.
-
 ---
 
-## 👤 Pacientes
+## 👥 Pacientes e responsáveis
 
-O módulo de pacientes oferece operações de cadastro, consulta, atualização e exclusão.
+O módulo de pacientes contempla operações de cadastro, consulta, atualização e inativação.
 
-### Endpoints
+Principais endpoints:
 
-```text
+```http
 POST   /api/pacientes
 GET    /api/pacientes
 GET    /api/pacientes/{id}
@@ -190,193 +186,151 @@ PUT    /api/pacientes/{id}
 DELETE /api/pacientes/{id}
 ```
 
-### Validação dos dados
+### Regras de negócio
 
-O cadastro e a atualização utilizam Jakarta Bean Validation para verificar regras aplicáveis aos campos recebidos.
+- Nome e data de nascimento são obrigatórios.
+- A data de nascimento deve ser anterior à data atual.
+- Pacientes menores de 18 anos precisam possuir pelo menos um responsável.
+- Pacientes maiores de idade não precisam obrigatoriamente de responsável.
+- Um paciente pode possuir vários responsáveis.
+- Um responsável pode estar associado a vários pacientes.
+- O grau de parentesco é registrado individualmente em cada vínculo.
+- O cadastro pessoal do responsável é independente do vínculo com o paciente.
+- A remoção de um vínculo não apaga o cadastro pessoal do responsável.
+- Responsáveis com vínculos ativos não podem ser excluídos.
+- Quando `possuiPlanoSaude` for verdadeiro, o nome do plano de saúde é obrigatório.
+- Número da carteirinha e validade do plano permanecem opcionais.
+- Quando o paciente não possui plano de saúde, a identificação do plano não é obrigatória.
+- Campos omitidos em atualizações parciais devem preservar os dados existentes quando a operação permitir esse comportamento.
 
-Entre as validações implementadas estão:
+CEP e cidade são aceitos pelo backend, mas ainda são opcionais para compatibilidade com o frontend atual. O preenchimento obrigatório do CEP previsto visualmente no MVP ainda precisa ser confirmado e alinhado ao contrato integrado.
 
-- Nome obrigatório.
-- Data de nascimento obrigatória e anterior à data atual.
-- Formato de e-mail.
-- Formato de CPF.
-- Formato de telefone.
+Os dados de responsáveis são armazenados separadamente dos pacientes, com os relacionamentos registrados na coleção `vinculosResponsaveis`.
 
-As validações de formato de CPF e telefone não substituem a verificação completa dos dígitos nem a confirmação da existência desses dados.
+A inativação preserva o cadastro e o histórico relacionado.
 
-O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação do serviço.
+---
 
-### Responsáveis vinculados
+## 🧑‍⚕️ Profissionais e vínculos com pacientes
 
-O cadastro e a atualização de pacientes recebem uma lista de responsáveis. Cada item contém o identificador do responsável já cadastrado e o grau de parentesco.
+O módulo de profissionais contempla cadastro, consulta, atualização, inativação e gerenciamento de disponibilidades.
 
-Exemplo ilustrativo de requisição:
+O profissional pode oferecer atendimento presencial, online ou ambas as modalidades.
+
+### Cadastro de profissionais e secretarias
+
+Os cadastros utilizam os endpoints:
+
+```http
+POST /api/profissionais
+POST /api/secretarias
+```
+
+Os formulários existentes podem solicitar o envio de e-mail de boas-vindas no cadastro.
+
+O corpo da requisição pode incluir:
 
 ```json
 {
-  "nome": "Paciente Exemplo",
-  "dataNascimento": "2015-05-20",
-  "email": "paciente.exemplo@email.com",
-  "cpf": "123.456.789-00",
-  "telefone": "(61) 99999-0000",
-  "possuiPlanoSaude": false,
-  "planoSaude": null,
-  "numeroCarteirinha": null,
-  "validadePlano": null,
-  "responsaveis": [
-    {
-      "responsavelId": "ID_DO_RESPONSAVEL_CADASTRADO",
-      "grauParentesco": "Mãe"
-    }
-  ]
+  "enviarEmailBoasVindas": true
 }
 ```
 
-Os valores são exemplos para ilustrar a estrutura esperada. O identificador precisa corresponder a um responsável existente no banco de dados.
+A resposta inclui `emailBoasVindasEnviado` para que o frontend informe o resultado do envio.
 
-O campo `responsaveis` é uma lista, permitindo representar mais de um responsável para o mesmo paciente.
+O comportamento implementado é:
+
+- Quando o SMTP está habilitado e o envio é concluído, a resposta informa `emailBoasVindasEnviado=true` e omite a senha provisória.
+- Se o SMTP estiver desabilitado ou o envio falhar, o cadastro permanece concluído, a resposta informa `false` e retorna a senha provisória somente ao usuário autenticado que realizou o cadastro, para entrega manual.
+- A senha provisória é enviada no corpo do e-mail quando o envio é realizado.
+- O primeiro acesso exige a alteração da senha provisória.
+
+O envio reutiliza as configurações SMTP do ambiente:
+
+```text
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_FROM
+```
+
+O serviço de e-mail utiliza uma dependência opcional de `JavaMailSender`, permitindo que a aplicação seja inicializada mesmo quando não houver configuração de envio disponível.
+
+Falhas SMTP são registradas no servidor sem incluir senha ou destinatário no log.
+
+Um convite com token temporário de uso único e expiração não faz parte do fluxo atual.
+
+### Disponibilidades
+
+As disponibilidades são documentos relacionados pelo ID ao profissional.
+
+Ao excluir uma disponibilidade, o backend remove suas referências dos profissionais antes de apagar o documento, evitando referências órfãs no fluxo normal.
+
+A integração também contempla a criação e associação de novas disponibilidades antes da remoção das referências antigas, reduzindo o risco de perda de configurações durante a sincronização.
+
+Como a operação envolve documentos MongoDB distintos, não existe garantia de atomicidade entre todas as etapas. A consistência em caso de falhas intermediárias ainda precisa ser validada em ambiente integrado.
+
+### Vínculos profissionais-pacientes
+
+Os relacionamentos são armazenados na coleção:
+
+```text
+vinculos_profissional_paciente
+```
+
+A estrutura permite:
+
+- Um paciente ser acompanhado por vários profissionais.
+- Registrar abertura e encerramento de vínculos.
+- Preservar o histórico dos atendimentos.
+- Consultar os profissionais vinculados a um paciente.
+- Listar pacientes de um profissional considerando os vínculos ativos, independentemente da existência de consultas anteriores.
+
+A abertura e o encerramento dos vínculos são restritos aos perfis autorizados de administrador e secretaria.
+
+O profissional pode consultar a equipe multidisciplinar vinculada ao paciente por meio de:
+
+```http
+GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}
+```
+
+A resposta de pacientes também contempla a lista de profissionais vinculados por meio do campo `profissionais`, permitindo que o frontend apresente a equipe responsável sem depender das consultas cadastradas.
+
+O frontend preenche o profissional atual somente quando há exatamente um vínculo ativo. Com vários vínculos ativos, não escolhe um arbitrariamente.
+
+Consultas anteriores continuam compondo o histórico sem alterar os vínculos profissionais.
+
+### Controle de acesso clínico
+
+O vínculo ativo é utilizado como critério para o compartilhamento de leitura das informações clínicas.
+
+As regras implementadas contemplam:
+
+- Profissionais com vínculo ativo podem consultar informações clínicas compartilhadas.
+- Profissionais sem vínculo ativo não possuem acesso de leitura compartilhada.
+- O encerramento do vínculo interrompe o acesso compartilhado correspondente.
+- O histórico dos vínculos encerrados é preservado.
+- A autoria dos registros clínicos é mantida.
+- A leitura compartilhada não concede automaticamente permissão para editar ou excluir registros de outros profissionais.
+
+As permissões também são aplicadas aos módulos de diagnósticos, tratamentos e exames.
+
+Contas com perfil `PACIENTE` podem consultar o próprio cadastro por `GET /api/pacientes/{id}` e suas consultas por `GET /api/consultas/paciente/{pacienteId}` ou `GET /api/agenda/paciente/{id}`.
+
+O serviço confere o identificador da entidade associada à conta autenticada; a alteração do ID na URL não concede acesso a outro paciente. Pacientes não recebem acesso às listagens globais nem às operações de escrita desses módulos.
+
+A integração completa desse perfil com as telas e rotas do frontend ainda precisa ser validada.
 
 ---
 
-## 👥 Responsáveis
+## 📅 Consultas e agenda
 
-O módulo de responsáveis permite cadastrar, consultar, atualizar e excluir os dados pessoais e de contato dos responsáveis pelos pacientes.
+O módulo de consultas permite cadastrar, consultar, atualizar, remarcar e cancelar atendimentos.
 
-### Endpoints
+Principais endpoints:
 
-```text
-POST   /api/responsaveis
-GET    /api/responsaveis
-GET    /api/responsaveis/{id}
-PUT    /api/responsaveis/{id}
-DELETE /api/responsaveis/{id}
-```
-
-### Dados do responsável
-
-| Campo | Descrição |
-|---|---|
-| `id` | Identificador do responsável |
-| `nome` | Nome do responsável |
-| `cpf` | CPF, quando informado |
-| `email` | E-mail, quando informado |
-| `telefone` | Telefone, quando informado |
-
-O nome é obrigatório. O DTO utiliza validações para os campos aplicáveis, incluindo e-mail, CPF e telefone. CPF e e-mail também são verificados quanto à duplicidade, conforme as regras implementadas no serviço.
-
-### Vínculos com pacientes
-
-Os dados pessoais do responsável são armazenados separadamente dos dados do paciente. A associação entre eles é registrada na coleção `vinculosResponsaveis`.
-
-Cada vínculo contém:
-
-| Campo | Descrição |
-|---|---|
-| `id` | Identificador do vínculo |
-| `pacienteId` | Identificador do paciente |
-| `responsavelId` | Identificador do responsável |
-| `grauParentesco` | Relação entre o paciente e o responsável |
-
-Essa estrutura permite:
-
-- Um paciente possuir vários responsáveis.
-- Um responsável estar associado a vários pacientes.
-- O grau de parentesco ser definido individualmente em cada vínculo.
-- Evitar a duplicação dos dados pessoais do responsável dentro do documento do paciente.
-
-### Regras implementadas localmente
-
-- O nome do responsável é obrigatório.
-- CPF e e-mail são normalizados antes das verificações de duplicidade.
-- Não é permitido excluir um responsável que ainda possua vínculos com pacientes.
-- Cada vínculo precisa apontar para um responsável existente.
-- Não são permitidos vínculos duplicados para o mesmo responsável e paciente.
-- O grau de parentesco é obrigatório.
-- O cadastro de pacientes menores de idade exige pelo menos um responsável.
-- Na atualização do paciente, a lista recebida é utilizada para reconciliar os vínculos existentes.
-
-Essas regras precisam ser validadas funcionalmente por meio de requisições reais.
-
-### Permissões
-
-As operações de responsáveis estão configuradas para os perfis `ADMINISTRADOR` e `SECRETARIA`. A autorização efetiva deve ser confirmada com requisições autenticadas e com os diferentes perfis.
-
-**Importante:** o vínculo com um responsável não concede automaticamente acesso a prontuários ou a outras informações clínicas do paciente. Essa autorização deve ser tratada separadamente.
-
----
-
-## 🧑‍⚕️ Profissionais
-
-O módulo permite gerenciar profissionais e suas disponibilidades.
-
-### Endpoints
-
-```text
-POST   /api/profissionais
-GET    /api/profissionais
-GET    /api/profissionais/{id}
-PUT    /api/profissionais/{id}
-DELETE /api/profissionais/{id}
-```
-
-### Validação dos dados
-
-O cadastro e a atualização utilizam Jakarta Bean Validation para verificar regras aplicáveis aos campos recebidos.
-
-Entre as validações implementadas estão:
-
-- Nome obrigatório.
-- Formato de e-mail.
-- Formato de CPF.
-- Formato de telefone.
-- Categoria profissional obrigatória.
-- Limites para o ano de conclusão.
-
-### Disponibilidades vinculadas
-
-```text
-POST   /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
-GET    /api/profissionais/{profissionalId}/disponibilidades
-DELETE /api/profissionais/{profissionalId}/disponibilidades/{disponibilidadeId}
-```
-
-O cadastro também participa do fluxo de criação de credenciais de acesso, conforme a implementação do serviço.
-
----
-
-## ⏰ Disponibilidades
-
-O módulo permite cadastrar, consultar, atualizar e excluir disponibilidades.
-
-### Endpoints
-
-```text
-POST   /api/disponibilidades
-GET    /api/disponibilidades
-GET    /api/disponibilidades/{id}
-PUT    /api/disponibilidades/{id}
-DELETE /api/disponibilidades/{id}
-```
-
-### Validações implementadas
-
-O serviço valida os campos obrigatórios de horário e verifica se o horário final é posterior ao horário inicial.
-
-O dia da semana é normalizado para padronizar a comparação dos valores. A normalização remove espaços nas extremidades, converte o texto para letras maiúsculas e substitui espaços e hífens por sublinhados.
-
-### Permissões
-
-As permissões das rotas globais de disponibilidades ainda precisam ser revisadas para garantir que cada perfil possa executar somente as operações autorizadas. As rotas vinculadas ao profissional também precisam respeitar as regras de acesso correspondentes.
-
----
-
-## 📅 Consultas
-
-O módulo de consultas permite cadastrar, consultar, atualizar e excluir atendimentos. A implementação local contempla status, regras de agendamento e cancelamento.
-
-### Endpoints
-
-```text
+```http
 POST   /api/consultas
 GET    /api/consultas
 GET    /api/consultas/{id}
@@ -385,249 +339,275 @@ DELETE /api/consultas/{id}
 PATCH  /api/consultas/{id}/cancelar
 ```
 
-### Consultas específicas
+`GET /api/consultas` aceita `dataInicio` e `dataFim` juntos como `LocalDateTime` ISO-8601, por exemplo:
 
 ```text
+2026-11-10T09:00:00
+```
+
+O filtro utiliza início inclusivo e fim exclusivo. Para um profissional, os resultados continuam limitados às próprias consultas.
+
+Consultas por paciente e profissional:
+
+```http
 GET /api/consultas/paciente/{pacienteId}
 GET /api/consultas/profissional/{profissionalId}
 ```
 
-### Status das consultas
+Esses endpoints também aceitam os parâmetros opcionais `dataInicio` e `dataFim`, ambos obrigatórios em conjunto.
+
+O formulário de agendamento utiliza a consulta por intervalo para bloquear horários ocupados pela agenda do profissional ou do paciente.
+
+Conflitos definitivos continuam sendo validados no servidor ao criar ou remarcar uma consulta. Falhas ao consultar a agenda bloqueiam a seleção em vez de tratar o horário como livre.
+
+Profissionais só podem consultar a agenda de pacientes com os quais tenham vínculo ativo. Nessa consulta, são incluídos os horários do paciente com outros profissionais para evitar conflitos, sem permitir a busca de pacientes não vinculados.
+
+### Grade e duração dos horários
+
+Na tela de agendamento da Secretaria:
+
+- Os inícios são gerados em intervalos de 60 minutos a partir do início real de cada disponibilidade ativa.
+- A duração padrão é de 50 minutos.
+- Uma preferência individual já salva pode definir outra duração permitida no MVP.
+- A duração selecionada é enviada na consulta.
+- Sem preferência salva, a API e a tela utilizam 50 minutos.
+- A grade respeita janelas fora de horários comerciais fixos.
+- Só são oferecidos inícios em que a consulta completa cabe na disponibilidade.
+- Horários passados, conflitos existentes e falhas de carregamento permanecem bloqueados.
+
+O backend repete a validação ao salvar, não dependendo apenas das opções exibidas no frontend.
+
+A remarcação aplica a mesma grade de 60 minutos e mantém a duração já registrada na consulta, preservando essa informação durante a alteração.
+
+A API valida que o início pertence à grade contada a partir do início real de uma disponibilidade ativa, além de validar o intervalo completo contra a disponibilidade e os conflitos existentes.
+
+As listagens por período usam diretamente as consultas derivadas do repositório MongoDB. Falhas são propagadas pelo tratamento global de erros; o serviço não busca a coleção inteira como fallback.
+
+### Status
 
 | Status | Significado |
 |---|---|
-| `CONFIRMADA` | Consulta cadastrada e confirmada. É o status inicial de uma nova consulta. |
-| `REMARCADA` | Consulta cuja data ou horário foi alterado. |
-| `CANCELADA` | Consulta cancelada, mantida no histórico quando utilizado o endpoint de cancelamento. |
+| `PENDENTE` | Consulta aguardando confirmação |
+| `CONFIRMADA` | Consulta confirmada |
+| `REMARCADA` | Data ou horário alterado |
+| `CANCELADA` | Consulta cancelada |
 
-O status é controlado pelo backend e não deve ser definido livremente no corpo da requisição de cadastro ou atualização.
+O status inicial é `PENDENTE`. A alteração de data ou horário atualiza o status para `REMARCADA`.
 
-### Cancelamento
+O cancelamento pelo endpoint específico e pela rota DELETE preserva o registro, registra o status `CANCELADA` e mantém no histórico os dados anteriores da consulta.
 
-O endpoint `PATCH /api/consultas/{id}/cancelar` altera o status da consulta para `CANCELADA`, preservando o registro para consulta posterior.
-
-O endpoint `DELETE /api/consultas/{id}` permanece disponível para exclusão definitiva do registro.
+O endpoint DELETE mantém a compatibilidade da rota existente, mas não apaga fisicamente consultas, protegendo o histórico clínico e administrativo.
 
 ### Regras de agendamento
 
-A implementação local contempla validações relacionadas a:
+O backend verifica:
 
 - Existência do paciente e do profissional.
-- Data, horário e duração da consulta.
-- Disponibilidade cadastrada para o profissional.
-- Conflitos de horário do profissional.
-- Conflitos de horário do paciente.
-- Permissões de acesso às consultas.
-- Desconsideração de consultas canceladas na verificação de conflitos.
+- Disponibilidade do profissional.
+- Conflitos de horário do profissional e do paciente.
+- Modalidade de atendimento oferecida.
+- Estado ativo do paciente e do profissional.
+- Permissões do usuário autenticado.
+- Compatibilidade entre o horário solicitado e a grade da disponibilidade.
+- Compatibilidade entre a duração e o intervalo disponível.
 
-Consultas canceladas não devem bloquear o horário para novos agendamentos. Consultas antigas sem status explícito são tratadas como confirmadas na resposta e na verificação de conflitos.
+Um profissional não pode ter consultas sobrepostas, independentemente do paciente.
 
-A alteração de data ou horário por meio do endpoint de atualização marca a consulta como `REMARCADA`. Consultas canceladas não podem ser atualizadas pela operação normal de alteração.
+Um paciente não pode ter consultas simultâneas, independentemente do profissional.
 
-A comparação dos dias da semana das disponibilidades foi normalizada no serviço de consultas, para reduzir inconsistências causadas por diferenças de espaços, maiúsculas, minúsculas e separadores.
+A validação considera o intervalo completo da consulta, não apenas o horário inicial. Consultas canceladas não bloqueiam novos agendamentos. Na remarcação, a própria consulta é desconsiderada na verificação de conflitos.
 
-**Atenção:** as regras foram implementadas localmente e precisam ser validadas funcionalmente, inclusive após a publicação no Render.
+### Modalidade e local
 
----
+A consulta presencial utiliza a unidade informada no formulário, com `Unidade Santa Maria` como local padrão.
 
-## 🗓️ Agenda
+A consulta online utiliza `Teleconsulta` como local.
 
-A agenda é construída a partir das consultas cadastradas e não possui um documento próprio no MongoDB, conforme a arquitetura atual.
+### Agenda
 
-### Endpoints
+A agenda é construída a partir das consultas, sem uma coleção independente.
 
-```text
+```http
 GET /api/agenda
-
 GET /api/agenda/dia?data=2026-09-20
-
 GET /api/agenda/profissional/{id}?data=2026-09-20
-
 GET /api/agenda/paciente/{id}
+GET /api/agenda/resumo?data=2026-09-20
 ```
 
-A apresentação dos status e o tratamento das consultas canceladas na agenda devem ser conferidos durante a validação funcional.
+O resumo diário retorna as contagens de consultas confirmadas, pendentes, canceladas e remarcadas, além do próximo atendimento não cancelado. Para profissionais, o endpoint limita os resultados à própria agenda.
+
+As remarcações preservam no histórico embutido da consulta os dados anteriores do horário e do profissional, a situação anterior e quem realizou a alteração.
+
+A grade visual da agenda mantém 08:00–18:00 como base e se expande quando há consultas agendadas fora desse período.
+
+O paciente associado a uma consulta existente não pode ser substituído; para atender outra pessoa, deve ser criado um novo agendamento.
 
 ---
 
-## 📋 Prontuários
+## 📋 Prontuários e documentos clínicos
 
-Armazenam informações relacionadas ao acompanhamento clínico.
+O sistema utiliza um prontuário centralizado por paciente, evitando a criação de múltiplos prontuários para a mesma pessoa.
 
-### Endpoints
+O prontuário reúne informações do acompanhamento clínico, enquanto os registros específicos são organizados nos módulos correspondentes.
 
-```text
-POST /api/prontuarios
-GET  /api/prontuarios/{id}
-PUT  /api/prontuarios/{id}
-GET  /api/prontuarios/paciente/{pacienteId}
-```
-
-Os DTOs possuem validações para campos obrigatórios. O acesso aos prontuários deve respeitar as permissões de cada perfil e os vínculos de atendimento entre profissionais e pacientes. A validação completa dessas restrições permanece necessária.
-
----
-
-## 🧠 Diagnósticos
-
-### Endpoints
+### Módulos clínicos
 
 ```text
-POST   /api/diagnosticos
-GET    /api/diagnosticos
-GET    /api/diagnosticos/{id}
-PUT    /api/diagnosticos/{id}
-DELETE /api/diagnosticos/{id}
-
-GET    /api/diagnosticos/paciente/{pacienteId}
+/api/prontuarios
+/api/diagnosticos
+/api/tratamentos
+/api/exames
+/api/prescricoes
+/api/documentos-clinicos
+/api/evolucoes
 ```
 
-### Validação dos dados
+Os módulos possuem operações próprias de consulta e gerenciamento.
 
-O cadastro e a atualização de diagnósticos utilizam Jakarta Bean Validation para validar os campos obrigatórios:
+Diagnósticos aceitam e retornam `cid`. Uma atualização que omita esse campo preserva o código anteriormente registrado. A interface existente mostra o CID do diagnóstico ativo quando esse dado está presente.
 
-- ID do paciente.
-- ID do profissional.
-- Descrição do diagnóstico.
+### Documentos clínicos
 
-As validações são aplicadas pelo controller com `@Valid`. O serviço continua responsável por verificar as regras de negócio, incluindo os vínculos necessários entre paciente e profissional.
+O mecanismo unificado de documentos clínicos contempla diferentes seções, incluindo:
 
----
+- Acolhimento.
+- Assistência social.
+- Evolução.
+- Relatório escolar.
+- Declaração escolar.
+- Rastreio.
+- Devolutiva.
+- Laudos e encaminhamentos.
+- Avaliação psicológica.
+- Atestados.
+- Documentos e anexos.
 
-## 💊 Tratamentos
+Esse mecanismo mantém compatibilidade com os formulários atuais. A coleção/API específica `evolucoes` fornece registro append-only para consumo por integrações futuras; os componentes Angular existentes ainda usam `documentos_clinicos` para as anotações e documentos da seção Evoluções.
 
-O módulo permite gerenciar tratamentos relacionados aos pacientes e profissionais.
+A consulta pode ser filtrada por seção:
 
-### Endpoints
+```http
+GET /api/documentos-clinicos/paciente/{pacienteId}?secao=ACOLHIMENTO
+```
+
+Evoluções podem ser registradas e consultadas pela API. O registro inicial é finalizado e append-only; não há endpoint de edição/retificação nesta versão. Profissionais precisam de vínculo ativo com o paciente; administradores podem consultar e registrar mediante identificação do profissional responsável.
+
+```http
+GET /api/evolucoes/paciente/{pacienteId}
+POST /api/evolucoes
+```
+
+Resultados de exames têm atualização própria para separar a solicitação do registro do resultado:
+
+```http
+PUT /api/exames/{id}/resultado
+```
+
+### Arquivamento lógico
+
+Os endpoints DELETE de documentos clínicos, diagnósticos, tratamentos e exames arquivam o registro em vez de removê-lo fisicamente do MongoDB.
+
+As respostas de leitura incluem os campos:
+
+- `ativo`: indica se o registro permanece ativo.
+- `arquivadoEm`: registra a data do arquivamento.
+
+Os registros arquivados permanecem disponíveis para consulta histórica, mas não aceitam novas alterações. Essa abordagem preserva informações clínicas e evita a perda do histórico.
+
+### Prescrições
+
+As prescrições aceitam o conteúdo textual já utilizado e, opcionalmente, uma lista de itens estruturados com:
+
+- Medicamento.
+- Dosagem.
+- Posologia.
+- Frequência.
+- Duração.
+
+Os valores são informativos e não impõem regras clínicas de dose ou prescrição.
+
+Atualizações que omitem `medicamentos` preservam os itens existentes, garantindo compatibilidade com clientes que ainda utilizam o formato anterior.
+
+O histórico registra o conteúdo anterior da prescrição, incluindo o texto e a lista estruturada de medicamentos, conforme as informações disponíveis na versão anterior.
+
+Principais endpoints:
+
+```http
+POST /api/prescricoes
+GET  /api/prescricoes/{id}
+GET  /api/prescricoes/paciente/{pacienteId}
+PUT  /api/prescricoes/{id}
+```
+
+### Preferências individuais
+
+Preferências individuais de tema, idioma, formato de data, notificações, duração padrão de consulta e início da semana podem ser persistidas pelo próprio usuário autenticado:
+
+```http
+GET /api/preferencias
+PUT /api/preferencias
+```
+
+O salvamento das preferências de notificação não envia e-mails ou notificações por si só. A integração de envio permanece dependente de configuração externa.
+
+### Seções disponíveis
+
+Exemplos de valores de seção:
 
 ```text
-POST   /api/tratamentos
-GET    /api/tratamentos
-GET    /api/tratamentos/{id}
-PUT    /api/tratamentos/{id}
-DELETE /api/tratamentos/{id}
-
-GET    /api/tratamentos/paciente/{pacienteId}
+ACOLHIMENTO
+ASSISTENCIA_SOCIAL
+RELATORIO_ESCOLAR
+DECLARACAO_ESCOLAR
+RASTREIO
+DEVOLUTIVA
+EVOLUCAO
 ```
 
-### Validação dos dados
+Quando o parâmetro `secao` não é informado, a consulta retorna os documentos clínicos do paciente, ordenados cronologicamente.
 
-O DTO de requisição possui validações para os campos obrigatórios:
+Os registros contemplam informações de autoria, profissional responsável, data da sessão, tipo de atendimento, criação e atualização. A autoria e o paciente associados não podem ser substituídos durante uma edição.
 
-- ID do paciente.
-- ID do profissional.
-- Descrição do tratamento.
+O mecanismo de anexos possui validações de tamanho e tipo MIME.
 
-Os endpoints de cadastro e atualização aplicam `@Valid` para executar as validações de entrada.
+O compartilhamento de leitura respeita os vínculos profissionais ativos, preservando a autoria dos registros.
 
-O cadastro retorna `201 Created` quando a operação é concluída com sucesso.
-
-O serviço mantém as verificações de existência do paciente e do profissional e as regras de associação com a consulta correspondente, conforme a implementação do módulo.
-
-As regras de negócio e as permissões ainda precisam ser validadas funcionalmente.
-
----
-
-## 🧪 Exames
-
-O módulo permite gerenciar exames associados a pacientes e profissionais.
-
-### Endpoints
-
-```text
-POST   /api/exames
-GET    /api/exames
-GET    /api/exames/{id}
-PUT    /api/exames/{id}
-DELETE /api/exames/{id}
-
-GET    /api/exames/paciente/{pacienteId}
-```
-
-### Validação dos dados
-
-O DTO de requisição possui validações para os campos obrigatórios:
-
-- ID do paciente.
-- ID do profissional.
-- Nome do exame.
-
-Os endpoints de cadastro e atualização aplicam `@Valid` para executar as validações de entrada.
-
-O cadastro retorna `201 Created` quando a operação é concluída com sucesso.
-
-Os demais campos do exame, como tipo, data de realização, resultado e observações, são tratados conforme a estrutura do DTO.
-
-As regras de negócio, as permissões e a persistência devem ser verificadas funcionalmente.
-
----
-
-## 👨‍💼 Administradores
-
-O módulo permite gerenciar administradores.
-
-### Endpoints
-
-```text
-POST   /api/administradores
-GET    /api/administradores
-GET    /api/administradores/{id}
-PUT    /api/administradores/{id}
-DELETE /api/administradores/{id}
-```
-
-### Credenciais e modelo centralizado de usuários
-
-A autenticação utiliza o modelo centralizado `Usuario` para armazenar as credenciais.
-
-As senhas são armazenadas utilizando BCrypt e não devem ser retornadas pelos DTOs de resposta de administradores.
-
-O serviço de administradores foi ajustado para centralizar as credenciais no modelo `Usuario`, sincronizando os dados necessários entre o administrador e a conta de acesso relacionada.
-
-O perfil `ADMINISTRADOR` é utilizado nas regras de autorização da API.
-
-A consistência entre o administrador e sua conta de usuário precisa ser preservada durante as operações de cadastro e atualização.
+Documentos preexistentes continuam legíveis sem migração: registros antigos sem `criadoEm` retornam esse campo como `null`; documentos novos recebem a data de criação no momento do cadastro.
 
 ---
 
 ## 🔐 Autenticação e segurança
 
-O projeto utiliza:
+A aplicação utiliza:
 
 - Spring Security.
-- JWT (JSON Web Token).
+- JWT.
 - BCrypt.
 - Filtro de autenticação JWT.
-- Modelo centralizado `Usuario`.
-- Verificação do estado ativo da conta.
-- Identificação do perfil do usuário autenticado.
-- Fluxo de troca de senha no primeiro acesso.
-- Regras de autorização configuradas no Spring Security.
+- Modelo centralizado de usuários.
+- Controle de acesso por perfil.
+- Verificação de contas ativas.
+- Validação de permissões nos serviços.
 
-### Modelo centralizado de usuários
+### Perfis do backend
 
-A autenticação utiliza a entidade `Usuario`, responsável pelas credenciais e pelas informações necessárias à identificação dos usuários.
+- `ADMINISTRADOR`
+- `SECRETARIA`
+- `PROFISSIONAL`
+- `PACIENTE`
 
-O modelo contempla:
+As contas e credenciais são centralizadas no modelo `Usuario`.
 
-- Nome.
-- E-mail.
-- Senha armazenada com BCrypt.
-- Perfil de acesso.
-- Indicador de senha provisória.
-- Estado ativo da conta.
-- Identificador da entidade relacionada, quando aplicável.
-
-O repositório oferece busca de usuários por e-mail sem diferenciar maiúsculas e minúsculas.
-
-A unicidade dos e-mails e a consistência dos vínculos com as entidades de domínio devem ser garantidas pela implementação e pela configuração do banco de dados.
+As senhas são armazenadas utilizando BCrypt e não devem ser retornadas nas respostas da API.
 
 ### Login
 
-```text
+```http
 POST /api/auth/login
 ```
 
-Exemplo de requisição:
+Exemplo ilustrativo:
 
 ```json
 {
@@ -636,306 +616,159 @@ Exemplo de requisição:
 }
 ```
 
-Após a validação das credenciais, a API retorna um token JWT e os dados previstos no DTO de resposta.
+As requisições protegidas utilizam:
 
-O exemplo é ilustrativo. Não utilize credenciais reais em documentação pública.
-
-### Envio do token
-
-Nas requisições protegidas, o token deve ser enviado no cabeçalho HTTP:
-
-```text
+```http
 Authorization: Bearer <token>
 ```
 
-O filtro JWT verifica o token e consulta o usuário correspondente. Contas inexistentes ou inativas não devem autenticar as requisições.
+### Primeiro acesso
 
-### Primeiro acesso e troca de senha
-
-```text
+```http
 POST /api/auth/primeiro-acesso/alterar-senha
 ```
 
-Esse endpoint é destinado à troca obrigatória de uma senha provisória.
+O fluxo contempla troca obrigatória de senha provisória, validação da nova senha e atualização das credenciais.
 
-A requisição autenticada utiliza o token de primeiro acesso. O e-mail do usuário é obtido a partir da autenticação, em vez de ser informado livremente no corpo da requisição.
+Contas já ativadas podem alterar a senha autenticada usando a senha atual:
 
-Exemplo de corpo:
-
-```json
-{
-  "novaSenha": "NovaSenhaSegura123",
-  "confirmarSenha": "NovaSenhaSegura123"
-}
+```http
+POST /api/auth/alterar-senha
 ```
 
-A implementação contempla:
+Após alterar ou redefinir a senha, os tokens anteriores deixam de ser aceitos e é necessário autenticar novamente.
 
-- Token com validade reduzida para o primeiro acesso.
-- Restrição do token de primeiro acesso ao endpoint de troca de senha.
-- Validação de preenchimento e tamanho da nova senha.
-- Confirmação de igualdade entre as senhas.
-- Armazenamento da nova senha com BCrypt.
-- Atualização do indicador de senha provisória.
+Essa invalidação utiliza a claim `tokenVersion`, comparada à versão atual do usuário. Usuários antigos e tokens sem essa claim são tratados como versão zero até uma alteração de senha incrementar a versão.
 
-Após a alteração, um novo login deve utilizar a senha definitiva.
+### Recuperação de senha
 
-### Perfis e autorização
+A recuperação utiliza código temporário enviado por e-mail.
 
-Os perfis previstos no modelo de autenticação são:
+O código possui validade de 10 minutos. O envio depende da configuração SMTP no ambiente.
 
-- **Administrador:** administração geral do sistema.
-- **Profissional:** acesso aos atendimentos e aos dados necessários dos pacientes sob sua responsabilidade.
-- **Secretaria:** operações administrativas e de agendamento, respeitando as restrições de informações clínicas.
-- **Paciente:** acesso aos próprios dados e informações de atendimento, conforme as regras do sistema.
+### Logout e dados em memória
 
-A configuração do Spring Security contém regras específicas para as rotas de administradores, pacientes, profissionais, consultas, agenda, disponibilidades, prontuários, diagnósticos, tratamentos, exames e responsáveis.
+O logout encerra a sessão no frontend e limpa os dados clínicos mantidos em memória, evitando que informações da sessão anterior permaneçam disponíveis após a saída do usuário.
 
-As permissões de todos os endpoints ainda precisam ser revisadas e validadas. A existência de um perfil no modelo centralizado não significa, por si só, que todas as suas permissões já estejam implementadas.
+### Segurança adicional
 
-O acesso a prontuários, diagnósticos, exames e demais informações clínicas deverá respeitar as permissões de cada perfil e o vínculo entre profissionais e pacientes. Essas restrições devem ser verificadas no backend, e não apenas na interface do usuário.
+As configurações sensíveis devem ser fornecidas por variáveis de ambiente, nunca armazenadas diretamente no código ou publicadas no Git.
 
-O vínculo entre um paciente e um responsável não concede automaticamente acesso aos dados clínicos.
-
-A revisão das permissões específicas das rotas globais de disponibilidades permanece entre as próximas etapas.
-
-### Tratamento de erros
-
-O tratamento de erros contempla exceções para recursos inexistentes e credenciais inválidas.
-
-Comportamentos esperados:
-
-- Recursos inexistentes: resposta `404`, conforme o tratamento da rota.
-- Credenciais inválidas: resposta `401`, sem diferenciar e-mail inexistente de senha incorreta.
-- Token inválido ou expirado: requisição não autenticada.
-- Conta inativa: requisição não autenticada.
-- Token de primeiro acesso em rota não permitida: acesso negado.
-
-As respostas de validação e os códigos de erro devem ser conferidos durante os testes funcionais.
+A autenticação em duas etapas (2FA) permanece pendente de definição dos requisitos e do fluxo completo de autenticação. Não é considerada funcionalidade implementada.
 
 ---
 
 ## 📖 Swagger / OpenAPI
 
-A API possui documentação interativa por meio do Swagger/OpenAPI, permitindo consultar os endpoints e executar requisições HTTP.
+A documentação interativa da API utiliza SpringDoc OpenAPI.
 
-### Localmente
+Localmente:
 
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
-### Em produção
+Para testar endpoints protegidos:
 
-- **Swagger UI:** https://neurovita.onrender.com/swagger-ui/index.html
-- **API:** https://neurovita.onrender.com
+1. Realize o login.
+2. Copie o JWT retornado.
+3. Clique em **Authorize** no Swagger.
+4. Informe o token conforme o formato solicitado.
+5. Execute os endpoints autorizados.
 
-### Autenticação no Swagger
-
-A documentação está configurada para utilizar autenticação HTTP Bearer com JWT nos endpoints protegidos.
-
-**Como autenticar:**
-
-1. Execute `POST /api/auth/login` com um e-mail e uma senha válidos.
-2. Copie o token JWT retornado pela API.
-3. Clique no botão **Authorize**, identificado pelo cadeado no Swagger.
-4. Informe o token no campo de autenticação, utilizando o formato `Bearer SEU_TOKEN` caso o campo não acrescente o prefixo automaticamente.
-5. Confirme a autorização e execute um endpoint que exija autenticação.
-
-O endpoint `POST /api/auth/login` não exige um token prévio. Os demais endpoints seguem as regras de autenticação e autorização configuradas no Spring Security.
-
-> **Importante:** não compartilhe tokens JWT, senhas ou credenciais reais em documentação pública.
-
-A configuração OpenAPI está disponível, e o login com JWT já foi verificado em produção na versão anterior do backend. A autorização de todos os perfis e endpoints ainda precisa ser validada.
-
----
-
-## 🐳 Docker
-
-O projeto utiliza um Dockerfile multi-stage para compilar e executar o frontend Angular e o backend Java na mesma aplicação.
-
-O processo possui três etapas:
-
-1. **Frontend:** utiliza Node.js para instalar as dependências e compilar o Angular.
-2. **Backend:** utiliza Java 21 e Maven para compilar o Spring Boot e incorporar os arquivos gerados pelo Angular em `src/main/resources/static/`.
-3. **Execução:** utiliza uma imagem Java 21 JRE para executar a aplicação integrada.
-
-A aplicação utiliza a variável de ambiente `PORT`, com `8080` como valor padrão.
-
-As configurações sensíveis são fornecidas por variáveis de ambiente, incluindo:
-
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `PORT`
-
-O arquivo `.env` é utilizado somente no ambiente local e não deve ser versionado.
-
-O arquivo `.dockerignore` exclui dependências, arquivos gerados, configurações locais e informações sensíveis do contexto de build.
-
-### Construção da imagem
-
-```bash
-docker build -t neurovita-integrado .
-```
-
-### Execução local
-
-```bash
-docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-integrado
-```
-
-A aplicação estará disponível em:
-
-http://localhost:8080
-
----
-
-## ☁️ Deploy e ambientes
-
-O projeto está sendo organizado em quatro ambientes de desenvolvimento e entrega, conforme a organização definida para o projeto acadêmico.
-
-### Estrutura dos repositórios
-
-| Repositório | Finalidade |
-|---|---|
-| `victorhborges/NeuroVita` | Desenvolvimento |
-| `victorhborges/NeuroVita-Testes` | Testes |
-| `victorhborges/NeuroVita-Homologacao` | Homologação |
-| `victorhborges/NeuroVita-Producao` | Produção |
-
-Os três últimos repositórios serão criados posteriormente.
-
-### Fluxo de promoção
-
-```text
-DESENVOLVIMENTO
-       |
-       v
-     TESTES
-       |
-       v
-  HOMOLOGAÇÃO
-       |
-       v
-    PRODUÇÃO
-```
-
-Cada etapa deverá receber uma versão revisada e identificável.
-
-A promoção entre ambientes deverá preservar o histórico de alterações e ocorrer após a aprovação da etapa anterior.
-
-### Ambiente de desenvolvimento
-
-O repositório de desenvolvimento será utilizado para implementar novas funcionalidades, corrigir problemas e integrar o frontend e o backend.
-
-### Ambiente de testes
-
-Receberá versões disponibilizadas para a equipe responsável pela validação funcional.
-
-### Ambiente de homologação
-
-Receberá versões aprovadas nos testes para validação final antes da publicação.
-
-### Ambiente de produção
-
-Receberá somente versões aprovadas para disponibilização aos usuários.
-
-### Produção atual
-
-A versão anterior do backend está hospedada no Render, utilizando Docker.
-
-- **URL atual:** https://neurovita.onrender.com
-- **Swagger:** https://neurovita.onrender.com/swagger-ui/index.html
-
-O login autenticado e as consultas de administradores e pacientes foram verificados na versão anterior em produção. As operações retornaram respostas HTTP `200` nos cenários verificados.
-
-A nova arquitetura integrada ainda precisa ser publicada e validada no ambiente de produção.
-
-### Integração com o frontend
-
-Na arquitetura integrada, o frontend Angular será servido pela própria aplicação Spring Boot.
-
-Assim, a interface e a API poderão utilizar a mesma origem, reduzindo a necessidade de manter serviços separados para frontend e backend.
-
-O Spring Security possui configuração específica para permitir o acesso aos arquivos estáticos e às rotas do frontend sem remover as regras de segurança aplicáveis às rotas `/api/**`.
-
-A configuração de CORS permanece disponível para origens externas autorizadas.
-
-A permissão de CORS não substitui a autenticação JWT nem as regras de autorização dos endpoints.
+Não compartilhe senhas, tokens ou credenciais reais.
 
 ---
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza **MongoDB** com Spring Data MongoDB e MongoDB Atlas.
+O projeto utiliza MongoDB Atlas com Spring Data MongoDB.
 
-### Coleções
-
-A aplicação utiliza coleções MongoDB para persistir os documentos dos módulos, incluindo:
-
-- `administradores`
-- `consultas`
-- `diagnosticos`
-- `disponibilidades`
-- `exames`
-- `pacientes`
-- `profissionais`
-- `prontuarios`
-- `responsaveis`
-- `secretarias`
-- `tratamentos`
-- `usuarios`
-- `vinculosResponsaveis`
-
-A estrutura efetivamente utilizada depende dos modelos e repositórios implementados e da configuração do banco.
-
-### Responsáveis e vínculos
+Entre as coleções utilizadas estão:
 
 | Coleção | Finalidade |
 |---|---|
-| `responsaveis` | Dados pessoais e de contato dos responsáveis |
-| `vinculosResponsaveis` | Relação entre pacientes e responsáveis, incluindo o grau de parentesco |
-| `pacientes` | Dados cadastrais dos pacientes |
+| `pacientes` | Cadastro de pacientes |
+| `responsaveis` | Cadastro de responsáveis |
+| `vinculosResponsaveis` | Relação entre pacientes e responsáveis |
+| `profissionais` | Cadastro de profissionais |
+| `vinculos_profissional_paciente` | Relação e histórico de vínculos profissionais |
+| `disponibilidades` | Horários disponíveis |
+| `consultas` | Agendamentos |
+| `prontuarios` | Prontuários centrais |
+| `diagnosticos` | Diagnósticos |
+| `tratamentos` | Tratamentos |
+| `exames` | Solicitações e resultados de exames |
+| `prescricoes` | Prescrições e histórico de revisões |
+| `preferencias_usuarios` | Preferências individuais |
+| `usuarios` | Credenciais e perfis |
 
-O relacionamento entre paciente e responsável é armazenado separadamente, evitando duplicar os dados pessoais do responsável em cada paciente.
+A agenda é derivada das consultas, não possuindo coleção própria.
 
-### Configuração da conexão
+### Conexão
 
-A aplicação utiliza a variável de ambiente:
+A URI é configurada pela variável:
 
 ```text
 MONGODB_URI
 ```
 
-A propriedade configurada em `application.properties` é:
+Cada ambiente deve utilizar o banco de dados correspondente, mantendo a separação entre desenvolvimento, testes, homologação e produção.
 
-```properties
-spring.mongodb.uri=${MONGODB_URI}
+**Segurança:**
+
+- Não versionar URIs com credenciais.
+- Não publicar senhas ou tokens.
+- Não versionar arquivos `.env`.
+- Utilizar variáveis de ambiente nos serviços hospedados.
+
+A validação dos fluxos mais recentes com MongoDB Atlas real ainda precisa ser concluída. Testes unitários com mocks não comprovam a persistência no banco real.
+
+---
+
+## 🐳 Docker e deploy
+
+O projeto utiliza Docker multi-stage para compilar e executar a aplicação integrada.
+
+O processo contempla:
+
+1. Node.js para instalação das dependências e compilação do Angular.
+2. Java 21 e Maven para construção do backend.
+3. Incorporação dos arquivos Angular em `src/main/resources/static/`.
+4. Execução da aplicação em uma imagem Java 21 JRE.
+
+### Construção
+
+```bash
+docker build -t neurovita-integrado .
 ```
 
-A URI precisa incluir o nome do banco de dados, além dos parâmetros de conexão necessários.
+### Execução
 
-Em produção, a URI de conexão é fornecida pela variável `MONGODB_URI`, configurada no ambiente do Render.
+```bash
+docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-integrado
+```
 
-A aplicação também utiliza a variável `JWT_SECRET`, que fornece a chave usada para assinar e validar os tokens JWT.
+### Variáveis de ambiente
 
-### Segurança das configurações
+Entre as principais configurações:
 
-- Não armazenar senhas ou tokens no código-fonte.
-- Não versionar URIs do MongoDB que contenham credenciais.
-- Não publicar os valores reais de `MONGODB_URI` ou `JWT_SECRET`.
-- Configurar as variáveis no ambiente de execução.
-- Manter o arquivo `.env` fora do Git.
-- Não incluir arquivos de configuração sensíveis nas imagens ou publicações do projeto.
+```text
+MONGODB_URI
+JWT_SECRET
+PORT
+SMTP_ENABLED
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_FROM
+SMTP_AUTH
+SMTP_STARTTLS
+```
 
-### Status da conexão
+O SMTP permanece desabilitado por padrão.
 
-A conexão com o MongoDB Atlas foi estabelecida em produção na versão anterior do backend. Os logs do Render indicaram a conexão com o cluster, e consultas autenticadas de administradores e pacientes retornaram dados reais pela API.
-
-Na nova estrutura integrada, a conexão também foi verificada localmente por meio do Docker. O login JWT e a consulta autenticada de profissionais retornaram resultados esperados.
-
-Esses resultados confirmam a conectividade e a leitura de dados nos cenários verificados. **Ainda não comprovam que todas as operações de cadastro, atualização e exclusão de todos os módulos estejam funcionando corretamente.**
-
-A compatibilidade da funcionalidade de responsáveis e vínculos com a estrutura definitiva do banco deve ser confirmada em conjunto com a equipe responsável pelo banco de dados.
+A publicação da versão integrada atual depende da conclusão das validações de build, testes e ambiente. A existência de serviços hospedados não significa que a última revisão local já esteja publicada neles.
 
 ---
 
@@ -943,35 +776,14 @@ A compatibilidade da funcionalidade de responsáveis e vínculos com a estrutura
 
 ### Pré-requisitos
 
-- Java JDK 21, compatível com a versão configurada no projeto.
-- Node.js e npm, para trabalhar diretamente com o frontend.
+- Java JDK 21.
+- Node.js e npm.
 - Git.
-- Docker Desktop, para executar a aplicação integrada em container.
 - MongoDB Atlas ou outra instância MongoDB acessível.
-- Variáveis de ambiente necessárias configuradas.
+- Variáveis de ambiente configuradas.
+- Docker Desktop, caso deseje executar em container.
 
-### Verificar Java
-
-```bash
-java -version
-```
-
-### Verificar Maven
-
-```bash
-mvn -version
-```
-
-O Maven Wrapper incluído no projeto também pode ser utilizado sem depender de uma instalação global do Maven.
-
-### Verificar Node.js e npm
-
-```bash
-node -v
-npm -v
-```
-
-### Clonar o repositório
+### Clonar o projeto
 
 ```bash
 git clone https://github.com/victorhborges/NeuroVita.git
@@ -979,23 +791,33 @@ git clone https://github.com/victorhborges/NeuroVita.git
 cd NeuroVita
 ```
 
-### Configurar as variáveis de ambiente
+### Atualizar a branch develop
 
-Configure `MONGODB_URI` com uma URI válida do MongoDB e `JWT_SECRET` com uma chave secreta forte.
-
-A URI deve conter o nome do banco de dados. A chave JWT deve atender ao tamanho mínimo exigido pela implementação de autenticação.
-
-Não inclua os valores reais dessas variáveis em arquivos versionados ou em exemplos públicos.
-
-### Executar somente o backend
-
-**Windows**
-
-```cmd
-mvnw.cmd spring-boot:run
+```bash
+git switch develop
+git pull origin develop
 ```
 
-**Linux/macOS**
+### Configurar as variáveis
+
+Configure `MONGODB_URI` e `JWT_SECRET` no ambiente local.
+
+No Windows:
+
+```cmd
+set "MONGODB_URI=SUA_URI_DO_MONGODB"
+set "JWT_SECRET=SUA_CHAVE_JWT"
+```
+
+### Executar o backend
+
+Windows:
+
+```cmd
+.\mvnw.cmd spring-boot:run
+```
+
+Linux/macOS:
 
 ```bash
 ./mvnw spring-boot:run
@@ -1003,355 +825,258 @@ mvnw.cmd spring-boot:run
 
 ### Compilar o frontend
 
-Acesse o diretório do frontend:
-
 ```bash
 cd frontend
-```
-
-Instale as dependências:
-
-```bash
 npm ci
-```
-
-Compile a aplicação:
-
-```bash
 npm run build
 ```
 
-O resultado da compilação é gerado em:
+O caminho esperado dos arquivos compilados é:
 
 ```text
 frontend/dist/neurovita/browser/
 ```
 
-### Executar a aplicação integrada com Docker
+O Dockerfile integrado contempla a incorporação dos arquivos compilados ao backend.
 
-Na raiz do projeto:
+Caso a execução seja feita manualmente fora do fluxo de Docker, é necessário garantir que os arquivos Angular estejam disponíveis em `src/main/resources/static/` antes de iniciar a aplicação.
 
-```bash
-docker build -t neurovita-integrado .
-```
+A aplicação local estará disponível em:
 
-Depois:
-
-```bash
-docker run --rm --name neurovita-local --env-file .env -p 8080:8080 neurovita-integrado
-```
-
-A aplicação integrada estará disponível em:
-
-http://localhost:8080
-
-### Endpoints locais
-
-- **Frontend:** http://localhost:8080
-- **Swagger:** http://localhost:8080/swagger-ui/index.html
-- **Documentação OpenAPI:** http://localhost:8080/v3/api-docs
+- Frontend: [http://localhost:8080](http://localhost:8080)
+- Swagger: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ---
 
-## 🧪 Verificação e testes
+## 🧪 Testes e validação
 
-A compilação e os testes Maven podem ser executados localmente.
+Os comandos Maven podem ser executados na raiz do projeto.
 
 ### Compilação
 
-Para verificar se as classes do projeto compilam:
-
-**Windows**
+Windows:
 
 ```cmd
-mvnw.cmd compile
+.\mvnw.cmd compile
 ```
 
-**Linux/macOS**
+Linux/macOS:
 
 ```bash
 ./mvnw compile
 ```
 
-### Testes Maven
+### Testes
 
-**Windows**
+Windows:
 
 ```cmd
-mvnw.cmd test
+.\mvnw.cmd test
 ```
 
-**Linux/macOS**
+Linux/macOS:
 
 ```bash
 ./mvnw test
 ```
 
-A execução local mais recente informada terminou com `BUILD SUCCESS` nas verificações realizadas antes da integração.
+### Empacotamento
 
-A integração também foi compilada em Docker e executada localmente com conexão ao MongoDB Atlas.
+Windows:
 
-O login JWT e a consulta autenticada de profissionais foram verificados nessa execução.
-
-O resultado da compilação confirma que as classes foram compiladas sem falhas reportadas. O resultado dos testes Maven se limita aos testes executados nessa execução.
-
-Nenhum desses resultados, isoladamente, comprova a validação funcional de todos os endpoints, perfis, regras de negócio e operações com o MongoDB Atlas.
-
-Os testes funcionais completos são responsabilidade da equipe designada para essa atividade. As verificações de compilação e as correções do backend são realizadas durante o desenvolvimento.
-
----
-
-## 🔄 Reimplementação em Java
-
-O backend anterior foi desenvolvido utilizando:
-
-```text
-Node.js
-JavaScript
-Express.js
-MySQL
+```cmd
+.\mvnw.cmd package -DskipTests
 ```
 
-O novo backend está sendo desenvolvido utilizando:
+Linux/macOS:
 
-```text
-Java 21
-Spring Boot
-Spring Web MVC
-Spring Data MongoDB
-MongoDB
-Spring Security
-JWT
-BCrypt
-Jakarta Bean Validation
+```bash
+./mvnw package -DskipTests
 ```
 
-A implementação utiliza o backend anterior como referência, mas reorganiza a aplicação de acordo com a arquitetura e o ecossistema Java/Spring Boot.
+### Validação
 
-A integração atual incorpora o frontend Angular à aplicação Java, mantendo as responsabilidades separadas entre interface, API e persistência.
+Última execução local em 11/11/2026:
+
+| Verificação | Resultado |
+|---|---|
+| Maven `test` | 123 testes, 0 falhas, 0 erros, 0 ignorados |
+| Maven `-DskipTests package` | BUILD SUCCESS |
+| Angular `npm test -- --watch=false` | 15 testes, todos aprovados |
+| Angular build de desenvolvimento | Compilação concluída |
+| Angular build de produção | Não confirmado: falha ao buscar Google Fonts no ambiente sem DNS externo |
+
+Os testes Java usaram somente URI Mongo local de teste; não houve conexão nem verificação de persistência no Atlas. O contexto Spring carregou sem servidor Mongo local ativo; os testes de regras usam mocks. Repita validações após alterações de código.
+
+Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
+
+A equipe designada é responsável pela execução dos testes funcionais completos.
 
 ---
 
 ## 📊 Status do projeto
 
-| Módulo / recurso | Status conhecido |
+| Área | Situação |
 |---|---|
-| Estrutura Java | 🟢 Implementada |
-| Spring Boot | 🟢 Implementado |
-| Spring Web MVC | 🟢 Implementado |
-| Spring Data MongoDB | 🟢 Configurado |
-| Pacientes | 🟡 CRUD implementado; vínculos e regras precisam de validação funcional |
-| Responsáveis | 🟡 CRUD implementado localmente; aguardando validação funcional |
-| Vínculos entre pacientes e responsáveis | 🟡 Implementados localmente; aguardando validação funcional e compatibilidade com o banco |
-| Profissionais | 🟢 CRUD implementado |
-| Validação de pacientes e profissionais | 🟢 Implementada |
-| Disponibilidades | 🟡 Validações de horários e normalização do dia implementadas; permissões globais em revisão |
-| Consultas | 🟡 Regras de agendamento, normalização de disponibilidade, status e cancelamento implementados localmente; validação funcional pendente |
-| Agenda | 🟢 Implementada; comportamento dos status a validar |
-| Prontuários | 🟡 Implementados; validação das permissões e regras de acesso pendente |
-| Diagnósticos | 🟢 Validação de campos obrigatórios com `@NotBlank` e aplicação de `@Valid` no cadastro e na atualização |
-| Tratamentos | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro |
-| Exames | 🟢 Validação de campos obrigatórios com `@NotBlank`, aplicação de `@Valid` e resposta `201 Created` no cadastro |
-| Administradores | 🟢 Credenciais centralizadas no modelo `Usuario`; senhas armazenadas com BCrypt |
-| Modelo centralizado `Usuario` | 🟢 Implementado; validação funcional completa pendente |
-| Login centralizado | 🟢 Login com JWT verificado em produção na versão anterior |
-| JWT | 🟢 Utilizado na autenticação; revisão das permissões pendente |
-| BCrypt | 🟢 Utilizado no fluxo de autenticação |
-| Troca de senha no primeiro acesso | 🟡 Implementada; validação funcional pendente |
-| Spring Security | 🟡 Configurado; revisão das permissões por endpoint em andamento |
-| Autorização por perfil para todos os módulos | 🟡 Em revisão e validação |
-| Proteção por vínculo profissional-paciente | 🟡 Regras existentes precisam de validação funcional completa |
-| Swagger/OpenAPI | 🟢 Implementado |
-| Tratamento global de exceções | 🟢 Implementado, com melhorias pendentes |
-| Frontend Angular | 🟢 Compilação local realizada |
-| Integração Angular + Spring Boot | 🟢 Aplicação executada localmente em Docker |
-| Navegação Angular e rotas SPA | 🟢 Verificadas localmente |
-| Docker multi-stage | 🟢 Configurado e compilado |
-| Login JWT na aplicação integrada | 🟢 Verificado localmente |
-| MongoDB Atlas na aplicação integrada | 🟢 Conexão e consulta verificadas localmente |
-| Deploy Render da nova arquitetura | ⚪ Pendente |
-| MongoDB Atlas em produção | 🟢 Conexão e leitura verificadas na versão anterior |
-| Receitas | ⚪ Aguardando requisitos |
-| Testes funcionais completos | 🟡 Sob responsabilidade da equipe designada |
-
-Os status indicam o estado de desenvolvimento conhecido. Não substituem a validação funcional dos módulos, a revisão de segurança ou a confirmação de todas as operações no ambiente de produção.
-
----
-
-## 🗺️ Próximas etapas
-
-- [x] Implementar validações iniciais nos DTOs de pacientes e profissionais.
-- [x] Aplicar `@Valid` nos endpoints de cadastro e atualização desses módulos.
-- [x] Implementar localmente o CRUD de responsáveis.
-- [x] Implementar localmente os vínculos entre pacientes e responsáveis.
-- [x] Implementar localmente status, remarcação e cancelamento de consultas.
-- [x] Normalizar os dias da semana na comparação de disponibilidades durante o agendamento.
-- [x] Aplicar validações com `@NotBlank` e `@Valid` aos diagnósticos.
-- [x] Aplicar validações com `@NotBlank` e `@Valid` aos tratamentos.
-- [x] Aplicar validações com `@NotBlank` e `@Valid` aos exames.
-- [x] Configurar o cadastro de tratamentos e exames para retornar `201 Created`.
-- [x] Centralizar as credenciais de administradores no modelo `Usuario`.
-- [x] Verificar o login com JWT em produção na versão anterior.
-- [x] Verificar consultas autenticadas de administradores e pacientes em produção na versão anterior.
-- [x] Confirmar a conexão com o MongoDB Atlas e a leitura de dados nos cenários verificados.
-- [x] Compilar o frontend Angular localmente.
-- [x] Configurar o Docker multi-stage para frontend e backend.
-- [x] Incorporar os arquivos compilados do Angular aos recursos estáticos do Spring Boot.
-- [x] Configurar o tratamento de rotas SPA.
-- [x] Executar a aplicação integrada localmente em Docker.
-- [x] Verificar o login JWT na aplicação integrada.
-- [x] Verificar a conexão com MongoDB Atlas na aplicação integrada.
-- [ ] Revisar o diff das alterações locais e preparar o primeiro commit da integração.
-- [ ] Atualizar e revisar a documentação antes da publicação.
-- [ ] Publicar a branch de integração no repositório de desenvolvimento.
-- [ ] Validar a integração Angular com a API, incluindo o login real pelo frontend.
-- [ ] Implementar o envio e o armazenamento do token JWT no frontend.
-- [ ] Implementar o envio do token nas requisições protegidas.
-- [ ] Validar o redirecionamento conforme o perfil autenticado.
-- [ ] Revisar as permissões das rotas globais de disponibilidades.
-- [ ] Validar o CRUD de disponibilidades e suas regras de horário.
-- [ ] Validar o CRUD de tratamentos e exames.
-- [ ] Validar o CRUD de responsáveis pelo Swagger.
-- [ ] Validar o cadastro de pacientes com um ou mais responsáveis.
-- [ ] Validar a atualização e a remoção de vínculos.
-- [ ] Validar as regras de menores de idade sem responsável.
-- [ ] Compatibilizar a funcionalidade de responsáveis com a estrutura final do MongoDB Atlas.
-- [ ] Validar a criação e a associação das contas de usuários às entidades de domínio.
-- [ ] Validar operações de leitura, cadastro, atualização e exclusão no banco para os módulos aplicáveis.
-- [ ] Validar as regras de status, remarcação, cancelamento e conflitos de horário.
-- [ ] Validar o login e a troca de senha no primeiro acesso.
-- [ ] Revisar as permissões dos endpoints para cada perfil.
-- [ ] Padronizar e validar as respostas de erro.
-- [ ] Validar as restrições de acesso aos dados clínicos.
-- [ ] Definir o módulo de Receitas após a especificação no Figma.
-- [ ] Disponibilizar a aplicação para a validação funcional da equipe responsável.
-- [ ] Criar e configurar o repositório de testes.
-- [ ] Criar e configurar o repositório de homologação.
-- [ ] Criar e configurar o repositório de produção.
-- [ ] Definir o processo de promoção de versões entre os quatro ambientes.
-- [ ] Configurar os serviços Render correspondentes aos ambientes.
-- [ ] Validar a nova arquitetura no ambiente de testes.
-- [ ] Promover uma versão aprovada para homologação.
-- [ ] Publicar em produção somente após aprovação da homologação.
+| Backend Java / Spring Boot | Principais módulos implementados; suíte deve ser executada após cada revisão |
+| Frontend Angular integrado | Integração local existente |
+| Serviços Angular de integração | Implementados para os principais módulos |
+| Tratamento de falhas da API | Melhorado; validação integrada pendente |
+| Logout e limpeza de dados em memória | Implementados localmente |
+| MongoDB Atlas | Configurado; validação integral pendente |
+| Pacientes e responsáveis | Implementados |
+| Múltiplos responsáveis | Implementado |
+| Regra de responsável para menores | Implementada |
+| Validação condicional do plano de saúde | Implementada |
+| Profissionais e disponibilidades | Implementados |
+| Cadastro de secretarias | Implementado |
+| E-mail de boas-vindas | Implementado; depende de SMTP |
+| Vínculos profissionais-pacientes | Implementados |
+| Histórico de vínculos | Implementado |
+| Permissões clínicas por vínculo | Implementadas localmente; validação integrada pendente |
+| Prontuário centralizado | Implementado |
+| Documentos clínicos e anexos | Implementados |
+| Evoluções clínicas append-only | Backend implementado; API ainda não conectada à seção Angular existente |
+| Arquivamento lógico de documentos clínicos | Implementado localmente |
+| Diagnósticos e CID | Implementados |
+| Arquivamento lógico de diagnósticos | Implementado localmente |
+| Tratamentos | Implementados |
+| Arquivamento lógico de tratamentos | Implementado localmente |
+| Exames e resultados | Implementados |
+| Arquivamento lógico de exames | Implementado localmente |
+| Prescrições textuais | Implementadas |
+| Itens estruturados de prescrição | Implementados localmente |
+| Histórico de revisões de prescrições | Implementado |
+| Consultas e agenda | Implementadas |
+| Grade de horários | Inícios a cada 60 minutos a partir da disponibilidade real |
+| Duração padrão de consulta | 50 minutos, com preferência individual quando configurada |
+| Conflitos de agendamento | Validação por intervalo completo no backend |
+| Autenticação JWT | Implementada |
+| Primeiro acesso e alteração de senha | Implementados |
+| Recuperação de senha | Implementada; requer SMTP |
+| Preferências individuais | Persistência implementada |
+| Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
+| Swagger / OpenAPI | Implementado |
+| Testes Java | 123 aprovados localmente nesta revisão |
+| Build Maven | `package -DskipTests` concluído localmente |
+| Build Angular | Desenvolvimento compilado; produção pendente por dependência externa de fontes |
+| Docker da versão atual | Pendente de validação |
+| Deploy integrado atual | Pendente de validação |
+| Testes com MongoDB Atlas real | Pendentes de validação completa |
+| Testes funcionais completos | Pendentes |
+| Autenticação em duas etapas (2FA) | Pendente de requisitos e implementação |
+| Módulo de Receitas | Pendente de definição dos requisitos do MVP |
 
 ---
 
 ## 🌿 Git e GitHub
 
-O projeto utiliza Git e GitHub para controle de versão, revisão de código e organização das entregas.
+Repositório oficial:
 
-### Organização dos repositórios
+[https://github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
 
-O projeto será organizado em quatro repositórios independentes, conforme a exigência acadêmica:
-
-| Repositório | Responsabilidade |
-|---|---|
-| `victorhborges/NeuroVita` | Desenvolvimento |
-| `victorhborges/NeuroVita-Testes` | Testes |
-| `victorhborges/NeuroVita-Homologacao` | Homologação |
-| `victorhborges/NeuroVita-Producao` | Produção |
-
-Os repositórios de testes, homologação e produção serão criados durante a organização dos ambientes.
-
-### Estratégia de branches
-
-No repositório de desenvolvimento, será adotada uma organização baseada em branches:
+### Organização das branches
 
 | Branch | Finalidade |
 |---|---|
-| `main` | Versão integrada e estável do desenvolvimento |
-| `develop` | Integração contínua das funcionalidades |
-| `feature/*` | Desenvolvimento de funcionalidades |
-| `fix/*` | Correções de problemas |
-| `release/*` | Preparação de versões para entrega |
-
-Nos repositórios de testes, homologação e produção, a branch `main` deverá representar a versão promovida e aprovada para aquele ambiente.
-
-As regras definitivas de proteção e promoção serão configuradas durante a criação dos repositórios.
+| `develop` | Desenvolvimento e integração |
+| `testes` | Validação pela equipe de testes |
+| `homologacao` | Validação final antes da produção |
+| `main` | Produção |
 
 ### Fluxo de promoção
 
 ```text
-Desenvolvimento
-      |
-      v
-Testes
-      |
-      v
-Homologação
-      |
-      v
-Produção
+develop
+   |
+   | Pull Request
+   v
+testes
+   |
+   | Pull Request
+   v
+homologacao
+   |
+   | Pull Request
+   v
+main
 ```
 
-A promoção deverá preservar o histórico Git e identificar as versões entregues.
+As promoções devem ocorrer por Pull Requests, preservando o histórico Git.
 
-Uma versão somente deverá ser promovida após a aprovação da etapa anterior.
+A branch `main` é a branch oficial de produção. Não utilizar uma branch separada chamada `producao`.
 
-### Fluxo de revisão
+### Fluxo de trabalho
 
-Antes de publicar as alterações:
+1. Atualizar a branch `develop`.
+2. Criar uma branch para a tarefa, quando aplicável.
+3. Realizar as alterações.
+4. Executar os testes aplicáveis.
+5. Revisar o código.
+6. Atualizar o README quando houver mudanças relevantes.
+7. Fazer commit e push da branch de trabalho.
+8. Abrir Pull Request para `develop`, quando aplicável.
+
+Comandos úteis:
 
 ```bash
+git branch --show-current
 git status
-
-git diff
-
-git diff -- README.md
+git diff --stat
+git diff --check
 ```
-
-Antes de realizar um commit:
-
-1. Conferir os arquivos modificados.
-2. Revisar as diferenças.
-3. Confirmar que não existem credenciais ou arquivos temporários.
-4. Atualizar o README quando houver alterações relevantes.
-5. Adicionar somente os arquivos relacionados à alteração.
-6. Criar o commit com uma mensagem descritiva.
-7. Enviar para a branch correspondente.
 
 ### Padrão de commits
 
 ```text
 feat: nova funcionalidade
-
 fix: correção de problema
-
-docs: alteração na documentação
-
+docs: atualização da documentação
 test: alteração nos testes
-
 refactor: melhoria estrutural
-
 chore: configuração ou manutenção
 ```
 
-Antes de executar `git add`, revise as alterações para evitar incluir arquivos temporários, credenciais ou mudanças não relacionadas.
-
-O arquivo `.env` não deve ser versionado.
-
-Atualize o README quando houver alterações relevantes na arquitetura, nas funcionalidades, nos endpoints ou na configuração do projeto.
+Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 
 ---
 
-## 📌 Boas práticas
+## 🗺️ Próximas etapas
 
-Durante o desenvolvimento são priorizados:
-
-- Programação Orientada a Objetos.
-- Separação de responsabilidades.
-- Princípios SOLID.
-- DTOs.
-- Validação dos dados de entrada.
-- Tratamento de exceções.
-- Segurança das informações.
-- Variáveis de ambiente.
-- Código legível.
-- Documentação.
-- Controle de versão.
-- Revisão de código.
-- Separação dos ambientes de desenvolvimento, testes, homologação e produção.
-- Preservação do histórico de alterações.
+- [x] Implementar os principais módulos do backend.
+- [x] Integrar frontend Angular e backend Spring Boot.
+- [x] Implementar múltiplos responsáveis por paciente.
+- [x] Implementar vínculos profissionais-pacientes.
+- [x] Implementar histórico de vínculos.
+- [x] Implementar compartilhamento clínico por vínculo ativo.
+- [x] Preservar autoria dos registros clínicos.
+- [x] Implementar consulta de documentos por seção.
+- [x] Implementar arquivamento lógico de documentos clínicos, diagnósticos, tratamentos e exames.
+- [x] Implementar itens estruturados de prescrição e preservação de revisões anteriores.
+- [x] Implementar validação condicional do plano de saúde.
+- [x] Implementar persistência de preferências individuais.
+- [x] Implementar cadastro com opção de e-mail de boas-vindas.
+- [x] Melhorar o tratamento de falhas de comunicação entre frontend e API.
+- [x] Melhorar a validação da grade de horários no backend.
+- [x] Implementar regras de conflitos de consultas por intervalo completo.
+- [x] Corrigir a compatibilidade do teste do serviço de e-mail de boas-vindas.
+- [x] Executar a suíte Java completa na revisão atual.
+- [x] Validar a compilação e o empacotamento Maven na revisão atual.
+- [ ] Revisar integralmente as alterações locais antes do commit.
+- [x] Validar o build Angular de desenvolvimento da revisão atual.
+- [ ] Validar a versão atual com Docker.
+- [ ] Validar os fluxos com MongoDB Atlas real.
+- [ ] Revisar integralmente as permissões dos endpoints.
+- [ ] Comparar todos os formulários e fluxos com o PDF definitivo do MVP.
+- [ ] Validar a integração completa com o frontend.
+- [ ] Publicar e validar a versão corrigida no Render em `develop`.
+- [ ] Disponibilizar a versão validada para a equipe de testes.
+- [ ] Executar testes funcionais.
+- [ ] Promover a versão aprovada para homologação.
+- [ ] Publicar a versão final em produção.
+- [ ] Definir os requisitos do módulo de Receitas, conforme o MVP.
+- [ ] Avaliar os requisitos de autenticação em duas etapas, caso sejam confirmados no escopo.
 
 ---
 
@@ -1359,15 +1084,15 @@ Durante o desenvolvimento são priorizados:
 
 **Projeto:** NeuroVita
 **Instituição:** Faculdade Brasília
-**Curso:** Análise e Desenvolvimento de Sistemas
+**Curso:** Análise e Desenvolvimento de Sistemas (ADS)
 **Área:** Desenvolvimento de Software
 
-O projeto possui finalidade acadêmica e prática, aplicando conhecimentos de programação, desenvolvimento backend, APIs REST, frontend, banco de dados, arquitetura de software, segurança, integração e boas práticas de desenvolvimento.
+Projeto acadêmico com aplicação prática de programação, APIs REST, desenvolvimento backend, frontend, banco de dados, arquitetura de software, segurança e integração de sistemas.
 
 ---
 
 ## 📄 Licença
 
-Este projeto foi desenvolvido para fins acadêmicos.
+Projeto desenvolvido para fins acadêmicos.
 
-A utilização, distribuição ou modificação do código deverá respeitar as decisões definidas pela equipe responsável pelo projeto.
+A utilização, distribuição ou modificação do código deve respeitar as decisões da equipe responsável pelo projeto.
