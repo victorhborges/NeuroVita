@@ -119,6 +119,7 @@ export interface DadosProfissional {
   ativo: boolean;
   emailAcesso: string;
   senhaProvisoria?: string;
+  enviarEmailBoasVindas?: boolean;
 }
 
 export interface Secretaria {
@@ -138,7 +139,10 @@ export interface Secretaria {
   foto?: string;
 }
 
-export type DadosSecretaria = Omit<Secretaria, 'id' | 'codigo' | 'foto'> & { senhaProvisoria?: string };
+export type DadosSecretaria = Omit<Secretaria, 'id' | 'codigo' | 'foto'> & {
+  senhaProvisoria?: string;
+  enviarEmailBoasVindas?: boolean;
+};
 
 /** Uma consulta marcada na agenda. */
 export interface Agendamento {

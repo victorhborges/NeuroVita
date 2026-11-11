@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.neurovita.dto.DocumentoClinicoRequest;
 import com.neurovita.dto.DocumentoClinicoResponse;
 import com.neurovita.service.DocumentoClinicoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -34,6 +35,8 @@ public class DocumentoClinicoController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Arquivar documento clínico",
+            description = "Preserva o registro e sua autoria no histórico; documentos arquivados não podem ser alterados.")
     public ResponseEntity<Void> excluir(@PathVariable String id, Authentication auth) {
         service.excluir(id, auth);
         return ResponseEntity.noContent().build();

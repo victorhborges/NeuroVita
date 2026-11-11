@@ -27,7 +27,7 @@ import { authGuard } from './shared/auth.guard';
 /**
  * Cada perfil tem uma "moldura" (menu à esquerda) e as telas dentro dela.
  * O `data: { perfil }` do pai é repassado às telas filhas (ver withRouterConfig em app.config.ts).
- * TODO (back-end): proteger estas rotas (guard) quando o login for real.
+ * A guarda protege a navegação; os endpoints continuam aplicando autorização no backend.
  */
 function rotasDoPerfil(perfil: Perfil, filhas: Route[] = []): Route {
   return {

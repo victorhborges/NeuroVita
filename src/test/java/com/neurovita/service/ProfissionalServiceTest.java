@@ -41,6 +41,7 @@ class ProfissionalServiceTest {
     @Mock private DisponibilidadeRepository disponibilidadeRepository;
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private EmailBoasVindasService emailBoasVindasService;
     @InjectMocks private ProfissionalService profissionalService;
 
     @BeforeEach
@@ -84,10 +85,18 @@ class ProfissionalServiceTest {
         when(usuarioRepository.save(any(Usuario.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = profissionalService.salvar(request(false, null));
+        ProfissionalRequest request = request(false, null);
+        request.setEnviarEmailBoasVindas(true);
+        when(emailBoasVindasService.enviar(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(true);
+
+        var response = profissionalService.salvar(request);
 
         assertTrue(response.getProfissional().getAtendePresencial());
+        assertTrue(response.isEmailBoasVindasEnviado());
+        assertEquals(null, response.getSenhaProvisoria());
         verify(profissionalRepository).save(any(Profissional.class));
+        verify(emailBoasVindasService).enviar(anyString(), anyString(), anyString(), anyString());
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.neurovita.model;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,6 +15,9 @@ public class Diagnostico {
     private String profissionalId;
 
     private String descricao;
+    private String cid;
+    private Boolean ativo = true;
+    private LocalDateTime arquivadoEm;
 
     public Diagnostico() {
     }
@@ -45,7 +50,26 @@ public class Diagnostico {
         return descricao;
     }
 
+    public String getCid() { return cid; }
+    public void setCid(String cid) { this.cid = cid; }
+
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public boolean isAtivo() {
+        return ativo == null || ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
+    }
+
+    public LocalDateTime getArquivadoEm() {
+        return arquivadoEm;
+    }
+
+    public void setArquivadoEm(LocalDateTime arquivadoEm) {
+        this.arquivadoEm = arquivadoEm;
     }
 }

@@ -1,5 +1,7 @@
 package com.neurovita.dto;
 
+import java.time.LocalDateTime;
+
 import com.neurovita.model.Tratamento;
 
 public class TratamentoResponse {
@@ -14,6 +16,8 @@ public class TratamentoResponse {
     private String frequencia;
     private String duracao;
     private String observacoes;
+    private boolean ativo;
+    private LocalDateTime arquivadoEm;
 
     public TratamentoResponse(Tratamento tratamento) {
 
@@ -27,6 +31,8 @@ public class TratamentoResponse {
         this.frequencia = tratamento.getFrequencia();
         this.duracao = tratamento.getDuracao();
         this.observacoes = tratamento.getObservacoes();
+        this.ativo = tratamento.isAtivo();
+        this.arquivadoEm = tratamento.getArquivadoEm();
     }
 
     public String getId() {
@@ -59,5 +65,13 @@ public class TratamentoResponse {
 
     public String getObservacoes() {
         return observacoes;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public LocalDateTime getArquivadoEm() {
+        return arquivadoEm;
     }
 }

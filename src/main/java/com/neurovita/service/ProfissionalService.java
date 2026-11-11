@@ -37,18 +37,21 @@ public class ProfissionalService {
     private final DisponibilidadeRepository disponibilidadeRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailBoasVindasService emailBoasVindasService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public ProfissionalService(
             ProfissionalRepository profissionalRepository,
             DisponibilidadeRepository disponibilidadeRepository,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailBoasVindasService emailBoasVindasService) {
 
         this.profissionalRepository = profissionalRepository;
         this.disponibilidadeRepository = disponibilidadeRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailBoasVindasService = emailBoasVindasService;
     }
 
     public CadastroProfissionalResponse salvar(ProfissionalRequest request) {
@@ -88,9 +91,12 @@ public class ProfissionalService {
                     e);
         }
 
+        boolean emailEnviado = Boolean.TRUE.equals(request.getEnviarEmailBoasVindas())
+                && emailBoasVindasService.enviar(
+                        salvo.getNome(), salvo.getEmail(), senhaProvisoria, "profissional");
+
         return new CadastroProfissionalResponse(
-                new ProfissionalResponse(salvo),
-                senhaProvisoria);
+                new ProfissionalResponse(salvo), emailEnviado ? null : senhaProvisoria, emailEnviado);
     }
 
     public List<ProfissionalResponse> listarTodos() {

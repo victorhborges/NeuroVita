@@ -74,13 +74,14 @@ public class PacienteService {
         exigirCadastroPaciente();
 
         validarEmailDisponivel(request.getEmail(), null);
+        validarPlanoSaude(request);
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
-        validarPlanoSaude(request);
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request);
+        aplicarPlanoSaude(paciente, request, true);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
         Usuario usuarioSalvo = null;
@@ -154,7 +155,22 @@ public class PacienteService {
 }
 
         public PacienteResponse buscarPorId(String id) {
-        exigirAdministradorOuSecretaria();
+        Authentication autenticacao = obterAutenticacao();
+        boolean ehPaciente = autenticacao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+        if (ehPaciente) {
+            Usuario usuario = usuarioRepository
+                    .findByEmailIgnoreCase(autenticacao.getName())
+                    .orElseThrow(() ->
+                            new AccessDeniedException("Usuário não encontrado"));
+            if (usuario.getEntidadeId() == null
+                    || !usuario.getEntidadeId().equals(id)) {
+                throw new AccessDeniedException(
+                        "Pacientes podem consultar somente os próprios dados.");
+            }
+        } else {
+            exigirAdministradorOuSecretaria();
+        }
 
         Paciente paciente = buscarPaciente(id);
 
@@ -171,12 +187,11 @@ public class PacienteService {
         boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
         validarEmailDisponivel(request.getEmail(), id);
-
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
-        validarPlanoSaude(request);
 
         preencherPaciente(paciente, request);
+        aplicarPlanoSaude(paciente, request, false);
 
         Paciente atualizado = pacienteRepository.save(paciente);
 
@@ -241,26 +256,71 @@ public class PacienteService {
         paciente.setCpf(request.getCpf());
         paciente.setTelefone(request.getTelefone());
         paciente.setEndereco(request.getEndereco());
+        if (request.getCep() != null && !request.getCep().isBlank()) {
+                paciente.setCep(request.getCep());
+        }
+        if (request.getCidade() != null && !request.getCidade().isBlank()) {
+                paciente.setCidade(request.getCidade());
+        }
         paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
 
-        paciente.setPossuiPlanoSaude(request.getPossuiPlanoSaude());
-        paciente.setPlanoSaude(request.getPlanoSaude());
-        paciente.setNumeroCarteirinha(request.getNumeroCarteirinha());
-        paciente.setValidadePlano(request.getValidadePlano());
     }
 
     private void validarPlanoSaude(PacienteRequest request) {
-        if (!Boolean.TRUE.equals(request.getPossuiPlanoSaude())) {
+        if (Boolean.TRUE.equals(request.getPossuiPlanoSaude())
+                && (request.getPlanoSaude() == null
+                        || request.getPlanoSaude().isBlank())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe o nome do plano de saúde.");
+        }
+    }
+
+    private void aplicarPlanoSaude(
+            Paciente paciente, PacienteRequest request, boolean novoCadastro) {
+        Boolean possuiPlanoSolicitado = request.getPossuiPlanoSaude();
+        if (possuiPlanoSolicitado == null) {
+            if (novoCadastro) {
+                limparPlanoSaude(paciente);
+            }
             return;
         }
 
-        if (request.getPlanoSaude() == null || request.getPlanoSaude().isBlank()
-                || request.getNumeroCarteirinha() == null || request.getNumeroCarteirinha().isBlank()
-                || request.getValidadePlano() == null) {
+        if (!possuiPlanoSolicitado) {
+            limparPlanoSaude(paciente);
+            return;
+        }
+
+        String nomePlano = request.getPlanoSaude();
+        if (nomePlano == null) {
+            nomePlano = Boolean.TRUE.equals(paciente.getPossuiPlanoSaude())
+                    ? paciente.getPlanoSaude()
+                    : null;
+        }
+        if (nomePlano == null || nomePlano.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Informe o plano, o número da carteirinha e a validade quando o paciente possuir plano de saúde.");
+                    "Informe o nome do plano de saúde.");
         }
+
+        paciente.setPossuiPlanoSaude(true);
+        paciente.setPlanoSaude(nomePlano.trim());
+
+        if (request.getNumeroCarteirinha() != null) {
+            String numeroCarteirinha = request.getNumeroCarteirinha().trim();
+            paciente.setNumeroCarteirinha(
+                    numeroCarteirinha.isEmpty() ? null : numeroCarteirinha);
+        }
+        if (request.getValidadePlano() != null) {
+            paciente.setValidadePlano(request.getValidadePlano());
+        }
+    }
+
+    private void limparPlanoSaude(Paciente paciente) {
+        paciente.setPossuiPlanoSaude(false);
+        paciente.setPlanoSaude(null);
+        paciente.setNumeroCarteirinha(null);
+        paciente.setValidadePlano(null);
     }
 
     private List<VinculoResponsavelRequest> validarResponsaveis(

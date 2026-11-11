@@ -46,6 +46,7 @@ public class ProfissionalRequest {
     private Boolean ativo;
     @Size(min = 8, max = 72, message = "A senha provisória deve ter entre 8 e 72 caracteres.")
     private String senhaProvisoria;
+    private Boolean enviarEmailBoasVindas = false;
 
     public ProfissionalRequest() {
     }
@@ -145,4 +146,6 @@ public class ProfissionalRequest {
 
     public String getSenhaProvisoria() { return senhaProvisoria; }
     public void setSenhaProvisoria(String senhaProvisoria) { this.senhaProvisoria = senhaProvisoria; }
+    public Boolean getEnviarEmailBoasVindas() { return enviarEmailBoasVindas; }
+    public void setEnviarEmailBoasVindas(Boolean enviarEmailBoasVindas) { this.enviarEmailBoasVindas = enviarEmailBoasVindas; }
 }

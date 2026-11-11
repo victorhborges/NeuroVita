@@ -16,6 +16,8 @@ public class PacienteResponse {
     private String cpf;
     private String telefone;
     private String endereco;
+    private String cep;
+    private String cidade;
     private Boolean ativo;
 
     private List<VinculoResponsavelResponse> responsaveis;
@@ -44,6 +46,8 @@ public class PacienteResponse {
         this.cpf = paciente.getCpf();
         this.telefone = paciente.getTelefone();
         this.endereco = paciente.getEndereco();
+        this.cep = paciente.getCep();
+        this.cidade = paciente.getCidade();
         this.ativo = paciente.getAtivo();
 
         this.responsaveis = vinculos != null ? vinculos.stream()
@@ -85,6 +89,8 @@ public class PacienteResponse {
     }
 
     public String getEndereco() { return endereco; }
+    public String getCep() { return cep; }
+    public String getCidade() { return cidade; }
     public Boolean getAtivo() { return ativo; }
 
     public List<VinculoResponsavelResponse> getResponsaveis() {

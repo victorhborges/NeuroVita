@@ -322,6 +322,10 @@ public class AdministradorService {
         usuario.setSenhaProvisoria(false);
         usuario.setAtivo(true);
         usuario.setEntidadeId(administrador.getId());
+        if (usuarioAnterior != null && novaSenhaHash != null && !novaSenhaHash.isBlank()) {
+            usuario.setSenhaAlteradaEm(Instant.now());
+            usuario.incrementarTokenVersion();
+        }
 
         usuarioRepository.save(usuario);
     }

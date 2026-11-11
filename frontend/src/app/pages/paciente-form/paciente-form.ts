@@ -22,6 +22,10 @@ interface Formulario {
 
 type Campo = keyof Formulario;
 
+export function erroPlanoSaude(possuiPlano: boolean, nome: string): string | null {
+  return possuiPlano && !nome.trim() ? 'Informe o plano de saúde.' : null;
+}
+
 const VAZIO: Formulario = {
   nome: '', nascimento: '', email: '', cpf: '', telefone: '',
   rNome: '', rNascimento: '', rEmail: '', rParentesco: '', rTelefone: '', rCpf: '',
@@ -90,11 +94,8 @@ export class PacienteForm {
       if (r.email.trim() && !emailValido(r.email)) e.rNome = 'Informe um e-mail válido para cada responsável.';
       if (r.cpf.trim() && !cpfValido(r.cpf)) e.rNome = 'Informe um CPF válido para cada responsável.';
     }
-    if (f.possuiPlano) {
-      if (!f.plano.trim()) e.plano = 'Informe o plano de saúde.';
-      if (!f.carteirinha.trim()) e.carteirinha = 'Informe o número da carteirinha.';
-      if (!f.validade) e.validade = 'Informe a validade do plano.';
-    }
+    const erroPlano = erroPlanoSaude(f.possuiPlano, f.plano);
+    if (erroPlano) e.plano = erroPlano;
     return e;
   });
 

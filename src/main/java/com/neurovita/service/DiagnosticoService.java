@@ -3,6 +3,8 @@ package com.neurovita.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -58,9 +60,16 @@ public class DiagnosticoService {
     public List<DiagnosticoResponse> listarTodos() {
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
+            Set<String> pacientesVinculados = vinculoRepository
+                    .findByProfissionalIdAndEncerradoEmIsNull(profissionalId)
+                    .stream()
+                    .map(com.neurovita.model.VinculoProfissionalPaciente::getPacienteId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
             return diagnosticoRepository.findAll().stream()
-                    .filter(d -> profissionalId.equals(d.getProfissionalId()))
+                    .filter(d -> profissionalId.equals(d.getProfissionalId())
+                            && pacientesVinculados.contains(d.getPacienteId()))
                     .map(DiagnosticoResponse::new)
                     .toList();
         }
@@ -84,9 +93,17 @@ public class DiagnosticoService {
 
         Diagnostico diagnostico = buscarDiagnostico(id);
         validarAcessoEdicaoExclusao(diagnostico);
+        exigirAtivo(diagnostico);
 
         if (!Objects.equals(diagnostico.getPacienteId(), request.getPacienteId())) {
-            throw new AccessDeniedException("O paciente de um diagnóstico não pode ser alterado.");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "O paciente de um diagnóstico existente não pode ser alterado.");
+        }
+        if (!Objects.equals(diagnostico.getProfissionalId(), request.getProfissionalId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "A autoria de um diagnóstico existente não pode ser alterada.");
         }
 
         validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
@@ -103,7 +120,11 @@ public class DiagnosticoService {
         Diagnostico diagnostico = buscarDiagnostico(id);
         validarAcessoEdicaoExclusao(diagnostico);
 
-        diagnosticoRepository.delete(diagnostico);
+        if (diagnostico.isAtivo()) {
+            diagnostico.setAtivo(false);
+            diagnostico.setArquivadoEm(java.time.LocalDateTime.now());
+            diagnosticoRepository.save(diagnostico);
+        }
     }
 
     public List<DiagnosticoResponse> listarPorPaciente(String pacienteId) {
@@ -138,6 +159,17 @@ public class DiagnosticoService {
         diagnostico.setPacienteId(request.getPacienteId());
         diagnostico.setProfissionalId(request.getProfissionalId());
         diagnostico.setDescricao(request.getDescricao());
+        if (request.getCid() != null) {
+            diagnostico.setCid(request.getCid().trim().isEmpty() ? null : request.getCid().trim());
+        }
+    }
+
+    private void exigirAtivo(Diagnostico diagnostico) {
+        if (!diagnostico.isAtivo()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Um diagnóstico arquivado não pode ser alterado.");
+        }
     }
 
     private Diagnostico buscarDiagnostico(String id) {

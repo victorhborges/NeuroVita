@@ -1,8 +1,13 @@
-
 package com.neurovita.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -10,9 +15,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.neurovita.dto.ExameRequest;
+import com.neurovita.dto.ExameResultadoRequest;
 import com.neurovita.dto.ExameResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Exame;
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.ExameRepository;
 import com.neurovita.repository.PacienteRepository;
@@ -43,13 +50,30 @@ public class ExameService {
         this.vinculoRepository = vinculoRepository;
     }
 
+    private Authentication obterAutenticacao() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+        return authentication;
+    }
+
     public ExameResponse salvar(ExameRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os dados da solicitação são obrigatórios.");
+        }
         validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
         validarProfissionalSolicitante(request.getProfissionalId());
         validarAcessoPaciente(request.getPacienteId());
 
         Exame exame = new Exame();
         preencherExame(exame, request);
+        exame.setSolicitadoEm(LocalDateTime.now());
+        exame.setCriadoEm(LocalDateTime.now());
+        if (request.getDataRealizacao() != null || request.getResultado() != null
+                || request.getObservacoes() != null) {
+            exame.setResultadoAtualizadoEm(LocalDateTime.now());
+        }
 
         return new ExameResponse(exameRepository.save(exame));
     }
@@ -57,9 +81,16 @@ public class ExameService {
     public List<ExameResponse> listarTodos() {
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
+            Set<String> pacientesVinculados = vinculoRepository
+                    .findByProfissionalIdAndEncerradoEmIsNull(profissionalId)
+                    .stream()
+                    .map(com.neurovita.model.VinculoProfissionalPaciente::getPacienteId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
             return exameRepository.findAll().stream()
-                    .filter(e -> profissionalId.equals(e.getProfissionalId()))
+                    .filter(e -> profissionalId.equals(e.getProfissionalId())
+                            && pacientesVinculados.contains(e.getPacienteId()))
                     .map(ExameResponse::new)
                     .toList();
         }
@@ -79,8 +110,12 @@ public class ExameService {
     }
 
     public ExameResponse atualizar(String id, ExameRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os dados do exame são obrigatórios.");
+        }
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
+        exigirAtivo(exame);
 
         if (!Objects.equals(exame.getPacienteId(), request.getPacienteId())) {
             throw new AccessDeniedException("O paciente de um exame não pode ser alterado.");
@@ -89,9 +124,48 @@ public class ExameService {
         validarDadosEntidade(request.getPacienteId(), request.getProfissionalId());
         validarProfissionalSolicitante(request.getProfissionalId());
         validarAcessoPaciente(request.getPacienteId());
+        if (!Objects.equals(exame.getProfissionalId(), request.getProfissionalId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "A autoria de um exame não pode ser alterada.");
+        }
 
-        preencherExame(exame, request);
+        exame.setNome(request.getNome());
+        exame.setTipo(request.getTipo());
+        if (request.getDataRealizacao() != null || request.getResultado() != null
+                || request.getObservacoes() != null) {
+            LocalDateTime agora = LocalDateTime.now();
+            exame.registrarResultadoAnterior(agora, obterAutenticacao().getName());
+            exame.setDataRealizacao(request.getDataRealizacao());
+            exame.setResultado(request.getResultado());
+            exame.setObservacoes(request.getObservacoes());
+            exame.setResultadoAtualizadoEm(agora);
+        }
 
+        return new ExameResponse(exameRepository.save(exame));
+    }
+
+    public ExameResponse registrarResultado(String id, ExameResultadoRequest request) {
+        if (request == null || request.getDataRealizacao() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "A data de realização do exame é obrigatória.");
+        }
+        Exame exame = buscarExame(id);
+        validarAcessoEdicaoExclusao(exame);
+        exigirAtivo(exame);
+        validarAnexos(request.getAnexos());
+        if ((request.getResultado() == null || request.getResultado().isBlank())
+                && (request.getAnexos() == null || request.getAnexos().isEmpty())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Informe o resultado ou anexe o documento do exame.");
+        }
+
+        LocalDateTime agora = LocalDateTime.now();
+        exame.registrarResultadoAnterior(agora, obterAutenticacao().getName());
+        exame.setDataRealizacao(request.getDataRealizacao());
+        exame.setResultado(request.getResultado());
+        exame.setObservacoes(request.getObservacoes());
+        exame.setAnexosResultado(request.getAnexos());
+        exame.setResultadoAtualizadoEm(agora);
         return new ExameResponse(exameRepository.save(exame));
     }
 
@@ -99,7 +173,11 @@ public class ExameService {
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
 
-        exameRepository.delete(exame);
+        if (exame.isAtivo()) {
+            exame.setAtivo(false);
+            exame.setArquivadoEm(LocalDateTime.now());
+            exameRepository.save(exame);
+        }
     }
 
     public List<ExameResponse> listarPorPaciente(String pacienteId) {
@@ -133,15 +211,48 @@ public class ExameService {
         exame.setProfissionalId(request.getProfissionalId());
         exame.setNome(request.getNome());
         exame.setTipo(request.getTipo());
-        exame.setDataRealizacao(request.getDataRealizacao());
-        exame.setResultado(request.getResultado());
-        exame.setObservacoes(request.getObservacoes());
+        if (request.getDataRealizacao() != null || request.getResultado() != null
+                || request.getObservacoes() != null) {
+            exame.setDataRealizacao(request.getDataRealizacao());
+            exame.setResultado(request.getResultado());
+            exame.setObservacoes(request.getObservacoes());
+        }
+    }
+
+    private void validarAnexos(List<AnexoClinico> anexos) {
+        if (anexos == null) {
+            return;
+        }
+        if (anexos.stream().anyMatch(a -> a == null
+                || (a.getConteudoBase64() != null && a.getConteudoBase64().length() > 7_000_000))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Cada anexo deve ser válido e ter no máximo 5 MB.");
+        }
+        if (anexos.stream().mapToLong(a -> a.getConteudoBase64() == null
+                ? 0 : a.getConteudoBase64().length()).sum() > 14_000_000) {
+            throw new ResponseStatusException(
+                    HttpStatus.PAYLOAD_TOO_LARGE, "O tamanho total dos anexos excede o limite permitido.");
+        }
+        if (anexos.stream().anyMatch(a -> a.getTipoMime() != null
+                && Set.of("text/html", "application/xhtml+xml", "image/svg+xml")
+                        .contains(a.getTipoMime().toLowerCase(java.util.Locale.ROOT)))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Este tipo de arquivo não é permitido como anexo.");
+        }
     }
 
     private Exame buscarExame(String id) {
         return exameRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Exame não encontrado"));
+    }
+
+    private void exigirAtivo(Exame exame) {
+        if (!exame.isAtivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Um exame arquivado não pode ser alterado.");
+        }
     }
 
     private void validarAcessoLeitura(Exame exame) {
@@ -226,16 +337,5 @@ public class ExameService {
         }
 
         return usuario.getEntidadeId();
-    }
-
-    private Authentication obterAutenticacao() {
-        Authentication autenticacao =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (autenticacao == null || !autenticacao.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        return autenticacao;
     }
 }

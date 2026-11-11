@@ -38,7 +38,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("https://frontend-neurovita-lz6o.onrender.com"));
+                List.of("https://neurovita-dev.onrender.com"));
 
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -111,6 +111,16 @@ public class SecurityConfig {
                                 "/api/auth/primeiro-acesso/alterar-senha"
                         ).hasRole("PRIMEIRO_ACESSO")
 
+                        // Troca autenticada de senha
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/alterar-senha"
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL",
+                                "PACIENTE")
+
                         // Administração do sistema
                         .requestMatchers("/api/administradores/**")
                         .hasRole("ADMINISTRADOR")
@@ -137,7 +147,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/pacientes/*"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                        ).hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PACIENTE")
 
                         .requestMatchers(
                                 HttpMethod.PUT,
@@ -182,6 +195,18 @@ public class SecurityConfig {
                         // Demais operações com profissionais
                         .requestMatchers("/api/profissionais/**")
                         .hasRole("ADMINISTRADOR")
+
+                        // Leitura das próprias consultas do paciente
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/consultas/paciente/*",
+                                "/api/consultas/*",
+                                "/api/agenda/paciente/*")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL",
+                                "SECRETARIA",
+                                "PACIENTE")
 
                         // Consultas e agenda
                         .requestMatchers(
@@ -232,7 +257,9 @@ public class SecurityConfig {
                                 "/api/diagnosticos/**",
                                 "/api/tratamentos/**",
                                 "/api/exames/**",
-                                "/api/documentos-clinicos/**"
+                                "/api/prescricoes/**",
+                                "/api/documentos-clinicos/**",
+                                "/api/evolucoes/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
                         // Gerenciamento de responsáveis

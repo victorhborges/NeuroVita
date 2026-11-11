@@ -1,6 +1,7 @@
 package com.neurovita.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class DiagnosticoRequest {
 
@@ -12,6 +13,9 @@ public class DiagnosticoRequest {
 
     @NotBlank(message = "A descrição do diagnóstico é obrigatória.")
     private String descricao;
+
+    @Size(max = 20, message = "O CID deve ter até 20 caracteres.")
+    private String cid;
 
     public DiagnosticoRequest() {
     }
@@ -39,4 +43,7 @@ public class DiagnosticoRequest {
     public void setDescricao(String descricao) {
         this.descricao = descricao;
     }
+
+    public String getCid() { return cid; }
+    public void setCid(String cid) { this.cid = cid; }
 }

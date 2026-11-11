@@ -1,6 +1,8 @@
 
 package com.neurovita.model;
 
+import java.time.Instant;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -19,6 +21,8 @@ public class Usuario {
     private boolean ativo;
 
     private String entidadeId;
+    private Instant senhaAlteradaEm;
+    private Long tokenVersion;
 
     public Usuario() {
     }
@@ -103,5 +107,27 @@ public class Usuario {
 
     public void setEntidadeId(String entidadeId) {
         this.entidadeId = entidadeId;
+    }
+
+    public Instant getSenhaAlteradaEm() {
+        return senhaAlteradaEm;
+    }
+
+    public void setSenhaAlteradaEm(Instant senhaAlteradaEm) {
+        this.senhaAlteradaEm = senhaAlteradaEm;
+    }
+
+    public long getTokenVersion() {
+        return tokenVersion == null ? 0L : tokenVersion;
+    }
+
+    public void setTokenVersion(Long tokenVersion) {
+        this.tokenVersion = tokenVersion;
+    }
+
+    public long incrementarTokenVersion() {
+        long proximaVersao = Math.addExact(getTokenVersion(), 1L);
+        tokenVersion = proximaVersao;
+        return proximaVersao;
     }
 }

@@ -1,8 +1,10 @@
 package com.neurovita.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.neurovita.model.Consulta;
+import com.neurovita.model.Consulta.HistoricoConsulta;
 import com.neurovita.model.StatusConsulta;
 
 public class ConsultaResponse {
@@ -16,6 +18,7 @@ public class ConsultaResponse {
     private String modalidade;
     private Integer duracao;
     private StatusConsulta status;
+    private List<HistoricoConsulta> historico;
 
     public ConsultaResponse(Consulta consulta) {
         this.id = consulta.getId();
@@ -29,6 +32,9 @@ public class ConsultaResponse {
         this.status = consulta.getStatus() != null
                 ? consulta.getStatus()
                 : StatusConsulta.PENDENTE;
+        this.historico = consulta.getHistorico() == null
+                ? List.of()
+                : List.copyOf(consulta.getHistorico());
     }
 
     public String getId() {
@@ -65,5 +71,9 @@ public class ConsultaResponse {
 
     public StatusConsulta getStatus() {
         return status;
+    }
+
+    public List<HistoricoConsulta> getHistorico() {
+        return historico;
     }
 }

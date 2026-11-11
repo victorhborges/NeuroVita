@@ -15,6 +15,10 @@ export interface PacienteApi {
         responsavelId: string;
         grauParentesco: string;
     }[];
+    profissionais?: {
+        profissionalId: string;
+        ativo: boolean;
+    }[];
     possuiPlanoSaude: boolean;
     planoSaude: string;
     numeroCarteirinha: string;

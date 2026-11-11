@@ -43,6 +43,9 @@ class SecretariaServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailBoasVindasService emailBoasVindasService;
+
     @InjectMocks
     private SecretariaService secretariaService;
 
@@ -97,6 +100,7 @@ class SecretariaServiceTest {
     void deveCriarSecretariaEContaDeAcesso() {
         SecretariaRequest request = criarRequest();
         request.setNome("  Maria Silva  ");
+        request.setEnviarEmailBoasVindas(true);
 
         simularEmailDisponivel();
         simularSecretariaSalva();
@@ -106,6 +110,8 @@ class SecretariaServiceTest {
 
         when(usuarioRepository.save(any(Usuario.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailBoasVindasService.enviar(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(true);
 
         CadastroSecretariaResponse response =
                 secretariaService.criar(request);
@@ -121,12 +127,13 @@ class SecretariaServiceTest {
         assertEquals(
                 "maria@neurovita.com",
                 response.getSecretaria().getEmail());
-        assertNotNull(response.getSenhaProvisoria());
-        assertFalse(response.getSenhaProvisoria().isBlank());
+        assertTrue(response.isEmailBoasVindasEnviado());
+        assertEquals(null, response.getSenhaProvisoria());
 
         verify(secretariaRepository).save(any(Secretaria.class));
         verify(usuarioRepository).save(any(Usuario.class));
-        verify(passwordEncoder).encode(response.getSenhaProvisoria());
+        verify(passwordEncoder).encode(anyString());
+        verify(emailBoasVindasService).enviar(anyString(), anyString(), anyString(), anyString());
     }
 
     @Test

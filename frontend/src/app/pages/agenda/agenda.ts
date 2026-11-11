@@ -27,10 +27,11 @@ import {
 } from '../../shared/clinica/profissionais-api.service';
 import { StatusConsulta } from '../../shared/clinica/modelos';
 import {
-  HORARIOS_AGENDA,
   ORDEM_STATUS,
   ROTULO_STATUS,
   SALAS,
+  horariosDaDisponibilidade,
+  horariosAgendaParaConsultas,
   minutosDe,
 } from '../../shared/clinica/status';
 import { Avatar } from '../../shared/avatar/avatar';
@@ -190,8 +191,10 @@ export class Agenda {
   private readonly hojeBase = dataAtualISO();
   private readonly segundaBase = segundaDaSemana(this.hojeBase);
 
-  protected readonly horarios = HORARIOS_AGENDA;
-  protected readonly linhas = HORARIOS_AGENDA.map((_, i) => i);
+  protected readonly horarios = computed(() =>
+    horariosAgendaParaConsultas(this.consultas()),
+  );
+  protected readonly linhas = computed(() => this.horarios().map((_, i) => i));
   protected readonly colunas = [0, 1, 2, 3, 4, 5];
   protected readonly statusLista = ORDEM_STATUS;
   protected readonly rotulo = ROTULO_STATUS;
@@ -349,7 +352,6 @@ export class Agenda {
         this.profissionais.set([profissional]);
       },
       error: () => {
-        this.profissionais.set([]);
         this.aviso.mostrar(
           'Não foi possível carregar os dados do profissional.',
         );
@@ -415,8 +417,8 @@ export class Agenda {
           nome: paciente?.nome ?? 'Paciente',
           profNome: profissional?.nome ?? '—',
           dia: diaDaSemana(a.data),
-          linha: (minutosDe(a.inicio) - 8 * 60) / 30 + 2,
-          trechos: Math.max(1, a.duracao / 30),
+          linha: Math.floor((minutosDe(a.inicio) - minutosDe(this.horarios()[0])) / 30) + 2,
+          trechos: Math.max(1, Math.ceil(a.duracao / 30)),
           destaque:
             !termo ||
             normalizar(paciente?.nome ?? '').includes(termo),
@@ -453,7 +455,7 @@ export class Agenda {
       {
         classe: 'vago',
         rotulo: 'Horário vago',
-        valor: Math.max(0, HORARIOS_AGENDA.length - ocupados),
+        valor: Math.max(0, this.horarios().length - ocupados),
       },
       {
         classe: 'cancelado',
@@ -686,47 +688,54 @@ export class Agenda {
     const minutosAgora =
       agora.getHours() * 60 + agora.getMinutes();
 
-    return HORARIOS_AGENDA.filter((horario) => {
-      // Mantém o horário atual visível durante a edição.
-      if (horario === atual.inicio) return true;
+    const horariosDisponiveis = new Set([
+      ...horariosDaDisponibilidade(disponibilidadesDoDia, atual.duracao),
+      atual.inicio,
+    ]);
 
-      // Não oferece datas anteriores a hoje.
-      if (data < this.hojeBase) return false;
+    return [...horariosDisponiveis]
+      .sort((a, b) => minutosDe(a) - minutosDe(b))
+      .filter((horario) => {
+        // Mantém o horário atual visível durante a edição.
+        if (horario === atual.inicio) return true;
 
-      // Não oferece horários que já passaram hoje.
-      if (
-        data === this.hojeBase &&
-        minutosDe(horario) <= minutosAgora
-      ) {
-        return false;
-      }
+        // Não oferece datas anteriores a hoje.
+        if (data < this.hojeBase) return false;
 
-      const inicio = minutosDe(horario);
-      const fim = inicio + atual.duracao;
-
-      // A consulta inteira precisa caber na disponibilidade.
-      return disponibilidadesDoDia.some((disponibilidade) => {
+        // Não oferece horários que já passaram hoje.
         if (
-          !disponibilidade.horaInicio ||
-          !disponibilidade.horaFim
+          data === this.hojeBase &&
+          minutosDe(horario) <= minutosAgora
         ) {
           return false;
         }
 
-        const inicioDisponivel = minutosDe(
-          disponibilidade.horaInicio,
-        );
+        const inicio = minutosDe(horario);
+        const fim = inicio + atual.duracao;
 
-        const fimDisponivel = minutosDe(
-          disponibilidade.horaFim,
-        );
+        // A consulta inteira precisa caber na disponibilidade.
+        return disponibilidadesDoDia.some((disponibilidade) => {
+          if (
+            !disponibilidade.horaInicio ||
+            !disponibilidade.horaFim
+          ) {
+            return false;
+          }
 
-        return (
-          inicio >= inicioDisponivel &&
-          fim <= fimDisponivel
-        );
+          const inicioDisponivel = minutosDe(
+            disponibilidade.horaInicio,
+          );
+
+          const fimDisponivel = minutosDe(
+            disponibilidade.horaFim,
+          );
+
+          return (
+            inicio >= inicioDisponivel &&
+            fim <= fimDisponivel
+          );
+        });
       });
-    });
   });
 
   private montarRequest(): ConsultaRequestApi | undefined {

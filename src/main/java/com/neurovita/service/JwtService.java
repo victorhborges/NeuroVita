@@ -2,11 +2,15 @@
 package com.neurovita.service;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.neurovita.model.Usuario;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -23,8 +27,11 @@ public class JwtService {
     private static final long EXPIRACAO_PRIMEIRO_ACESSO =
             1000L * 60 * 10;
 
-    private final String chaveSecreta =
-            System.getenv("JWT_SECRET");
+    private final String chaveSecreta;
+
+    public JwtService(@Value("${JWT_SECRET:}") String chaveSecreta) {
+        this.chaveSecreta = chaveSecreta;
+    }
 
     private SecretKey obterChave() {
         if (chaveSecreta == null || chaveSecreta.isBlank()) {
@@ -45,22 +52,15 @@ public class JwtService {
         return Keys.hmacShaKeyFor(chaveBytes);
     }
 
-    public String gerarToken(String email) {
-        return gerarToken(email, false);
-    }
-
-    public String gerarToken(
-            String email,
-            boolean primeiroAcesso) {
-
-        if (email == null || email.isBlank()) {
+    public String gerarToken(Usuario usuario) {
+        if (usuario == null || usuario.getEmail() == null || usuario.getEmail().isBlank()) {
             throw new IllegalArgumentException(
-                    "O e-mail é obrigatório para gerar o token.");
+                    "O usuário autenticado e seu e-mail são obrigatórios para gerar o token.");
         }
 
         Date agora = new Date();
 
-        long duracao = primeiroAcesso
+        long duracao = usuario.isSenhaProvisoria()
                 ? EXPIRACAO_PRIMEIRO_ACESSO
                 : EXPIRACAO_NORMAL;
 
@@ -68,8 +68,9 @@ public class JwtService {
                 new Date(agora.getTime() + duracao);
 
         return Jwts.builder()
-                .subject(email.trim())
-                .claim("primeiroAcesso", primeiroAcesso)
+                .subject(usuario.getEmail().trim())
+                .claim("primeiroAcesso", usuario.isSenhaProvisoria())
+                .claim("tokenVersion", usuario.getTokenVersion())
                 .issuedAt(agora)
                 .expiration(dataExpiracao)
                 .signWith(obterChave())
@@ -85,6 +86,25 @@ public class JwtService {
                 .get("primeiroAcesso", Boolean.class);
 
         return Boolean.TRUE.equals(primeiroAcesso);
+    }
+
+    public long extrairTokenVersion(String token) {
+        Object claim = obterClaims(token).get("tokenVersion");
+        if (claim == null) {
+            return 0L;
+        }
+        if (!(claim instanceof Number)) {
+            throw new IllegalArgumentException("Claim tokenVersion inválida.");
+        }
+        try {
+            long version = new BigDecimal(claim.toString()).longValueExact();
+            if (version < 0L) {
+                throw new IllegalArgumentException("Claim tokenVersion inválida.");
+            }
+            return version;
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new IllegalArgumentException("Claim tokenVersion inválida.", exception);
+        }
     }
 
     private Claims obterClaims(String token) {

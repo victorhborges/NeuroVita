@@ -1,8 +1,10 @@
 package com.neurovita.service;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.neurovita.model.DocumentoClinico;
+import com.neurovita.dto.DocumentoClinicoRequest;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DocumentoClinicoRepository;
@@ -40,6 +43,11 @@ class DocumentoClinicoServiceTest {
     private UsernamePasswordAuthenticationToken profissional() {
         return new UsernamePasswordAuthenticationToken("prof@neurovita.test", "token",
                 List.of(new SimpleGrantedAuthority("ROLE_PROFISSIONAL")));
+    }
+
+    private UsernamePasswordAuthenticationToken administrador() {
+        return new UsernamePasswordAuthenticationToken("admin@neurovita.test", "token",
+                List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR")));
     }
 
     private Usuario usuario() {
@@ -73,5 +81,70 @@ class DocumentoClinicoServiceTest {
 
         assertThrows(AccessDeniedException.class, () -> service.porPaciente("pac-1", profissional()));
         verifyNoInteractions(documentos);
+    }
+
+    @Test
+    void atualizacaoPreservaAutoriaEDataDeCriacao() {
+        DocumentoClinico existente = new DocumentoClinico();
+        existente.setId("doc-1");
+        existente.setPacienteId("pac-1");
+        existente.setProfissionalId("prof-ativo");
+        var criadoEm = java.time.LocalDateTime.of(2026, 1, 2, 10, 0);
+        existente.setCriadoEm(criadoEm);
+        when(pacientes.existsById("pac-1")).thenReturn(true);
+        when(usuarios.findByEmailIgnoreCase("prof@neurovita.test")).thenReturn(Optional.of(usuario()));
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-ativo"))
+                .thenReturn(Optional.of(new com.neurovita.model.VinculoProfissionalPaciente()));
+        when(documentos.findById("doc-1")).thenReturn(Optional.of(existente));
+        when(documentos.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        DocumentoClinicoRequest request = new DocumentoClinicoRequest();
+        request.setPacienteId("pac-1");
+        request.setSecao("Evoluções");
+        request.setTitulo("Evolução");
+        request.setDataSessao(LocalDate.of(2026, 1, 2));
+        request.setTipoAtendimento("Presencial");
+        request.setConteudo("Registro atualizado");
+
+        var resposta = service.salvar("doc-1", request, profissional());
+
+        assertEquals("prof-ativo", resposta.profissionalId());
+        assertEquals(criadoEm, resposta.criadoEm());
+        verify(documentos).save(existente);
+    }
+
+    @Test
+    void impedeAlteracaoExplicitaDaAutoriaDoDocumento() {
+        DocumentoClinico existente = new DocumentoClinico();
+        existente.setId("doc-1");
+        existente.setPacienteId("pac-1");
+        existente.setProfissionalId("prof-original");
+        when(pacientes.existsById("pac-1")).thenReturn(true);
+        when(documentos.findById("doc-1")).thenReturn(Optional.of(existente));
+
+        DocumentoClinicoRequest request = new DocumentoClinicoRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("outro-profissional");
+        request.setConteudo("Conteúdo");
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.salvar("doc-1", request, administrador()));
+        verify(documentos, never()).save(any());
+    }
+
+    @Test
+    void exclusaoArquivaDocumentoSemApagarHistorico() {
+        DocumentoClinico documento = new DocumentoClinico();
+        documento.setId("doc-1");
+        documento.setPacienteId("pac-1");
+        documento.setProfissionalId("prof-ativo");
+        when(documentos.findById("doc-1")).thenReturn(Optional.of(documento));
+
+        service.excluir("doc-1", administrador());
+
+        assertFalse(documento.isAtivo());
+        assertNotNull(documento.getArquivadoEm());
+        verify(documentos).save(documento);
+        verify(documentos, never()).delete(any());
     }
 }

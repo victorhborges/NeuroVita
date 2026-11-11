@@ -53,6 +53,28 @@ export class ConsultasApiService {
         );
     }
 
+    listarPorProfissionalNoPeriodo(
+        profissionalId: string,
+        dataInicio: string,
+        dataFim: string,
+    ): Observable<ConsultaApi[]> {
+        return this.http.get<ConsultaApi[]>(
+            `${this.api}/profissional/${profissionalId}`,
+            { params: { dataInicio, dataFim } },
+        );
+    }
+
+    listarPorPacienteNoPeriodo(
+        pacienteId: string,
+        dataInicio: string,
+        dataFim: string,
+    ): Observable<ConsultaApi[]> {
+        return this.http.get<ConsultaApi[]>(
+            `${this.api}/paciente/${pacienteId}`,
+            { params: { dataInicio, dataFim } },
+        );
+    }
+
     buscarPorId(id: string): Observable<ConsultaApi> {
         return this.http.get<ConsultaApi>(`${this.api}/${id}`);
     }

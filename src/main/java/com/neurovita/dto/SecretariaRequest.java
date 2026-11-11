@@ -27,11 +27,18 @@ public class SecretariaRequest {
     private LocalDate dataNascimento;
     private String cpf;
     private String endereco;
+    @Pattern(
+        regexp = "^[0-9.\\- ]{8,10}$",
+        message = "O CEP deve conter 8 dígitos, podendo incluir hífen."
+    )
+    private String cep;
+    private String cidade;
     private String cargo;
     private LocalDate admissao;
     private Boolean ativo;
     @Size(min = 8, max = 72, message = "A senha provisória deve ter entre 8 e 72 caracteres.")
     private String senhaProvisoria;
+    private Boolean enviarEmailBoasVindas = false;
 
     public String getNome() {
         return nome;
@@ -65,6 +72,10 @@ public class SecretariaRequest {
     public void setCpf(String cpf) { this.cpf = cpf; }
     public String getEndereco() { return endereco; }
     public void setEndereco(String endereco) { this.endereco = endereco; }
+    public String getCep() { return cep; }
+    public void setCep(String cep) { this.cep = cep; }
+    public String getCidade() { return cidade; }
+    public void setCidade(String cidade) { this.cidade = cidade; }
     public String getCargo() { return cargo; }
     public void setCargo(String cargo) { this.cargo = cargo; }
     public LocalDate getAdmissao() { return admissao; }
@@ -73,4 +84,6 @@ public class SecretariaRequest {
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
     public String getSenhaProvisoria() { return senhaProvisoria; }
     public void setSenhaProvisoria(String senhaProvisoria) { this.senhaProvisoria = senhaProvisoria; }
+    public Boolean getEnviarEmailBoasVindas() { return enviarEmailBoasVindas; }
+    public void setEnviarEmailBoasVindas(Boolean enviarEmailBoasVindas) { this.enviarEmailBoasVindas = enviarEmailBoasVindas; }
 }

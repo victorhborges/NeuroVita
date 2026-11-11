@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 
 public class ConsultaRequest {
 
+    public static final int DURACAO_PADRAO_MINUTOS = 50;
+
     @NotBlank(message = "O ID do paciente é obrigatório.")
     private String pacienteId;
 
@@ -30,7 +32,7 @@ public class ConsultaRequest {
 
     @NotNull(message = "A duração da consulta é obrigatória.")
     @Min(value = 1, message = "A duração deve ser de pelo menos 1 minuto.")
-    private Integer duracao;
+    private Integer duracao = DURACAO_PADRAO_MINUTOS;
 
     public ConsultaRequest() {
     }

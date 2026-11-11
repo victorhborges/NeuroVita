@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.neurovita.dto.AlterarSenhaRequest;
+import com.neurovita.dto.AlterarSenhaAutenticadaRequest;
 import com.neurovita.dto.LoginRequest;
 import com.neurovita.dto.LoginResponse;
 import com.neurovita.service.AuthService;
@@ -40,6 +41,15 @@ public class AuthController {
         authService.alterarSenhaPrimeiroAcesso(
                 authentication.getName(),
                 request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Alterar senha da conta autenticada")
+    @PostMapping("/alterar-senha")
+    public ResponseEntity<Void> alterarSenhaAutenticada(
+            Authentication authentication,
+            @Valid @RequestBody AlterarSenhaAutenticadaRequest request) {
+        authService.alterarSenhaAutenticada(authentication.getName(), request);
         return ResponseEntity.noContent().build();
     }
 }

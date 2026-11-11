@@ -73,6 +73,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if (jwtService.extrairTokenVersion(token) != usuario.getTokenVersion()) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Token invalidado. Autentique-se novamente.");
+                return;
+            }
+
             boolean primeiroAcesso =
                     jwtService.ehTokenDePrimeiroAcesso(token)
                     || usuario.isSenhaProvisoria();

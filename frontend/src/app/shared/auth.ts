@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, Subject, map } from 'rxjs';
 
 import { Perfil, CONFIG_PERFIS } from './perfil';
 
@@ -32,6 +32,8 @@ export type ResultadoLogin =
 })
 export class Auth {
   private readonly http = inject(HttpClient);
+  private readonly eventoSessao = new Subject<boolean>();
+  readonly sessaoAlterada$ = this.eventoSessao.asObservable();
 
   private readonly chaveToken = 'neurovita_token';
   private readonly chaveUsuario = 'neurovita_usuario';
@@ -86,6 +88,7 @@ export class Auth {
           this.chaveUsuario,
           JSON.stringify(usuario),
         );
+        this.eventoSessao.next(true);
 
         return {
           ok: true,
@@ -153,6 +156,7 @@ export class Auth {
   sair(): void {
     sessionStorage.removeItem(this.chaveToken);
     sessionStorage.removeItem(this.chaveUsuario);
+    this.eventoSessao.next(false);
   }
 
   private normalizar(valor: string): string {
