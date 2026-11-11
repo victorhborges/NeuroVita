@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { catchError, firstValueFrom, forkJoin, of } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, of, Subject, takeUntil } from 'rxjs';
 
 import { diaDaSemana, paraISO } from '../util';
 import {
@@ -16,6 +16,7 @@ import { ResponsaveisApiService, ResponsavelApi } from './responsaveis-api.servi
 import { SecretariasApiService } from './secretarias-api.service';
 import { DisponibilidadesApiService } from './disponibilidades-api.service';
 import { DiagnosticosApiService } from './diagnosticos-api.service';
+import { Aviso } from '../aviso/aviso';
 
 export type NovoPaciente = Pick<Paciente, 'nome' | 'nascimento' | 'telefone' | 'email' | 'endereco'>;
 export type DadosDocumento = Omit<Documento, 'id' | 'atualizadoEm'> & { id?: string };
@@ -31,6 +32,7 @@ export class Clinica {
   private readonly _secretarias = signal<Secretaria[]>([]);
   private readonly _agendamentos = signal<Agendamento[]>([]);
   private readonly _documentos = signal<Documento[]>([]);
+  private readonly cancelarLeiturasDaSessao = new Subject<void>();
   private readonly documentosApi = inject(DocumentosApiService);
   private readonly auth = inject(Auth);
   private readonly pacientesApi = inject(PacientesApiService);
@@ -40,6 +42,7 @@ export class Clinica {
   private readonly consultasApi = inject(ConsultasApiService);
   private readonly disponibilidadesApi = inject(DisponibilidadesApiService);
   private readonly diagnosticosApi = inject(DiagnosticosApiService);
+  private readonly aviso = inject(Aviso);
 
   readonly pacientes = this._pacientes.asReadonly();
   readonly profissionais = this._profissionais.asReadonly();
@@ -47,7 +50,23 @@ export class Clinica {
   readonly agendamentos = this._agendamentos.asReadonly();
   readonly documentos = this._documentos.asReadonly();
 
-  constructor() { this.carregarDadosDaApi(); }
+  constructor() {
+    this.auth.sessaoAlterada$.subscribe((autenticado) => {
+      this.cancelarLeiturasDaSessao.next();
+      this.limparDadosDaSessao();
+      if (autenticado) this.carregarDadosDaApi();
+    });
+
+    if (this.auth.obterToken()) this.carregarDadosDaApi();
+  }
+
+  private limparDadosDaSessao(): void {
+    this._pacientes.set([]);
+    this._profissionais.set([]);
+    this._secretarias.set([]);
+    this._agendamentos.set([]);
+    this._documentos.set([]);
+  }
 
   private carregarDadosDaApi(): void {
     const perfil = this.auth.obterPerfil();
@@ -55,16 +74,36 @@ export class Clinica {
     const podeListarSecretarias = perfil === 'admin';
     const podeListarResponsaveis = perfil === 'admin' || perfil === 'secretaria';
     forkJoin({
-      pacientes: this.pacientesApi.listarTodos().pipe(catchError(() => of([] as PacienteApi[]))),
-      profissionais: podeListarProfissionais ? this.profissionaisApi.listarTodos().pipe(catchError(() => of([] as ProfissionalApi[]))) : of([] as ProfissionalApi[]),
-      responsaveis: podeListarResponsaveis ? this.responsaveisApi.listarTodos().pipe(catchError(() => of([] as ResponsavelApi[]))) : of([] as ResponsavelApi[]),
-      secretarias: podeListarSecretarias ? this.secretariasApi.listarTodos().pipe(catchError(() => of([]))) : of([]),
-      consultas: this.consultasApi.listarTodas().pipe(catchError(() => of([] as ConsultaApi[]))),
-    }).subscribe(({ pacientes, profissionais, responsaveis, secretarias, consultas }) => {
+      pacientes: this.pacientesApi.listarTodos().pipe(catchError(() => of(null))),
+      profissionais: podeListarProfissionais
+        ? this.profissionaisApi.listarTodos().pipe(catchError(() => of(null)))
+        : of([] as ProfissionalApi[]),
+      responsaveis: podeListarResponsaveis
+        ? this.responsaveisApi.listarTodos().pipe(catchError(() => of(null)))
+        : of([] as ResponsavelApi[]),
+      secretarias: podeListarSecretarias
+        ? this.secretariasApi.listarTodos().pipe(catchError(() => of(null)))
+        : of([]),
+      consultas: this.consultasApi.listarTodas().pipe(catchError(() => of(null))),
+    }).pipe(takeUntil(this.cancelarLeiturasDaSessao)).subscribe(({ pacientes, profissionais, responsaveis, secretarias, consultas }) => {
+      if (!pacientes || !profissionais || !responsaveis || !secretarias || !consultas) {
+        this.aviso.mostrar('Não foi possível atualizar todos os dados clínicos. Os dados já carregados foram preservados.');
+        return;
+      }
       const profissionaisMap = new Map(profissionais.map((p) => [p.id, p]));
       this._agendamentos.set(consultas.map((c) => this.agendamentoDaApi(c)));
       this._pacientes.set(pacientes.map((p) => this.pacienteDaApi(p, responsaveis, consultas)));
-      this._profissionais.set(profissionais.map((p) => this.profissionalDaApi(p)));
+      const disponibilidadeAnteriorPorId = new Map(
+        this._profissionais().map((p) => [p.id, p.disponibilidade]),
+      );
+      this._profissionais.set(profissionais.map((p) => {
+        const profissional = this.profissionalDaApi(p);
+        return {
+          ...profissional,
+          disponibilidade: disponibilidadeAnteriorPorId.get(p.id)
+            ?? profissional.disponibilidade,
+        };
+      }));
       profissionais.forEach((p) => this.carregarDisponibilidade(p.id));
       this._secretarias.set(secretarias.map((s) => ({
         id: s.id, codigo: s.id.slice(-5).toUpperCase(), nome: s.nome, nascimento: s.dataNascimento ?? '', telefone: s.telefone ?? '', email: s.emailContato ?? s.email,
@@ -76,6 +115,8 @@ export class Clinica {
   }
 
   private pacienteDaApi(p: PacienteApi, responsaveis: ResponsavelApi[], consultas: ConsultaApi[]): Paciente {
+    const vinculosAtivos = (p.profissionais ?? []).filter((vinculo) => vinculo.ativo);
+    const profissionalAtual = vinculosAtivos.length === 1 ? vinculosAtivos[0].profissionalId : null;
     const vinculo = p.responsaveis?.[0];
     const contatos = (p.responsaveis ?? []).map((link) => {
       const contato = responsaveis.find((item) => item.id === link.responsavelId);
@@ -92,7 +133,7 @@ export class Clinica {
       id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, nascimento: p.dataNascimento,
       telefone: p.telefone ?? '', email: p.email ?? '', cpf: p.cpf ?? '', endereco: p.endereco ?? '',
       status: p.ativo === false ? 'inativo' : 'acompanhamento', situacao: p.ativo === false ? 'Inativo' : 'Em acompanhamento', ultimaConsulta: ultima?.dataHora.slice(0, 10) ?? null,
-      profissionalId: ultima?.profissionalId ?? null,
+      profissionalId: profissionalAtual,
       responsavelId: vinculo?.responsavelId,
       responsavel: { nome: r?.nome ?? '', relacao: vinculo?.grauParentesco ?? '', telefone: r?.telefone ?? '', endereco: r?.endereco ?? '', email: r?.email, nascimento: r?.dataNascimento, cpf: r?.cpf },
       responsaveis: contatos,
@@ -114,7 +155,9 @@ export class Clinica {
   }
 
   private carregarDisponibilidade(profissionalId: string): void {
-    this.profissionaisApi.listarDisponibilidades(profissionalId).subscribe({
+    this.profissionaisApi.listarDisponibilidades(profissionalId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
       next: (itens) => {
         const diasOrdem = ['SEGUNDA_FEIRA', 'TERCA_FEIRA', 'QUARTA_FEIRA', 'QUINTA_FEIRA', 'SEXTA_FEIRA', 'SABADO'];
         const normalizar = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
@@ -123,19 +166,59 @@ export class Clinica {
         this._profissionais.update((lista) => lista.map((p) => p.id === profissionalId
           ? { ...p, disponibilidade: { ...p.disponibilidade, dias, faixas } } : p));
       },
-      error: (erro) => console.error('Falha ao carregar disponibilidades:', erro),
+      error: () => this.aviso.mostrar('Não foi possível carregar as disponibilidades do profissional.'),
     });
   }
 
   private async sincronizarDisponibilidade(profissionalId: string, disponibilidade: DadosProfissional['disponibilidade']): Promise<void> {
     const atuais = await firstValueFrom(this.profissionaisApi.listarDisponibilidades(profissionalId));
-    for (const item of atuais) await firstValueFrom(this.profissionaisApi.removerDisponibilidade(profissionalId, item.id));
     const nomesDias = ['SEGUNDA_FEIRA', 'TERCA_FEIRA', 'QUARTA_FEIRA', 'QUINTA_FEIRA', 'SEXTA_FEIRA', 'SABADO'];
-    for (const dia of disponibilidade.dias) {
-      for (const faixa of disponibilidade.faixas) {
-        const nova = await firstValueFrom(this.disponibilidadesApi.criar({ diaSemana: nomesDias[dia], horaInicio: `${faixa.inicio}:00`, horaFim: `${faixa.fim}:00`, ativo: true }));
-        await firstValueFrom(this.profissionaisApi.adicionarDisponibilidade(profissionalId, nova.id));
+
+    const idsAnteriores = new Set(atuais.map((item) => item.id));
+    const reconciliarVinculosAnteriores = async () => {
+      const vinculadasAgora = await firstValueFrom(this.profissionaisApi.listarDisponibilidades(profissionalId));
+      const idsAgora = new Set(vinculadasAgora.map((item) => item.id));
+      for (const id of idsAgora) {
+        if (!idsAnteriores.has(id)) await firstValueFrom(this.profissionaisApi.removerDisponibilidade(profissionalId, id));
       }
+      for (const id of idsAnteriores) {
+        if (!idsAgora.has(id)) await firstValueFrom(this.profissionaisApi.adicionarDisponibilidade(profissionalId, id));
+      }
+      const confirmacao = await firstValueFrom(this.profissionaisApi.listarDisponibilidades(profissionalId));
+      const idsConfirmados = new Set(confirmacao.map((item) => item.id));
+      if (idsConfirmados.size !== idsAnteriores.size || [...idsAnteriores].some((id) => !idsConfirmados.has(id))) {
+        throw new Error('Não foi possível restaurar as disponibilidades anteriores.');
+      }
+    };
+
+    try {
+      for (const dia of disponibilidade.dias) {
+        for (const faixa of disponibilidade.faixas) {
+          const nova = await firstValueFrom(this.disponibilidadesApi.criar({
+            diaSemana: nomesDias[dia],
+            horaInicio: `${faixa.inicio}:00`,
+            horaFim: `${faixa.fim}:00`,
+            ativo: true,
+          }));
+          await firstValueFrom(this.profissionaisApi.adicionarDisponibilidade(profissionalId, nova.id));
+        }
+      }
+    } catch (erro) {
+      try { await reconciliarVinculosAnteriores(); } catch (falhaReconciliacao) {
+        throw new Error('A sincronização falhou e a reconciliação automática não foi confirmada.', { cause: falhaReconciliacao });
+      }
+      throw erro;
+    }
+
+    try {
+      for (const item of atuais) {
+        await firstValueFrom(this.profissionaisApi.removerDisponibilidade(profissionalId, item.id));
+      }
+    } catch (erro) {
+      try { await reconciliarVinculosAnteriores(); } catch (falhaReconciliacao) {
+        throw new Error('A sincronização falhou e a reconciliação automática não foi confirmada.', { cause: falhaReconciliacao });
+      }
+      throw erro;
     }
   }
 
@@ -150,20 +233,35 @@ export class Clinica {
   }
 
   carregarDocumentos(pacienteId: string): void {
-    this.documentosApi.listarPorPaciente(pacienteId).subscribe({
+    this.documentosApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
       next: (itens) => this._documentos.update((atuais) => [
         ...atuais.filter((d) => d.pacienteId !== pacienteId),
         ...itens.map((item) => this.documentoDaApi(item)),
       ]),
-      error: (erro) => console.error('Falha ao carregar documentos clínicos:', erro),
+      error: () => this.aviso.mostrar('Não foi possível carregar os documentos clínicos.'),
     });
   }
 
   carregarDiagnosticos(pacienteId: string): void {
-    this.diagnosticosApi.listarPorPaciente(pacienteId).subscribe({
-      next: (itens) => this._pacientes.update((lista) => lista.map((p) => p.id === pacienteId
-        ? { ...p, diagnostico: { ...p.diagnostico, principal: itens.map((d) => d.descricao).join('; ') || '—' } } : p)),
-      error: (erro) => console.error('Falha ao carregar diagnósticos:', erro),
+    this.diagnosticosApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
+      next: (itens) => this._pacientes.update((lista) => lista.map((p) => {
+        if (p.id !== pacienteId) return p;
+        const ativos = itens.filter((diagnostico) => diagnostico.ativo !== false);
+        const principal = ativos[0];
+        return {
+          ...p,
+          diagnostico: {
+            ...p.diagnostico,
+            principal: principal?.descricao || '—',
+            cid: principal?.cid || '—',
+          },
+        };
+      })),
+      error: () => this.aviso.mostrar('Não foi possível carregar os diagnósticos.'),
     });
   }
 
@@ -300,7 +398,7 @@ export class Clinica {
   }
 
   /** Cria (sem `id`) ou atualiza (com `id`) um profissional a partir do formulário de cadastro. */
-  async salvarProfissional(dados: DadosProfissional, id?: string): Promise<Profissional & { senhaProvisoria?: string }> {
+  async salvarProfissional(dados: DadosProfissional, id?: string): Promise<Profissional & { senhaProvisoria?: string | null; emailBoasVindasEnviado?: boolean }> {
     if (id) {
       const salvo = await firstValueFrom(this.profissionaisApi.atualizar(id!, {
         nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
@@ -315,10 +413,10 @@ export class Clinica {
     const cadastro = await firstValueFrom(this.profissionaisApi.criar({
       nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
       categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
-      numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+      numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria, enviarEmailBoasVindas: dados.enviarEmailBoasVindas,
     }));
     await this.sincronizarDisponibilidade(cadastro.profissional.id, dados.disponibilidade);
-    const novo: Profissional & { senhaProvisoria: string } = { ...this.profissionalDaApi(cadastro.profissional), disponibilidade: dados.disponibilidade, senhaProvisoria: cadastro.senhaProvisoria };
+    const novo: Profissional & { senhaProvisoria: string | null; emailBoasVindasEnviado: boolean } = { ...this.profissionalDaApi(cadastro.profissional), disponibilidade: dados.disponibilidade, senhaProvisoria: cadastro.senhaProvisoria, emailBoasVindasEnviado: cadastro.emailBoasVindasEnviado };
     this._profissionais.update((l) => [...l, novo]);
     return novo;
   }
@@ -366,7 +464,7 @@ export class Clinica {
     return this._secretarias().find((s) => s.id === id);
   }
 
-  async salvarSecretaria(dados: DadosSecretaria, id?: string): Promise<Secretaria & { senhaProvisoria?: string }> {
+  async salvarSecretaria(dados: DadosSecretaria, id?: string): Promise<Secretaria & { senhaProvisoria?: string | null; emailBoasVindasEnviado?: boolean }> {
     const request = {
       nome: dados.nome, email: dados.emailAcesso || dados.email, emailContato: dados.email,
       dataNascimento: dados.nascimento || undefined, cpf: dados.cpf, telefone: dados.telefone,
@@ -379,11 +477,15 @@ export class Clinica {
       this._secretarias.update((l) => l.map((s) => s.id === id ? editada : s));
       return editada;
     }
-    const cadastro = await firstValueFrom(this.secretariasApi.criar(request));
-    const nova: Secretaria & { senhaProvisoria: string } = {
+    const cadastro = await firstValueFrom(this.secretariasApi.criar({
+      ...request,
+      enviarEmailBoasVindas: dados.enviarEmailBoasVindas,
+    }));
+    const nova: Secretaria & { senhaProvisoria: string | null; emailBoasVindasEnviado: boolean } = {
       ...dados, id: cadastro.secretaria.id, codigo: cadastro.secretaria.id.slice(-5).toUpperCase(),
       email: cadastro.secretaria.emailContato ?? cadastro.secretaria.email, emailAcesso: cadastro.secretaria.email,
       senhaProvisoria: cadastro.senhaProvisoria,
+      emailBoasVindasEnviado: cadastro.emailBoasVindasEnviado,
     };
     this._secretarias.update((l) => [...l, nova]);
     return nova;

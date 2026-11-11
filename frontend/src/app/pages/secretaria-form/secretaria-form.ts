@@ -118,12 +118,14 @@ export class SecretariaForm {
       {
         nome: f.nome.trim(), nascimento: f.nascimento, telefone: f.telefone, email: f.email.trim(), cpf: f.cpf,
         endereco: f.endereco.trim(), cargo: f.cargo.trim(), admissao: f.admissao, ativo: f.ativo, emailAcesso: f.emailAcesso.trim(), senhaProvisoria: f.senha,
+        enviarEmailBoasVindas: f.boasVindas,
       },
       this.id(),
     );
-    // TODO (back-end): gravar a senha temporária com segurança e enviar o e-mail de boas-vindas (f.boasVindas).
     this.confirmando.set(false);
     if (this.edicao()) this.aviso.mostrar(`Dados de ${secretaria.nome} atualizados.`);
+    else if (secretaria.emailBoasVindasEnviado) this.aviso.mostrar('Secretária cadastrada e e-mail de boas-vindas enviado.');
+    else if (f.boasVindas) this.aviso.mostrar(`Secretária cadastrada, mas o e-mail não foi enviado. Senha temporária: ${secretaria.senhaProvisoria ?? ''}`, 9000);
     else this.aviso.mostrar(`Secretária cadastrada. Senha temporária: ${secretaria.senhaProvisoria ?? ''}`, 9000);
     this.router.navigateByUrl(this.voltar());
     } catch (erro) {

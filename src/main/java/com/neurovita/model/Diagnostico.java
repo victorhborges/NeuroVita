@@ -15,6 +15,7 @@ public class Diagnostico {
     private String profissionalId;
 
     private String descricao;
+    private String cid;
     private Boolean ativo = true;
     private LocalDateTime arquivadoEm;
 
@@ -48,6 +49,9 @@ public class Diagnostico {
     public String getDescricao() {
         return descricao;
     }
+
+    public String getCid() { return cid; }
+    public void setCid(String cid) { this.cid = cid; }
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;

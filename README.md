@@ -6,7 +6,7 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status:** backend e frontend integrados localmente. A implementação atual contempla os principais módulos de gestão, agenda, prontuário e registros clínicos. A suíte descoberta pelo VS Code apresentou 110 testes aprovados e nenhuma falha, com 120 testes ignorados. O build Maven ainda não foi validado devido a bloqueios de execução do ambiente. A validação com Docker, MongoDB Atlas real e publicação da versão atual permanece pendente.
+> **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros. As alterações ainda precisam passar pela validação completa de build, testes, Docker e persistência em MongoDB Atlas antes de serem promovidas aos demais ambientes.
 
 ---
 
@@ -40,24 +40,26 @@ O projeto contempla:
 - Múltiplos responsáveis por paciente.
 - Vínculos entre pacientes e responsáveis.
 - Cadastro e gerenciamento de profissionais.
+- Cadastro e gerenciamento de secretarias.
 - Vínculos entre profissionais e pacientes, com histórico.
 - Disponibilidades e modalidades de atendimento.
 - Consultas, agenda, confirmação, remarcação e cancelamento.
 - Prontuário centralizado por paciente.
 - Diagnósticos, tratamentos e exames.
 - Solicitações de exames e registro separado dos resultados.
-- Arquivamento lógico de documentos clínicos, diagnósticos, tratamentos e exames, preservando os registros históricos.
+- Arquivamento lógico de documentos clínicos, diagnósticos, tratamentos e exames.
 - Prescrições em texto livre e itens estruturados de medicamento, dosagem, posologia, frequência e duração.
 - Histórico de revisões de prescrições.
 - Documentos clínicos e anexos.
 - Preferências individuais persistidas por usuário.
-- Administradores e secretarias.
 - Autenticação JWT e controle de acesso por perfil.
 - Primeiro acesso e recuperação de senha.
 - Inativação de cadastros, preservando o histórico.
 - Validação condicional dos dados de plano de saúde.
 - Compartilhamento de leitura clínica conforme vínculo profissional ativo.
 - Preservação da autoria dos registros clínicos.
+- Limpeza dos dados clínicos mantidos em memória após o logout.
+- Tratamento de falhas de comunicação com a API, evitando apresentar dados antigos ou listas vazias como se fossem resultados válidos.
 - Frontend Angular integrado à aplicação Spring Boot.
 
 O mecanismo de documentos clínicos contempla diferentes seções, incluindo acolhimento, assistência social, relatórios escolares, declarações escolares, rastreio, devolutiva e evoluções, conforme os tipos suportados pela implementação.
@@ -84,9 +86,9 @@ Aplicação Spring Boot
         v                      v
 Arquivos estáticos          API REST
                                |
-                           Controller
+                            Controller
                                |
-                            Service
+                             Service
                                |
                            Repository
                                |
@@ -119,6 +121,10 @@ src/main/resources/static/
 ```
 
 A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
+
+O frontend utiliza serviços de integração para acessar os módulos da API, incluindo pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias e preferências.
+
+O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
 A proteção de navegação do Angular não substitui as verificações de autorização do backend.
 
@@ -193,7 +199,9 @@ DELETE /api/pacientes/{id}
 - Quando `possuiPlanoSaude` for verdadeiro, o nome do plano de saúde é obrigatório.
 - Número da carteirinha e validade do plano permanecem opcionais.
 - Quando o paciente não possui plano de saúde, a identificação do plano não é obrigatória.
-- CEP e cidade são aceitos pelo backend, mas ainda são opcionais para compatibilidade com o frontend atual. O preenchimento obrigatório do CEP previsto visualmente no MVP ainda precisa ser confirmado e alinhado ao contrato integrado.
+- Campos omitidos em atualizações parciais devem preservar os dados existentes quando a operação permitir esse comportamento.
+
+CEP e cidade são aceitos pelo backend, mas ainda são opcionais para compatibilidade com o frontend atual. O preenchimento obrigatório do CEP previsto visualmente no MVP ainda precisa ser confirmado e alinhado ao contrato integrado.
 
 Os dados de responsáveis são armazenados separadamente dos pacientes, com os relacionamentos registrados na coleção `vinculosResponsaveis`.
 
@@ -207,7 +215,59 @@ O módulo de profissionais contempla cadastro, consulta, atualização, inativa�
 
 O profissional pode oferecer atendimento presencial, online ou ambas as modalidades.
 
-As disponibilidades são documentos relacionados pelo ID ao profissional. Ao excluir uma disponibilidade, o backend remove suas referências dos profissionais antes de apagar o documento, evitando referências órfãs. Como a operação envolve documentos MongoDB distintos, a consistência em caso de falha intermediária ainda deve ser validada em ambiente integrado.
+### Cadastro de profissionais e secretarias
+
+Os cadastros utilizam os endpoints:
+
+```http
+POST /api/profissionais
+POST /api/secretarias
+```
+
+Os formulários existentes podem solicitar o envio de e-mail de boas-vindas no cadastro.
+
+O corpo da requisição pode incluir:
+
+```json
+{
+  "enviarEmailBoasVindas": true
+}
+```
+
+A resposta inclui `emailBoasVindasEnviado` para que o frontend informe o resultado do envio.
+
+O comportamento implementado é:
+
+- Quando o SMTP está habilitado e o envio é concluído, a resposta informa `emailBoasVindasEnviado=true` e omite a senha provisória.
+- Se o SMTP estiver desabilitado ou o envio falhar, o cadastro permanece concluído, a resposta informa `false` e retorna a senha provisória somente ao usuário autenticado que realizou o cadastro, para entrega manual.
+- A senha provisória é enviada no corpo do e-mail quando o envio é realizado.
+- O primeiro acesso exige a alteração da senha provisória.
+
+O envio reutiliza as configurações SMTP do ambiente:
+
+```text
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_FROM
+```
+
+O serviço de e-mail utiliza uma dependência opcional de `JavaMailSender`, permitindo que a aplicação seja inicializada mesmo quando não houver configuração de envio disponível.
+
+Falhas SMTP são registradas no servidor sem incluir senha ou destinatário no log.
+
+Um convite com token temporário de uso único e expiração não faz parte do fluxo atual.
+
+### Disponibilidades
+
+As disponibilidades são documentos relacionados pelo ID ao profissional.
+
+Ao excluir uma disponibilidade, o backend remove suas referências dos profissionais antes de apagar o documento, evitando referências órfãs no fluxo normal.
+
+A integração também contempla a criação e associação de novas disponibilidades antes da remoção das referências antigas, reduzindo o risco de perda de configurações durante a sincronização.
+
+Como a operação envolve documentos MongoDB distintos, não existe garantia de atomicidade entre todas as etapas. A consistência em caso de falhas intermediárias ainda precisa ser validada em ambiente integrado.
 
 ### Vínculos profissionais-pacientes
 
@@ -234,6 +294,10 @@ GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}
 ```
 
 A resposta de pacientes também contempla a lista de profissionais vinculados por meio do campo `profissionais`, permitindo que o frontend apresente a equipe responsável sem depender das consultas cadastradas.
+
+O frontend preenche o profissional atual somente quando há exatamente um vínculo ativo. Com vários vínculos ativos, não escolhe um arbitrariamente.
+
+Consultas anteriores continuam compondo o histórico sem alterar os vínculos profissionais.
 
 ### Controle de acesso clínico
 
@@ -273,7 +337,13 @@ DELETE /api/consultas/{id}
 PATCH  /api/consultas/{id}/cancelar
 ```
 
-`GET /api/consultas` aceita `dataInicio` e `dataFim` juntos como `LocalDateTime` ISO-8601 (por exemplo, `2026-11-10T09:00:00`), filtrando o intervalo com início inclusivo e fim exclusivo. Para um profissional, os resultados continuam limitados às próprias consultas.
+`GET /api/consultas` aceita `dataInicio` e `dataFim` juntos como `LocalDateTime` ISO-8601, por exemplo:
+
+```text
+2026-11-10T09:00:00
+```
+
+O filtro utiliza início inclusivo e fim exclusivo. Para um profissional, os resultados continuam limitados às próprias consultas.
 
 Consultas por paciente e profissional:
 
@@ -282,15 +352,32 @@ GET /api/consultas/paciente/{pacienteId}
 GET /api/consultas/profissional/{profissionalId}
 ```
 
-Esses dois endpoints também aceitam os parâmetros opcionais `dataInicio` e
-`dataFim` (ambos obrigatórios em conjunto). O formulário de agendamento usa
-essa consulta por intervalo para bloquear horários ocupados pela agenda do
-profissional ou do paciente; conflitos definitivos continuam sendo validados
-no servidor ao criar a consulta. Falhas ao consultar a agenda bloqueiam a
-seleção em vez de tratar o horário como livre. Profissionais só podem consultar
-a agenda de pacientes com os quais tenham vínculo ativo; nessa consulta, são
-incluídos os horários do paciente com outros profissionais para evitar
-conflitos, sem permitir a busca de pacientes não vinculados.
+Esses endpoints também aceitam os parâmetros opcionais `dataInicio` e `dataFim`, ambos obrigatórios em conjunto.
+
+O formulário de agendamento utiliza a consulta por intervalo para bloquear horários ocupados pela agenda do profissional ou do paciente.
+
+Conflitos definitivos continuam sendo validados no servidor ao criar ou remarcar uma consulta. Falhas ao consultar a agenda bloqueiam a seleção em vez de tratar o horário como livre.
+
+Profissionais só podem consultar a agenda de pacientes com os quais tenham vínculo ativo. Nessa consulta, são incluídos os horários do paciente com outros profissionais para evitar conflitos, sem permitir a busca de pacientes não vinculados.
+
+### Grade e duração dos horários
+
+Na tela de agendamento da Secretaria:
+
+- Os inícios são gerados em intervalos de 60 minutos a partir do início real de cada disponibilidade ativa.
+- A duração padrão é de 50 minutos.
+- Uma preferência individual já salva pode definir outra duração permitida no MVP.
+- A duração selecionada é enviada na consulta.
+- Sem preferência salva, a API e a tela utilizam 50 minutos.
+- A grade respeita janelas fora de horários comerciais fixos.
+- Só são oferecidos inícios em que a consulta completa cabe na disponibilidade.
+- Horários passados, conflitos existentes e falhas de carregamento permanecem bloqueados.
+
+O backend repete a validação ao salvar, não dependendo apenas das opções exibidas no frontend.
+
+A remarcação aplica a mesma grade de 60 minutos e mantém a duração já registrada na consulta, preservando essa informação durante a alteração.
+
+A API valida que o início pertence à grade contada a partir do início real de uma disponibilidade ativa, além de validar o intervalo completo contra a disponibilidade e os conflitos existentes.
 
 ### Status
 
@@ -317,8 +404,20 @@ O backend verifica:
 - Modalidade de atendimento oferecida.
 - Estado ativo do paciente e do profissional.
 - Permissões do usuário autenticado.
+- Compatibilidade entre o horário solicitado e a grade da disponibilidade.
+- Compatibilidade entre a duração e o intervalo disponível.
 
-Consultas canceladas não bloqueiam novos agendamentos.
+Um profissional não pode ter consultas sobrepostas, independentemente do paciente.
+
+Um paciente não pode ter consultas simultâneas, independentemente do profissional.
+
+A validação considera o intervalo completo da consulta, não apenas o horário inicial. Consultas canceladas não bloqueiam novos agendamentos. Na remarcação, a própria consulta é desconsiderada na verificação de conflitos.
+
+### Modalidade e local
+
+A consulta presencial utiliza a unidade informada no formulário, com `Unidade Santa Maria` como local padrão.
+
+A consulta online utiliza `Teleconsulta` como local.
 
 ### Agenda
 
@@ -358,6 +457,8 @@ O prontuário reúne informações do acompanhamento clínico, enquanto os regis
 ```
 
 Os módulos possuem operações próprias de consulta e gerenciamento.
+
+Diagnósticos aceitam e retornam `cid`. Uma atualização que omita esse campo preserva o código anteriormente registrado. A interface existente mostra o CID do diagnóstico ativo quando esse dado está presente.
 
 ### Documentos clínicos
 
@@ -529,6 +630,10 @@ A recuperação utiliza código temporário enviado por e-mail.
 
 O código possui validade de 10 minutos. O envio depende da configuração SMTP no ambiente.
 
+### Logout e dados em memória
+
+O logout encerra a sessão no frontend e limpa os dados clínicos mantidos em memória, evitando que informações da sessão anterior permaneçam disponíveis após a saída do usuário.
+
 ### Segurança adicional
 
 As configurações sensíveis devem ser fornecidas por variáveis de ambiente, nunca armazenadas diretamente no código ou publicadas no Git.
@@ -543,8 +648,8 @@ A documentação interativa da API utiliza SpringDoc OpenAPI.
 
 Localmente:
 
-- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI: http://localhost:8080/v3/api-docs
 
 Para testar endpoints protegidos:
 
@@ -600,7 +705,7 @@ Cada ambiente deve utilizar o banco de dados correspondente, mantendo a separaç
 - Não versionar arquivos `.env`.
 - Utilizar variáveis de ambiente nos serviços hospedados.
 
-A validação dos fluxos mais recentes com MongoDB Atlas real ainda precisa ser concluída. Os testes unitários com mocks não comprovam a persistência no banco real.
+A validação dos fluxos mais recentes com MongoDB Atlas real ainda precisa ser concluída. Testes unitários com mocks não comprovam a persistência no banco real.
 
 ---
 
@@ -647,7 +752,7 @@ SMTP_STARTTLS
 
 O SMTP permanece desabilitado por padrão.
 
-A validação da imagem Docker e a publicação da versão integrada atual ainda estão pendentes.
+A publicação da versão integrada atual depende da conclusão das validações de build, testes e ambiente. A existência de serviços hospedados não significa que a última revisão local já esteja publicada neles.
 
 ---
 
@@ -716,21 +821,15 @@ O caminho esperado dos arquivos compilados é:
 frontend/dist/neurovita/browser/
 ```
 
-Após a compilação, os arquivos devem ser incorporados aos recursos estáticos do backend.
+O Dockerfile integrado contempla a incorporação dos arquivos compilados ao backend.
 
-No Windows, a partir da raiz:
-
-```cmd
-xcopy /E /I /Y frontend\dist\neurovita\browser src\main\resources\static
-```
-
-Sempre que o frontend for alterado, é necessário recompilar e copiar os arquivos antes de executar a versão integrada, caso o processo de build não faça essa incorporação automaticamente.
+Caso a execução seja feita manualmente fora do fluxo de Docker, é necessário garantir que os arquivos Angular estejam disponíveis em `src/main/resources/static/` antes de iniciar a aplicação.
 
 A aplicação local estará disponível em:
 
-- Frontend: [http://localhost:8080](http://localhost:8080)
-- Swagger: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- Frontend: http://localhost:8080
+- Swagger: http://localhost:8080/swagger-ui/index.html
+- OpenAPI: http://localhost:8080/v3/api-docs
 
 ---
 
@@ -780,25 +879,26 @@ Linux/macOS:
 ./mvnw -DskipTests package
 ```
 
-### Validação da revisão atual
+### Situação da revisão atual
 
-| Verificação | Resultado |
+| Verificação | Situação |
 |---|---|
-| Suíte descoberta pelo VS Code | 110 testes aprovados |
-| Falhas na suíte descoberta | 0 |
-| Testes ignorados | 120 |
-| `git diff --check` | Sem erros |
-| Diagnósticos Java reportados pelo VS Code | Nenhum erro reportado |
-| Maven Wrapper | Execução bloqueada pelo ambiente (`Acesso negado`) |
-| Maven global no PATH | Indisponível |
-| Build Maven | Não validado |
-| Build Angular da revisão atual | Não certificado nesta etapa |
-| Docker da revisão atual | Não validado |
-| Integração com MongoDB Atlas real | Pendente |
+| Testes unitários dos serviços | Existem testes para as regras implementadas e alteradas |
+| Novos testes da revisão | Criados; execução completa pendente |
+| Suíte Java completa | Pendente de execução e revisão |
+| `git diff --check` | Deve ser executado antes do commit |
+| Diagnósticos Java do VS Code | Não substituem a compilação Maven |
+| Maven Wrapper | Execução anterior foi bloqueada pelo ambiente (`Acesso negado`) |
+| Maven global no PATH | Indisponível na validação anterior |
+| Build Maven da revisão atual | Pendente |
+| Build Angular da revisão atual | Pendente de validação |
+| Docker da revisão atual | Pendente de validação |
+| Integração com MongoDB Atlas real | Pendente de validação completa |
+| Testes funcionais completos | Pendente com a equipe responsável |
 
-Os testes foram executados pelo executor de testes do VS Code. O build e a suíte Maven não foram validados, pois a execução do wrapper foi bloqueada antes de iniciar o Maven e não há uma instalação global disponível no PATH.
+A execução anterior pelo executor de testes do VS Code apresentou resultados positivos em parte da suíte, mas esses números não devem ser tratados como resultado da revisão atual. Foram adicionados e modificados testes desde então.
 
-Os 110 testes aprovados não devem ser interpretados como validação integral de todos os fluxos. Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
+Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
 
 A equipe designada é responsável pela execução dos testes funcionais completos.
 
@@ -810,19 +910,24 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 |---|---|
 | Backend Java / Spring Boot | Principais módulos implementados; validação integral pendente |
 | Frontend Angular integrado | Integração local existente |
+| Serviços Angular de integração | Implementados para os principais módulos |
+| Tratamento de falhas da API | Melhorado; validação integrada pendente |
+| Logout e limpeza de dados em memória | Implementados localmente |
 | MongoDB Atlas | Configurado; validação integral pendente |
 | Pacientes e responsáveis | Implementados |
 | Múltiplos responsáveis | Implementado |
 | Regra de responsável para menores | Implementada |
 | Validação condicional do plano de saúde | Implementada |
 | Profissionais e disponibilidades | Implementados |
+| Cadastro de secretarias | Implementado |
+| E-mail de boas-vindas | Implementado; depende de SMTP |
 | Vínculos profissionais-pacientes | Implementados |
 | Histórico de vínculos | Implementado |
 | Permissões clínicas por vínculo | Implementadas localmente; validação integrada pendente |
 | Prontuário centralizado | Implementado |
 | Documentos clínicos e anexos | Implementados |
 | Arquivamento lógico de documentos clínicos | Implementado localmente |
-| Diagnósticos | Implementados |
+| Diagnósticos e CID | Implementados |
 | Arquivamento lógico de diagnósticos | Implementado localmente |
 | Tratamentos | Implementados |
 | Arquivamento lógico de tratamentos | Implementado localmente |
@@ -832,16 +937,23 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Itens estruturados de prescrição | Implementados localmente |
 | Histórico de revisões de prescrições | Implementado |
 | Consultas e agenda | Implementadas |
+| Grade de horários | Inícios a cada 60 minutos a partir da disponibilidade real |
+| Duração padrão de consulta | 50 minutos, com preferência individual quando configurada |
+| Conflitos de agendamento | Validação por intervalo completo no backend |
 | Autenticação JWT | Implementada |
+| Primeiro acesso e alteração de senha | Implementados |
 | Recuperação de senha | Implementada; requer SMTP |
-| Preferências individuais | Persistência implementada; integração de notificações pendente |
+| Preferências individuais | Persistência implementada |
+| Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
 | Swagger / OpenAPI | Implementado |
-| Testes Java pelo VS Code | 110 aprovados, 0 falhas e 120 ignorados |
+| Testes Java | Criados; execução completa pendente |
 | Build Maven | Pendente de validação |
+| Build Angular | Pendente de validação da revisão atual |
 | Docker da versão atual | Pendente de validação |
 | Deploy integrado atual | Pendente |
 | Testes funcionais completos | Pendentes |
 | Autenticação em duas etapas (2FA) | Pendente de requisitos e implementação |
+| Módulo de Receitas | Pendente de definição dos requisitos do MVP |
 
 ---
 
@@ -849,7 +961,7 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 
 Repositório oficial:
 
-[https://github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
+https://github.com/victorhborges/NeuroVita
 
 ### Organização das branches
 
@@ -891,7 +1003,7 @@ A branch `main` é a branch oficial de produção. Não utilizar uma branch sepa
 5. Revisar o código.
 6. Atualizar o README quando houver mudanças relevantes.
 7. Fazer commit e push da branch de trabalho.
-8. Abrir Pull Request para `develop`.
+8. Abrir Pull Request para `develop`, quando aplicável.
 
 Comandos úteis:
 
@@ -930,14 +1042,19 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Implementar arquivamento lógico de documentos clínicos, diagnósticos, tratamentos e exames.
 - [x] Implementar itens estruturados de prescrição e preservação de revisões anteriores.
 - [x] Implementar validação condicional do plano de saúde.
-- [x] Ampliar testes unitários dos serviços alterados.
-- [x] Executar a suíte descoberta pelo VS Code: 110 aprovados, 0 falhas.
+- [x] Implementar persistência de preferências individuais.
+- [x] Implementar cadastro com opção de e-mail de boas-vindas.
+- [x] Melhorar o tratamento de falhas de comunicação entre frontend e API.
+- [x] Melhorar a validação da grade de horários no backend.
+- [x] Implementar regras de conflitos de consultas por intervalo completo.
+- [ ] Revisar integralmente as alterações locais antes do commit.
+- [ ] Executar e revisar manualmente a suíte Java e Angular.
 - [ ] Validar a compilação e a suíte completa pelo Maven.
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.
 - [ ] Comparar todos os formulários e fluxos com o PDF definitivo do MVP.
-- [ ] Validar a integração com o frontend.
+- [ ] Validar a integração completa com o frontend.
 - [ ] Disponibilizar a versão validada para a equipe de testes.
 - [ ] Executar testes funcionais.
 - [ ] Promover a versão aprovada para homologação.

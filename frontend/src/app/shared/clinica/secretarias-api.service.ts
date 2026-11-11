@@ -16,7 +16,10 @@ export interface SecretariaApi {
   ativo?: boolean;
 }
 
-export interface SecretariaRequestApi extends Omit<SecretariaApi, 'id'> { senhaProvisoria?: string; }
+export interface SecretariaRequestApi extends Omit<SecretariaApi, 'id'> {
+  senhaProvisoria?: string;
+  enviarEmailBoasVindas?: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SecretariasApiService {
@@ -25,8 +28,8 @@ export class SecretariasApiService {
 
   listarTodos(): Observable<SecretariaApi[]> { return this.http.get<SecretariaApi[]>(this.api); }
   buscarPorId(id: string): Observable<SecretariaApi> { return this.http.get<SecretariaApi>(`${this.api}/${id}`); }
-  criar(dados: SecretariaRequestApi): Observable<{ secretaria: SecretariaApi; senhaProvisoria: string }> {
-    return this.http.post<{ secretaria: SecretariaApi; senhaProvisoria: string }>(this.api, dados);
+  criar(dados: SecretariaRequestApi): Observable<{ secretaria: SecretariaApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }> {
+    return this.http.post<{ secretaria: SecretariaApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }>(this.api, dados);
   }
   atualizar(id: string, dados: SecretariaRequestApi): Observable<SecretariaApi> {
     return this.http.put<SecretariaApi>(`${this.api}/${id}`, dados);

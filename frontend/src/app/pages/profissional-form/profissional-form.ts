@@ -198,12 +198,14 @@ export class ProfissionalForm {
         tipo: f.tipo === 'psiquiatra' ? 'psiquiatra' : 'psicologo', registro: f.registro.trim(), anoConclusao: Number(f.anoConclusao),
         disponibilidade: { dias: f.dias, faixas: this.faixas(), online: f.online, presencial: f.presencial },
         ativo: f.ativo, emailAcesso: f.emailAcesso.trim(), senhaProvisoria: f.senha,
+        enviarEmailBoasVindas: f.boasVindas,
       },
       this.id(),
     );
-    // TODO (back-end): gravar a senha temporária com segurança e enviar o e-mail de boas-vindas (f.boasVindas).
     this.confirmando.set(false);
     if (this.edicao()) this.aviso.mostrar(`Dados de ${profissional.nome} atualizados.`);
+    else if (profissional.emailBoasVindasEnviado) this.aviso.mostrar('Profissional cadastrado e e-mail de boas-vindas enviado.');
+    else if (f.boasVindas) this.aviso.mostrar(`Profissional cadastrado, mas o e-mail não foi enviado. Senha temporária: ${profissional.senhaProvisoria ?? ''}`, 9000);
     else this.aviso.mostrar(`Profissional cadastrado. Senha temporária: ${profissional.senhaProvisoria ?? ''}`, 9000);
     this.router.navigateByUrl(this.voltar());
     } catch (erro) {

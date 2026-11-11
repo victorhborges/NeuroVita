@@ -31,9 +31,11 @@ import {
   ResponsaveisApiService,
 } from '../../shared/clinica/responsaveis-api.service';
 import {
-  HORARIOS_CONSULTA,
+  DURACAO_PADRAO_CONSULTA_MINUTOS,
+  horariosDaDisponibilidade,
   minutosDe,
 } from '../../shared/clinica/status';
+import { PreferenciasApiService } from '../../shared/clinica/preferencias-api.service';
 import { Dialogo } from '../../shared/dialogo/dialogo';
 import { Icone } from '../../shared/icone/icone';
 import {
@@ -51,7 +53,6 @@ import {
 } from '../../shared/util';
 
 const NOMES_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const DURACAO = 30;
 
 interface ResponsavelFormulario {
   nome: string;
@@ -81,6 +82,7 @@ export class ConsultaForm {
   private readonly profissionaisApi = inject(ProfissionaisApiService);
   private readonly responsaveisApi = inject(ResponsaveisApiService);
   private readonly consultasApi = inject(ConsultasApiService);
+  private readonly preferenciasApi = inject(PreferenciasApiService);
   private readonly aviso = inject(Aviso);
   private readonly router = inject(Router);
 
@@ -100,6 +102,7 @@ export class ConsultaForm {
   protected readonly carregandoConsultas = signal(false);
   protected readonly erroConsultas = signal(false);
   protected readonly salvando = signal(false);
+  protected readonly duracao = signal(DURACAO_PADRAO_CONSULTA_MINUTOS);
 
   protected readonly pacienteId = signal('');
   protected readonly profissionalId = signal('');
@@ -203,7 +206,10 @@ export class ConsultaForm {
   );
 
   protected readonly horarios = computed(() =>
-    HORARIOS_CONSULTA.map((hora) => ({
+    horariosDaDisponibilidade(
+      this.disponibilidadesAtivasDoDia(),
+      this.duracao(),
+    ).map((hora) => ({
       hora,
       livre: this.horarioPodeSerSelecionado(hora),
     })),
@@ -279,6 +285,18 @@ export class ConsultaForm {
   constructor() {
     this.carregarCadastros();
 
+    this.preferenciasApi.buscar().subscribe({
+      next: (preferencias) => {
+        if (preferencias.duracaoPadraoConsulta != null) {
+          this.duracao.set(preferencias.duracaoPadraoConsulta);
+        }
+      },
+      error: () =>
+        this.aviso.mostrar(
+          'Não foi possível carregar as preferências. Será usada a duração padrão de 50 minutos.',
+        ),
+    });
+
     effect((onCleanup) => {
       const profissionalId = this.profissionalId();
       const pacienteId = this.pacienteId();
@@ -304,10 +322,10 @@ export class ConsultaForm {
 
       const requisicaoPaciente = pacienteId
         ? this.consultasApi.listarPorPacienteNoPeriodo(
-            pacienteId,
-            inicioPeriodo,
-            fimPeriodo,
-          )
+          pacienteId,
+          inicioPeriodo,
+          fimPeriodo,
+        )
         : of([] as ConsultaApi[]);
 
       const requisicao = forkJoin({
@@ -320,15 +338,16 @@ export class ConsultaForm {
       }).subscribe({
         next: ({ profissional, paciente }) => {
           const porId = new Map<string, ConsultaApi>();
+
           [...profissional, ...paciente].forEach((consulta) =>
             porId.set(consulta.id, consulta),
           );
+
           this.consultasExistentes.set([...porId.values()]);
           this.erroConsultas.set(false);
           this.carregandoConsultas.set(false);
         },
         error: () => {
-          this.consultasExistentes.set([]);
           this.erroConsultas.set(true);
           this.carregandoConsultas.set(false);
           this.aviso.mostrar(
@@ -362,7 +381,6 @@ export class ConsultaForm {
             this.carregandoDisponibilidade.set(false);
           },
           error: () => {
-            this.disponibilidades.set([]);
             this.erroDisponibilidade.set(true);
             this.carregandoDisponibilidade.set(false);
 
@@ -380,26 +398,21 @@ export class ConsultaForm {
     this.carregando.set(true);
 
     forkJoin({
-      pacientes: this.pacientesApi.listarTodos().pipe(
-        catchError(() => {
-          this.aviso.mostrar(
-            'Não foi possível carregar os pacientes.',
-          );
-
-          return of([] as PacienteApi[]);
-        }),
-      ),
-      profissionais: this.profissionaisApi.listarTodos().pipe(
-        catchError(() => {
-          this.aviso.mostrar(
-            'Não foi possível carregar os profissionais.',
-          );
-
-          return of([] as ProfissionalApi[]);
-        }),
-      ),
+      pacientes: this.pacientesApi
+        .listarTodos()
+        .pipe(catchError(() => of(null))),
+      profissionais: this.profissionaisApi
+        .listarTodos()
+        .pipe(catchError(() => of(null))),
     }).subscribe({
       next: ({ pacientes, profissionais }) => {
+        if (!pacientes || !profissionais) {
+          this.aviso.mostrar(
+            'Não foi possível carregar os dados da consulta. Os dados já carregados foram preservados.',
+          );
+          return;
+        }
+
         this.pacientes.set(pacientes);
         this.profissionais.set(profissionais);
         this.carregarResponsaveis(pacientes);
@@ -431,11 +444,18 @@ export class ConsultaForm {
 
     const requisicoes = ids.map((id) =>
       this.responsaveisApi.buscarPorId(id).pipe(
-        catchError(() => of(null)),
+        catchError(() => {
+          this.aviso.mostrar(
+            'Não foi possível carregar os dados dos responsáveis.',
+          );
+          return of(null);
+        }),
       ),
     );
 
     forkJoin(requisicoes).subscribe((lista) => {
+      if (lista.some((responsavel) => responsavel === null)) return;
+
       const mapa: Record<string, ResponsavelApi> = {};
 
       lista.forEach((responsavel) => {
@@ -559,7 +579,7 @@ export class ConsultaForm {
     }
 
     const inicioConsulta = minutosDe(hora);
-    const fimConsulta = inicioConsulta + DURACAO;
+    const fimConsulta = inicioConsulta + this.duracao();
 
     const dentroDaDisponibilidade = this.disponibilidadesAtivasDoDia().some(
       (disponibilidade) => {
@@ -590,10 +610,15 @@ export class ConsultaForm {
         return false;
       }
 
-      const inicioExistente = minutosDe(consulta.dataHora.slice(11, 16));
+      const inicioExistente = minutosDe(
+        consulta.dataHora.slice(11, 16),
+      );
       const fimExistente = inicioExistente + consulta.duracao;
 
-      return inicioExistente < fimConsulta && fimExistente > inicioConsulta;
+      return (
+        inicioExistente < fimConsulta &&
+        fimExistente > inicioConsulta
+      );
     });
   }
 
@@ -683,18 +708,19 @@ export class ConsultaForm {
       return;
     }
 
+    const modalidade = this.atendimento();
+
     const dados: ConsultaRequestApi = {
       pacienteId: paciente.id,
       profissionalId: profissional.id,
       dataHora: `${this.dia()}T${hora}:00`,
       tipoAtendimento: 'Consulta',
       local:
-        this.local().trim() ||
-        (this.atendimento() === 'Online'
-          ? 'Online'
-          : 'Unidade Santa Maria'),
-      modalidade: this.atendimento(),
-      duracao: DURACAO,
+        modalidade === 'Online'
+          ? 'Teleconsulta'
+          : this.local().trim() || 'Unidade Santa Maria',
+      modalidade,
+      duracao: this.duracao(),
     };
 
     this.salvando.set(true);

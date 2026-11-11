@@ -1,7 +1,9 @@
 package com.neurovita.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -52,6 +54,58 @@ class ConsultaServiceTest {
     @Mock private DisponibilidadeRepository disponibilidadeRepository;
     @Mock private UsuarioRepository usuarioRepository;
     @InjectMocks private ConsultaService consultaService;
+
+    @Test
+    void duracaoPadraoDaRequisicaoEhCinquentaMinutos() {
+        assertEquals(50, new ConsultaRequest().getDuracao());
+    }
+
+    @Test
+    void horarioDevePertencerAGradeContadaDoInicioRealDaDisponibilidade() {
+        Disponibilidade disponibilidade = new Disponibilidade();
+        disponibilidade.setAtivo(true);
+        disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
+        disponibilidade.setHoraInicio(LocalTime.of(13, 30));
+        disponibilidade.setHoraFim(LocalTime.of(17, 30));
+
+        assertTrue(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+                LocalDateTime.of(2026, 11, 16, 13, 30)));
+        assertTrue(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+                LocalDateTime.of(2026, 11, 16, 16, 30)));
+        assertFalse(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+                LocalDateTime.of(2026, 11, 16, 14, 15)));
+        assertFalse(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+                LocalDateTime.of(2026, 11, 16, 14, 30, 1)));
+    }
+
+    @Test
+    void rejeitaRequisicaoDiretaForaDaGradeMesmoDentroDaDisponibilidade() {
+        pacienteAtivo();
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        Profissional profissional = new Profissional();
+        profissional.setId("prof-1");
+        profissional.setAtivo(true);
+        profissional.setAtendeOnline(true);
+        profissional.setDisponibilidadeIds(List.of("disp-1"));
+        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(profissional));
+
+        Disponibilidade disponibilidade = new Disponibilidade();
+        disponibilidade.setAtivo(true);
+        disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
+        disponibilidade.setHoraInicio(LocalTime.of(13, 30));
+        disponibilidade.setHoraFim(LocalTime.of(17, 30));
+        when(disponibilidadeRepository.findById("disp-1")).thenReturn(Optional.of(disponibilidade));
+
+        ConsultaRequest request = request("ONLINE");
+        request.setDataHora(LocalDateTime.of(2026, 11, 16, 14, 15));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> consultaService.salvar(request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(consultaRepository, never()).save(any(Consulta.class));
+    }
 
     @BeforeEach
     void autenticarAdministrador() {

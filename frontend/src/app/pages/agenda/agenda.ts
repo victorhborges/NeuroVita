@@ -31,6 +31,7 @@ import {
   ORDEM_STATUS,
   ROTULO_STATUS,
   SALAS,
+  horariosDaDisponibilidade,
   minutosDe,
 } from '../../shared/clinica/status';
 import { Avatar } from '../../shared/avatar/avatar';
@@ -349,7 +350,6 @@ export class Agenda {
         this.profissionais.set([profissional]);
       },
       error: () => {
-        this.profissionais.set([]);
         this.aviso.mostrar(
           'Não foi possível carregar os dados do profissional.',
         );
@@ -686,47 +686,54 @@ export class Agenda {
     const minutosAgora =
       agora.getHours() * 60 + agora.getMinutes();
 
-    return HORARIOS_AGENDA.filter((horario) => {
-      // Mantém o horário atual visível durante a edição.
-      if (horario === atual.inicio) return true;
+    const horariosDisponiveis = new Set([
+      ...horariosDaDisponibilidade(disponibilidadesDoDia, atual.duracao),
+      atual.inicio,
+    ]);
 
-      // Não oferece datas anteriores a hoje.
-      if (data < this.hojeBase) return false;
+    return [...horariosDisponiveis]
+      .sort((a, b) => minutosDe(a) - minutosDe(b))
+      .filter((horario) => {
+        // Mantém o horário atual visível durante a edição.
+        if (horario === atual.inicio) return true;
 
-      // Não oferece horários que já passaram hoje.
-      if (
-        data === this.hojeBase &&
-        minutosDe(horario) <= minutosAgora
-      ) {
-        return false;
-      }
+        // Não oferece datas anteriores a hoje.
+        if (data < this.hojeBase) return false;
 
-      const inicio = minutosDe(horario);
-      const fim = inicio + atual.duracao;
-
-      // A consulta inteira precisa caber na disponibilidade.
-      return disponibilidadesDoDia.some((disponibilidade) => {
+        // Não oferece horários que já passaram hoje.
         if (
-          !disponibilidade.horaInicio ||
-          !disponibilidade.horaFim
+          data === this.hojeBase &&
+          minutosDe(horario) <= minutosAgora
         ) {
           return false;
         }
 
-        const inicioDisponivel = minutosDe(
-          disponibilidade.horaInicio,
-        );
+        const inicio = minutosDe(horario);
+        const fim = inicio + atual.duracao;
 
-        const fimDisponivel = minutosDe(
-          disponibilidade.horaFim,
-        );
+        // A consulta inteira precisa caber na disponibilidade.
+        return disponibilidadesDoDia.some((disponibilidade) => {
+          if (
+            !disponibilidade.horaInicio ||
+            !disponibilidade.horaFim
+          ) {
+            return false;
+          }
 
-        return (
-          inicio >= inicioDisponivel &&
-          fim <= fimDisponivel
-        );
+          const inicioDisponivel = minutosDe(
+            disponibilidade.horaInicio,
+          );
+
+          const fimDisponivel = minutosDe(
+            disponibilidade.horaFim,
+          );
+
+          return (
+            inicio >= inicioDisponivel &&
+            fim <= fimDisponivel
+          );
+        });
       });
-    });
   });
 
   private montarRequest(): ConsultaRequestApi | undefined {

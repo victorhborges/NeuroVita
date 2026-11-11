@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface DiagnosticoApi { id: string; pacienteId: string; profissionalId: string; descricao: string; }
+export interface DiagnosticoApi {
+  id: string;
+  pacienteId: string;
+  profissionalId: string;
+  descricao: string;
+  cid?: string | null;
+  ativo?: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DiagnosticosApiService {

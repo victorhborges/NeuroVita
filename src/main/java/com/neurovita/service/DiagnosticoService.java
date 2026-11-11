@@ -159,6 +159,9 @@ public class DiagnosticoService {
         diagnostico.setPacienteId(request.getPacienteId());
         diagnostico.setProfissionalId(request.getProfissionalId());
         diagnostico.setDescricao(request.getDescricao());
+        if (request.getCid() != null) {
+            diagnostico.setCid(request.getCid().trim().isEmpty() ? null : request.getCid().trim());
+        }
     }
 
     private void exigirAtivo(Diagnostico diagnostico) {

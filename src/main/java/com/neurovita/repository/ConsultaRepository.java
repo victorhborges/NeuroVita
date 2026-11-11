@@ -1,3 +1,4 @@
+
 package com.neurovita.repository;
 
 import java.time.LocalDateTime;
@@ -9,36 +10,31 @@ import com.neurovita.model.Consulta;
 
 public interface ConsultaRepository extends MongoRepository<Consulta, String> {
 
-List<Consulta> findByPacienteId(String pacienteId);
+    List<Consulta> findByPacienteId(String pacienteId);
 
-List<Consulta> findByProfissionalId(String profissionalId);
+    List<Consulta> findByProfissionalId(String profissionalId);
 
-List<Consulta> findByDataHoraGreaterThanEqualAndDataHoraLessThan(
-        LocalDateTime inicio,
-        LocalDateTime fim);
+    List<Consulta> findByDataHoraGreaterThanEqualAndDataHoraLessThan(
+            LocalDateTime inicio,
+            LocalDateTime fim);
 
-List<Consulta> findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-        String profissionalId,
-        LocalDateTime inicio,
-        LocalDateTime fim);
+    List<Consulta> findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+            String profissionalId,
+            LocalDateTime inicio,
+            LocalDateTime fim);
 
-List<Consulta> findByPacienteIdAndProfissionalId(
-        String pacienteId,
-        String profissionalId);
+    List<Consulta> findByPacienteIdAndProfissionalId(
+            String pacienteId,
+            String profissionalId);
 
-List<Consulta> findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-        String pacienteId,
-        LocalDateTime inicio,
-        LocalDateTime fim);
+    List<Consulta> findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+            String pacienteId,
+            LocalDateTime inicio,
+            LocalDateTime fim);
 
-List<Consulta> findByPacienteIdAndProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-        String pacienteId,
-        String profissionalId,
-        LocalDateTime inicio,
-        LocalDateTime fim);
-
-List<Consulta> findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-        String profissionalId,
-        LocalDateTime inicio,
-        LocalDateTime fim);
+    List<Consulta> findByPacienteIdAndProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+            String pacienteId,
+            String profissionalId,
+            LocalDateTime inicio,
+            LocalDateTime fim);
 }

@@ -136,6 +136,7 @@ class DiagnosticoServiceTest {
         meuDiag.setPacienteId("pac-1");
         meuDiag.setProfissionalId("prof-1");
         meuDiag.setDescricao("Desc original");
+        meuDiag.setCid("F84.0");
 
         when(diagnosticoRepository.findById("d1")).thenReturn(Optional.of(meuDiag));
         when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
@@ -148,10 +149,34 @@ class DiagnosticoServiceTest {
         request.setPacienteId("pac-1");
         request.setProfissionalId("prof-1");
         request.setDescricao("Desc atualizada");
+        request.setCid("F90.0");
 
         var response = service.atualizar("d1", request);
         assertEquals("Desc atualizada", response.getDescricao());
+        assertEquals("F90.0", response.getCid());
         verify(diagnosticoRepository).save(meuDiag);
+    }
+
+    @Test
+    void atualizarSemCidPreservaCodigoExistente() {
+        autenticarAdmin();
+        Diagnostico diagnostico = new Diagnostico();
+        diagnostico.setId("d1");
+        diagnostico.setPacienteId("pac-1");
+        diagnostico.setProfissionalId("prof-1");
+        diagnostico.setDescricao("Descrição antiga");
+        diagnostico.setCid("F84.0");
+        when(diagnosticoRepository.findById("d1")).thenReturn(Optional.of(diagnostico));
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(diagnosticoRepository.save(any(Diagnostico.class))).thenAnswer(i -> i.getArgument(0));
+
+        DiagnosticoRequest request = new DiagnosticoRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setDescricao("Descrição revisada");
+
+        assertEquals("F84.0", service.atualizar("d1", request).getCid());
     }
 
     @Test

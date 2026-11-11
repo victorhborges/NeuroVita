@@ -24,8 +24,38 @@ export const HORARIOS_AGENDA: string[] = Array.from({ length: 21 }, (_, i) => {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 });
 
-/** Horários oferecidos ao marcar uma consulta (pausa para o almoço entre 12:00 e 13:00). */
-export const HORARIOS_CONSULTA: string[] = HORARIOS_AGENDA.filter((h) => h < '12:00' || (h >= '13:00' && h < '17:00'));
+export const DURACAO_PADRAO_CONSULTA_MINUTOS = 50;
+export const INTERVALO_INICIOS_CONSULTA_MINUTOS = 60;
+
+/** Gera inícios espaçados que cabem por completo em disponibilidades reais. */
+export function horariosDaDisponibilidade(
+  disponibilidades: {
+    horaInicio: string;
+    horaFim: string;
+    ativo: boolean;
+  }[],
+  duracao = DURACAO_PADRAO_CONSULTA_MINUTOS,
+  intervalo = INTERVALO_INICIOS_CONSULTA_MINUTOS,
+): string[] {
+  if (duracao <= 0 || intervalo <= 0) return [];
+
+  const horarios = new Set<string>();
+
+  for (const disponibilidade of disponibilidades) {
+    if (!disponibilidade.ativo) continue;
+
+    const inicio = minutosDe(disponibilidade.horaInicio);
+    const fim = minutosDe(disponibilidade.horaFim);
+
+    for (let minuto = inicio; minuto + duracao <= fim; minuto += intervalo) {
+      horarios.add(
+        `${String(Math.floor(minuto / 60)).padStart(2, '0')}:${String(minuto % 60).padStart(2, '0')}`,
+      );
+    }
+  }
+
+  return [...horarios].sort((a, b) => minutosDe(a) - minutosDe(b));
+}
 
 export const SALAS = ['Sala 01', 'Sala 02', 'Sala 03', 'Sala 04'];
 

@@ -19,7 +19,10 @@ export interface ProfissionalApi {
     ativo: boolean;
 }
 
-export interface ProfissionalRequestApi extends Omit<ProfissionalApi, 'id'> { senhaProvisoria?: string; }
+export interface ProfissionalRequestApi extends Omit<ProfissionalApi, 'id'> {
+    senhaProvisoria?: string;
+    enviarEmailBoasVindas?: boolean;
+}
 
 export interface DisponibilidadeApi {
     id: string;
@@ -54,8 +57,8 @@ export class ProfissionaisApiService {
         );
     }
 
-    criar(dados: ProfissionalRequestApi): Observable<{ profissional: ProfissionalApi; senhaProvisoria: string }> {
-        return this.http.post<{ profissional: ProfissionalApi; senhaProvisoria: string }>(this.api, dados);
+    criar(dados: ProfissionalRequestApi): Observable<{ profissional: ProfissionalApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }> {
+        return this.http.post<{ profissional: ProfissionalApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }>(this.api, dados);
     }
 
     atualizar(id: string, dados: ProfissionalRequestApi): Observable<ProfissionalApi> {

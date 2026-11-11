@@ -26,6 +26,7 @@ import {
 } from '../../shared/dados-demo';
 import { CONFIG_PERFIS, Perfil, rotaDoMenu } from '../../shared/perfil';
 import { Auth } from '../../shared/auth';
+import { Aviso } from '../../shared/aviso/aviso';
 import { dataExtensa, formatarData } from '../../shared/util';
 
 @Component({
@@ -46,9 +47,10 @@ export class PainelInicio {
   readonly perfil = input.required<Perfil>();
 
   private readonly auth = inject(Auth);
+  private readonly aviso = inject(Aviso);
   protected readonly config = computed(() => {
     const perfil = CONFIG_PERFIS[this.perfil()];
-    const nome = this.auth.obterNome() ?? perfil.usuario.nome;
+    const nome = this.auth.obterNome()?.trim() || 'Usuário';
     return { ...perfil, saudacao: `Olá, ${nome}`, usuario: { ...perfil.usuario, nome } };
   });
   protected readonly rotaAgenda = computed(() =>
@@ -84,7 +86,7 @@ export class PainelInicio {
       next: (lista) => this.consultas.set(lista ?? []),
       error: (erro) => {
         console.error('Erro ao carregar consultas do painel:', erro);
-        this.consultas.set([]);
+        this.aviso.mostrar('Não foi possível carregar as consultas do painel.');
       },
     });
 
@@ -92,7 +94,7 @@ export class PainelInicio {
       next: (lista) => this.pacientes.set(lista ?? []),
       error: (erro) => {
         console.error('Erro ao carregar pacientes do painel:', erro);
-        this.pacientes.set([]);
+        this.aviso.mostrar('Não foi possível carregar os pacientes do painel.');
       },
     });
   }

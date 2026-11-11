@@ -27,16 +27,19 @@ public class SecretariaService {
     private final SecretariaRepository secretariaRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailBoasVindasService emailBoasVindasService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public SecretariaService(
             SecretariaRepository secretariaRepository,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailBoasVindasService emailBoasVindasService) {
 
         this.secretariaRepository = secretariaRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailBoasVindasService = emailBoasVindasService;
     }
 
     public CadastroSecretariaResponse criar(SecretariaRequest request) {
@@ -78,9 +81,12 @@ public class SecretariaService {
                     e);
         }
 
+        boolean emailEnviado = Boolean.TRUE.equals(request.getEnviarEmailBoasVindas())
+                && emailBoasVindasService.enviar(
+                        salva.getNome(), salva.getEmail(), senhaProvisoria, "secretaria");
+
         return new CadastroSecretariaResponse(
-                new SecretariaResponse(salva),
-                senhaProvisoria);
+                new SecretariaResponse(salva), emailEnviado ? null : senhaProvisoria, emailEnviado);
     }
 
     public List<SecretariaResponse> listarTodos() {

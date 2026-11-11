@@ -453,7 +453,8 @@ public class ConsultaService {
                 .map(java.util.Optional::get)
                 .anyMatch(disponibilidade ->
                         disponibilidadeEstaDentroDoHorario(
-                                disponibilidade, diaConsulta, inicio, fim));
+                                disponibilidade, diaConsulta, inicio, fim)
+                                && pertenceAGradeDeAgendamento(disponibilidade, inicio));
 
         if (!horarioDisponivel) {
             throw new ResponseStatusException(
@@ -485,6 +486,16 @@ public class ConsultaService {
                         .isBefore(disponibilidade.getHoraInicio())
                 && !fim.toLocalTime()
                         .isAfter(disponibilidade.getHoraFim());
+    }
+
+    boolean pertenceAGradeDeAgendamento(
+            Disponibilidade disponibilidade, LocalDateTime inicio) {
+        if (inicio.toLocalTime().getSecond() != 0 || inicio.toLocalTime().getNano() != 0) {
+            return false;
+        }
+        long minutosDesdeInicio = java.time.Duration.between(
+                disponibilidade.getHoraInicio(), inicio.toLocalTime()).toMinutes();
+        return minutosDesdeInicio >= 0 && minutosDesdeInicio % 60 == 0;
     }
 
     private String obterDiaSemana(DayOfWeek dia) {

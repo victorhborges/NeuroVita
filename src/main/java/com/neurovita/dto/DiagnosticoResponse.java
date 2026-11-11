@@ -10,6 +10,7 @@ public class DiagnosticoResponse {
     private String pacienteId;
     private String profissionalId;
     private String descricao;
+    private String cid;
     private boolean ativo;
     private LocalDateTime arquivadoEm;
 
@@ -19,6 +20,7 @@ public class DiagnosticoResponse {
         this.pacienteId = diagnostico.getPacienteId();
         this.profissionalId = diagnostico.getProfissionalId();
         this.descricao = diagnostico.getDescricao();
+        this.cid = diagnostico.getCid();
         this.ativo = diagnostico.isAtivo();
         this.arquivadoEm = diagnostico.getArquivadoEm();
     }
@@ -38,6 +40,8 @@ public class DiagnosticoResponse {
     public String getDescricao() {
         return descricao;
     }
+
+    public String getCid() { return cid; }
 
     public boolean isAtivo() {
         return ativo;
