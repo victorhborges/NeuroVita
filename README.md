@@ -1,4 +1,4 @@
-# 🧠 NeuroVita — Plataforma Integrada
+# 🧠 NeuroVita - Plataforma Integrada
 
 Plataforma desenvolvida como projeto acadêmico da **Faculdade Brasília**, no curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
@@ -6,7 +6,9 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros. As alterações ainda precisam passar pela validação completa de build, testes, Docker e persistência em MongoDB Atlas antes de serem promovidas aos demais ambientes.
+> **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros.
+>
+> A compilação Maven e a suíte completa de testes Java foram executadas localmente com sucesso em 10/11/2026. Foram executados 116 testes, sem falhas ou erros. A validação da versão atual com Docker, MongoDB Atlas real e deploy no Render ainda precisa ser concluída antes da promoção aos demais ambientes.
 
 ---
 
@@ -648,8 +650,8 @@ A documentação interativa da API utiliza SpringDoc OpenAPI.
 
 Localmente:
 
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
-- OpenAPI: http://localhost:8080/v3/api-docs
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 Para testar endpoints protegidos:
 
@@ -798,7 +800,7 @@ set "JWT_SECRET=SUA_CHAVE_JWT"
 Windows:
 
 ```cmd
-mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Linux/macOS:
@@ -827,9 +829,9 @@ Caso a execução seja feita manualmente fora do fluxo de Docker, é necessário
 
 A aplicação local estará disponível em:
 
-- Frontend: http://localhost:8080
-- Swagger: http://localhost:8080/swagger-ui/index.html
-- OpenAPI: http://localhost:8080/v3/api-docs
+- Frontend: [http://localhost:8080](http://localhost:8080)
+- Swagger: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ---
 
@@ -842,7 +844,7 @@ Os comandos Maven podem ser executados na raiz do projeto.
 Windows:
 
 ```cmd
-mvnw.cmd compile
+.\mvnw.cmd compile
 ```
 
 Linux/macOS:
@@ -856,7 +858,7 @@ Linux/macOS:
 Windows:
 
 ```cmd
-mvnw.cmd test
+.\mvnw.cmd test
 ```
 
 Linux/macOS:
@@ -870,33 +872,35 @@ Linux/macOS:
 Windows:
 
 ```cmd
-mvnw.cmd -DskipTests package
+.\mvnw.cmd package -DskipTests
 ```
 
 Linux/macOS:
 
 ```bash
-./mvnw -DskipTests package
+./mvnw package -DskipTests
 ```
 
-### Situação da revisão atual
+### Resultado da validação local — 10/11/2026
 
-| Verificação | Situação |
+A suíte Java completa foi executada localmente com sucesso:
+
+| Verificação | Resultado |
 |---|---|
-| Testes unitários dos serviços | Existem testes para as regras implementadas e alteradas |
-| Novos testes da revisão | Criados; execução completa pendente |
-| Suíte Java completa | Pendente de execução e revisão |
-| `git diff --check` | Deve ser executado antes do commit |
-| Diagnósticos Java do VS Code | Não substituem a compilação Maven |
-| Maven Wrapper | Execução anterior foi bloqueada pelo ambiente (`Acesso negado`) |
-| Maven global no PATH | Indisponível na validação anterior |
-| Build Maven da revisão atual | Pendente |
-| Build Angular da revisão atual | Pendente de validação |
-| Docker da revisão atual | Pendente de validação |
-| Integração com MongoDB Atlas real | Pendente de validação completa |
-| Testes funcionais completos | Pendente com a equipe responsável |
+| Testes executados | **116** |
+| Falhas | **0** |
+| Erros | **0** |
+| Testes ignorados | **0** |
+| Suíte Java completa | **BUILD SUCCESS** |
+| Compilação das classes principais | Sucesso |
+| Compilação das classes de teste | Sucesso |
+| Empacotamento Maven com testes ignorados | Sucesso |
 
-A execução anterior pelo executor de testes do VS Code apresentou resultados positivos em parte da suíte, mas esses números não devem ser tratados como resultado da revisão atual. Foram adicionados e modificados testes desde então.
+Os testes abrangem autenticação, segurança JWT, administradores, agenda, consultas, diagnósticos, disponibilidades, documentos clínicos, envio de e-mails de boas-vindas, exames, pacientes, preferências, prescrições, profissionais, prontuários, recuperação de senha, secretarias, tratamentos e vínculos entre profissionais e pacientes.
+
+A execução de `package -DskipTests` também confirmou a compilação das classes de teste, embora não execute os testes.
+
+**Observação:** os resultados representam a validação local. Não comprovam, isoladamente, o funcionamento do frontend, a persistência no MongoDB Atlas real, a construção da imagem Docker ou o deploy no Render.
 
 Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
 
@@ -908,7 +912,7 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 
 | Área | Situação |
 |---|---|
-| Backend Java / Spring Boot | Principais módulos implementados; validação integral pendente |
+| Backend Java / Spring Boot | Principais módulos implementados; testes Java aprovados localmente |
 | Frontend Angular integrado | Integração local existente |
 | Serviços Angular de integração | Implementados para os principais módulos |
 | Tratamento de falhas da API | Melhorado; validação integrada pendente |
@@ -946,11 +950,12 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Preferências individuais | Persistência implementada |
 | Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
 | Swagger / OpenAPI | Implementado |
-| Testes Java | Criados; execução completa pendente |
-| Build Maven | Pendente de validação |
+| Testes Java | 116 executados; 0 falhas e 0 erros |
+| Build Maven | Validado localmente |
 | Build Angular | Pendente de validação da revisão atual |
 | Docker da versão atual | Pendente de validação |
-| Deploy integrado atual | Pendente |
+| Deploy integrado atual | Pendente de validação |
+| Testes com MongoDB Atlas real | Pendentes de validação completa |
 | Testes funcionais completos | Pendentes |
 | Autenticação em duas etapas (2FA) | Pendente de requisitos e implementação |
 | Módulo de Receitas | Pendente de definição dos requisitos do MVP |
@@ -961,7 +966,7 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 
 Repositório oficial:
 
-https://github.com/victorhborges/NeuroVita
+[https://github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
 
 ### Organização das branches
 
@@ -1047,14 +1052,17 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Melhorar o tratamento de falhas de comunicação entre frontend e API.
 - [x] Melhorar a validação da grade de horários no backend.
 - [x] Implementar regras de conflitos de consultas por intervalo completo.
+- [x] Corrigir a compatibilidade do teste do serviço de e-mail de boas-vindas.
+- [x] Executar a suíte Java completa: 116 testes aprovados.
+- [x] Validar a compilação e o empacotamento Maven localmente.
 - [ ] Revisar integralmente as alterações locais antes do commit.
-- [ ] Executar e revisar manualmente a suíte Java e Angular.
-- [ ] Validar a compilação e a suíte completa pelo Maven.
+- [ ] Validar o build Angular da revisão atual.
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.
 - [ ] Comparar todos os formulários e fluxos com o PDF definitivo do MVP.
 - [ ] Validar a integração completa com o frontend.
+- [ ] Publicar e validar a versão corrigida no Render em `develop`.
 - [ ] Disponibilizar a versão validada para a equipe de testes.
 - [ ] Executar testes funcionais.
 - [ ] Promover a versão aprovada para homologação.
