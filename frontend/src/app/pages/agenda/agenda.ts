@@ -27,11 +27,11 @@ import {
 } from '../../shared/clinica/profissionais-api.service';
 import { StatusConsulta } from '../../shared/clinica/modelos';
 import {
-  HORARIOS_AGENDA,
   ORDEM_STATUS,
   ROTULO_STATUS,
   SALAS,
   horariosDaDisponibilidade,
+  horariosAgendaParaConsultas,
   minutosDe,
 } from '../../shared/clinica/status';
 import { Avatar } from '../../shared/avatar/avatar';
@@ -191,8 +191,10 @@ export class Agenda {
   private readonly hojeBase = dataAtualISO();
   private readonly segundaBase = segundaDaSemana(this.hojeBase);
 
-  protected readonly horarios = HORARIOS_AGENDA;
-  protected readonly linhas = HORARIOS_AGENDA.map((_, i) => i);
+  protected readonly horarios = computed(() =>
+    horariosAgendaParaConsultas(this.consultas()),
+  );
+  protected readonly linhas = computed(() => this.horarios().map((_, i) => i));
   protected readonly colunas = [0, 1, 2, 3, 4, 5];
   protected readonly statusLista = ORDEM_STATUS;
   protected readonly rotulo = ROTULO_STATUS;
@@ -415,8 +417,8 @@ export class Agenda {
           nome: paciente?.nome ?? 'Paciente',
           profNome: profissional?.nome ?? '—',
           dia: diaDaSemana(a.data),
-          linha: (minutosDe(a.inicio) - 8 * 60) / 30 + 2,
-          trechos: Math.max(1, a.duracao / 30),
+          linha: Math.floor((minutosDe(a.inicio) - minutosDe(this.horarios()[0])) / 30) + 2,
+          trechos: Math.max(1, Math.ceil(a.duracao / 30)),
           destaque:
             !termo ||
             normalizar(paciente?.nome ?? '').includes(termo),
@@ -453,7 +455,7 @@ export class Agenda {
       {
         classe: 'vago',
         rotulo: 'Horário vago',
-        valor: Math.max(0, HORARIOS_AGENDA.length - ocupados),
+        valor: Math.max(0, this.horarios().length - ocupados),
       },
       {
         classe: 'cancelado',

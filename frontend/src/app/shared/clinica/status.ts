@@ -24,6 +24,26 @@ export const HORARIOS_AGENDA: string[] = Array.from({ length: 21 }, (_, i) => {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 });
 
+/** Expande a grade base para que consultas fora de 08:00–18:00 também apareçam. */
+export function horariosAgendaParaConsultas(
+  consultas: { inicio: string; duracao: number }[],
+): string[] {
+  let inicioGrade = 8 * 60;
+  let fimGrade = 18 * 60;
+
+  for (const consulta of consultas) {
+    const inicio = minutosDe(consulta.inicio);
+    const fim = inicio + Math.max(0, consulta.duracao || 0);
+    inicioGrade = Math.min(inicioGrade, Math.floor(inicio / 30) * 30);
+    fimGrade = Math.max(fimGrade, Math.ceil(fim / 30) * 30);
+  }
+
+  return Array.from({ length: Math.floor((fimGrade - inicioGrade) / 30) + 1 }, (_, i) => {
+    const minuto = inicioGrade + i * 30;
+    return `${String(Math.floor(minuto / 60)).padStart(2, '0')}:${String(minuto % 60).padStart(2, '0')}`;
+  });
+}
+
 export const DURACAO_PADRAO_CONSULTA_MINUTOS = 50;
 export const INTERVALO_INICIOS_CONSULTA_MINUTOS = 60;
 
@@ -59,4 +79,7 @@ export function horariosDaDisponibilidade(
 
 export const SALAS = ['Sala 01', 'Sala 02', 'Sala 03', 'Sala 04'];
 
-export const minutosDe = (hora: string): number => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
+export const minutosDe = (hora: string): number => {
+  const [horas, minutos] = hora.split(':');
+  return Number(horas) * 60 + Number(minutos);
+};

@@ -5,7 +5,7 @@
 
 ## 1. Escopo e critério de leitura
 
-O backend declara 18 coleções por meio de `@Document`. Os campos abaixo reproduzem nomes e tipos Java dos modelos. Obrigatoriedade é descrita separando:
+O backend declara 19 coleções por meio de `@Document`. Os campos abaixo reproduzem nomes e tipos Java dos modelos. Obrigatoriedade é descrita separando:
 
 - **Persistência:** a maioria dos modelos não declara `@NotNull`/`@NotBlank`; campos de referência podem estar ausentes em documentos legados e a leitura nem sempre falha.
 - **API/regra:** campos que DTOs e serviços exigem em operações de criação/alteração. Isso não implica que o MongoDB aplique validação de schema.
@@ -67,6 +67,7 @@ Para agenda, não armazenar `dataHora` como string. O Spring Data deriva critér
 | `prontuarios` | `criadoEm`, `atualizadoEm` (`LocalDateTime`) |
 | `preferencias_usuarios` | `atualizadaEm` (`LocalDateTime`) |
 | `vinculos_profissional_paciente` | `iniciadoEm`, `encerradoEm` (`LocalDateTime`) |
+| `evolucoes` | `dataAtendimento`, `criadoEm`, `atualizadoEm` (`LocalDateTime`) |
 | `disponibilidades`, `vinculosResponsaveis` | sem campos temporais |
 
 API usa ISO-8601 por `java.time`/Jackson; endpoints de agenda usam `LocalDate` (`yyyy-MM-dd`) e filtros de consulta recebem `LocalDateTime`. Não há offset incluído no `LocalDateTime`, e a zona efetiva de `LocalDateTime.now()` depende da JVM. Esse é um ponto de contrato a normalizar antes de se comparar valores de diferentes ambientes.
@@ -369,6 +370,26 @@ Estado temporário para recuperação. O service armazena hashes (`codigoHash`, 
 { "_id":{"$oid":"671000000000000000000019"}, "email":"usuario@example.invalid", "codigoHash":"hash-do-codigo", "tokenHash":null, "expiraEm":{"$date":"2026-11-11T12:10:00Z"}, "tentativas":0 }
 ```
 
+### 3.19 `evolucoes` — `Evolucao`
+
+Registro clínico append-only. A API permite criação e leitura por paciente, sem atualização ou exclusão física. Profissionais precisam de vínculo ativo com o paciente; administradores precisam informar o profissional responsável. `tipoEvolucao` é string extensível (por exemplo, `SESSAO`, `ACOLHIMENTO`, `DEVOLUTIVA`, `REAVALIACAO`, `CONTATO`), não enum fechado. As listas podem estar vazias. Registros são criados com `status=FINALIZADA` e `versao=1`; retificação ainda não possui endpoint.
+
+| Campo | BSON / Java | Obrigatoriedade e regra |
+|---|---|---|
+| `_id` | ObjectId ou String / `String` | Gerado pelo Spring Data. |
+| `pacienteId`, `profissionalId` | String / `String` | Obrigatórios na criação; referências textuais. |
+| `consultaId`, `prontuarioId` | String ou null / `String` | Opcionais; quando informados, o serviço verifica existência e vínculo com paciente/profissional. |
+| `tipoEvolucao`, `titulo`, `conteudo` | String / `String` | Obrigatórios na API; sem enum fechado. |
+| `areaAtendimento`, `observacoes`, `conduta`, `retificadaPorId`, `motivoRetificacao` | String ou null / `String` | Opcionais. Campos de retificação estão reservados e não são preenchidos atualmente. |
+| `dataAtendimento`, `criadoEm`, `atualizadoEm` | Date / `LocalDateTime` | `dataAtendimento` obrigatório; datas de persistência são definidas pelo servidor, sujeitas às notas de timezone da seção 2. |
+| `objetivosTrabalhados`, `encaminhamentos` | Array de String / `List<String>` | Opcionais; vazios quando omitidos. |
+| `status` | String / `String` | Atualmente `FINALIZADA` na criação. |
+| `versao` | Int32 / `Integer` | Atualmente `1` na criação. |
+
+```json
+{ "_id":{"$oid":"671000000000000000000099"}, "pacienteId":"671000000000000000000004", "profissionalId":"671000000000000000000007", "consultaId":null, "prontuarioId":"671000000000000000000014", "tipoEvolucao":"SESSAO", "areaAtendimento":"Psicologia", "titulo":"Evolução de atendimento", "dataAtendimento":{"$date":"2026-11-11T13:00:00Z"}, "conteudo":"Conteúdo ilustrativo, sem dados pessoais.", "objetivosTrabalhados":[], "observacoes":null, "conduta":null, "encaminhamentos":[], "status":"FINALIZADA", "criadoEm":{"$date":"2026-11-11T13:00:00Z"}, "atualizadoEm":{"$date":"2026-11-11T13:00:00Z"}, "versao":1, "retificadaPorId":null, "motivoRetificacao":null }
+```
+
 ## 4. Relacionamentos e integridade
 
 Todos os campos abaixo são IDs String ordinários. O banco não aplica foreign keys nem cascade. Serviços fazem verificações de existência nos fluxos cobertos; a equipe deve validar referências órfãs antes de limpeza. Não converter IDs para DBRef/ObjectId em campos de relacionamento sem uma migração e alteração coordenada de código.
@@ -407,6 +428,7 @@ O código não declara índices de aplicação (`@Indexed`, `@CompoundIndex`) ne
 | Recomendado | `vinculosResponsaveis {responsavelId:1}` | localizar vínculos antes de exclusão | Não. |
 | Recomendado | `prontuarios {pacienteId:1}` | buscar/existir prontuário | Candidato a unique, pois service assume um por paciente; checar duplicatas antes. |
 | Recomendado | `documentos_clinicos {pacienteId:1, dataSessao:-1}` | histórico cronológico | Não. |
+| Recomendado | `evolucoes {pacienteId:1, dataAtendimento:-1}` | histórico de evoluções em ordem decrescente | Não. |
 | Recomendado | `documentos_clinicos {pacienteId:1, secao:1, dataSessao:-1}` | histórico por seção | Não; collation/case insensitive deve alinhar serviço. |
 | Recomendado | `documentos_clinicos {profissionalId:1, dataSessao:-1}` | documentos do profissional | Não. |
 | Recomendado | `diagnosticos {pacienteId:1}`; `tratamentos {pacienteId:1}`; `exames {pacienteId:1}` | listagens por paciente | Não. |
@@ -449,7 +471,7 @@ Para comprovar a origem, equipe com acesso deve coletar no log privado do Render
 
 ### Avaliação do fallback atualmente no `ConsultaService`
 
-A versão local atual captura `RuntimeException` em torno da query temporal, então captura não apenas erro de query/conversão, mas também erros de acesso a dados e outros bugs runtime. Depois chama `findAll()` ou consulta não temporal por pessoa e filtra em memória. Isso pode:
+A versão anterior capturava `RuntimeException` em torno da query temporal, então capturava não apenas erro de query/conversão, mas também erros de acesso a dados e outros bugs runtime. Depois chamava `findAll()` ou consulta não temporal por pessoa e filtrava em memória. Isso podia:
 
 - mascarar a falha original e tornar a rota aparentemente saudável;
 - disparar segunda falha quando conexão/Atlas está indisponível;
@@ -457,7 +479,7 @@ A versão local atual captura `RuntimeException` em torno da query temporal, ent
 - continuar falhando na desserialização se o problema estiver em documentos retornados;
 - não resolver tipo BSON que não corresponda a Date e ainda elevar custo de leitura.
 
-Os testes Mockito do fallback demonstram apenas o ramo em memória, não Mongo/BSON real. **Recomendação:** não considerar o fallback uma correção raiz. Obter stack trace e tipo BSON primeiro; então limitar temporariamente a uma exceção/condição comprovada e documentar custo, ou removê-lo em favor de corrigir a conversão/dados. Não converter indisponibilidade geral do Mongo em consulta integral nem liberar agendamento se qualquer verificação falhar.
+O fallback amplo foi removido do código local: consultas temporais propagam a falha original, sem carregar a coleção inteira. Isso evita mascarar indisponibilidade e não comprova a causa raiz do HTTP 500. Obter stack trace e tipo BSON continua necessário; não liberar agendamento se qualquer verificação falhar.
 
 ## 8. Testes de integração recomendados
 
@@ -484,7 +506,7 @@ Não havia conexão de banco/credencial de leitura disponibilizada nesta tarefa;
 ### Checklist somente leitura antes de propor mudança
 
 - [ ] Confirmar banco/cluster e ambiente corretos sem compartilhar URI ou credenciais.
-- [ ] Inventariar as 18 coleções declaradas e outras coleções desconhecidas separadamente.
+- [ ] Inventariar as 19 coleções declaradas e outras coleções desconhecidas separadamente.
 - [ ] Para `consultas.dataHora`, contar BSON Date/String/null/ausente/outros; inspecionar mistura sem exportar PII.
 - [ ] Confirmar timezone e representação de amostras de data/hora em cada collection/geração do sistema.
 - [ ] Conferir IDs `_id` e referências string; contar referências órfãs.
@@ -498,9 +520,9 @@ Não havia conexão de banco/credencial de leitura disponibilizada nesta tarefa;
 
 ## 10. Pendências confirmadas
 
-1. Tipo BSON real dos campos e conformidade das 18 coleções no Atlas.
+1. Tipo BSON real dos campos e conformidade das 19 coleções no Atlas.
 2. Stack trace e exceção original do HTTP 500 nos logs privados do Render.
 3. Origem e timezone de dados legados eventualmente migrados de Node/Mongoose.
 4. Convenção temporal explícita e compatível com os valores históricos.
 5. Índices existentes e possíveis duplicidades antes de índices unique.
-6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento e avaliações: atualmente são tratados genericamente por `DocumentoClinico`, sem enum/coleção específica.
+6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento e avaliações: atualmente são tratados genericamente por `DocumentoClinico`, sem enum/coleção específica. `Evolucao` foi adicionada como registro próprio, mas ainda não há tela Angular ligada a essa coleção.

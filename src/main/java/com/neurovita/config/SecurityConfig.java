@@ -258,7 +258,8 @@ public class SecurityConfig {
                                 "/api/tratamentos/**",
                                 "/api/exames/**",
                                 "/api/prescricoes/**",
-                                "/api/documentos-clinicos/**"
+                                "/api/documentos-clinicos/**",
+                                "/api/evolucoes/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
                         // Gerenciamento de responsáveis

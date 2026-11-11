@@ -25,7 +25,7 @@
           @for (d of dias(); track d.iso) {
             <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2">{{ d.nome }}<br />{{ d.texto }}</div>
           }
-          @for (h of horarios; track h; let i = $index) {
+          @for (h of horarios(); track h; let i = $index) {
             <div class="ag-hora" [style.grid-row]="i + 2">{{ h }}</div>
             @for (c of colunas; track c) {
               <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2"></div>

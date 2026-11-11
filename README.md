@@ -8,7 +8,7 @@ O frontend é compilado e servido pela própria aplicação Spring Boot, que dis
 
 > **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros.
 >
-> A compilação Maven e a suíte completa de testes Java foram executadas localmente com sucesso em 10/11/2026. Foram executados 116 testes, sem falhas ou erros. A validação da versão atual com Docker, MongoDB Atlas real e deploy no Render ainda precisa ser concluída antes da promoção aos demais ambientes.
+> Na revisão local de 11/11/2026, os testes Java e Angular passaram, o empacotamento Maven passou e o build Angular de desenvolvimento compilou. O build Angular de produção não foi confirmado neste ambiente porque a otimização tenta buscar fontes externas. Atlas, Docker e Render não foram validados.
 
 ---
 
@@ -381,11 +381,7 @@ A remarcação aplica a mesma grade de 60 minutos e mantém a duração já regi
 
 A API valida que o início pertence à grade contada a partir do início real de uma disponibilidade ativa, além de validar o intervalo completo contra a disponibilidade e os conflitos existentes.
 
-As listagens de consultas por período tentam primeiro o filtro Mongo. Se a
-consulta temporal do repositório falhar, o serviço registra o tipo da exceção
-sem IDs e aplica o mesmo intervalo inclusivo no início e exclusivo no fim
-sobre as consultas já filtradas por paciente/profissional (ou sobre a coleção
-geral para administradores e Secretaria).
+As listagens por período usam diretamente as consultas derivadas do repositório MongoDB. Falhas são propagadas pelo tratamento global de erros; o serviço não busca a coleção inteira como fallback.
 
 ### Status
 
@@ -443,6 +439,8 @@ O resumo diário retorna as contagens de consultas confirmadas, pendentes, cance
 
 As remarcações preservam no histórico embutido da consulta os dados anteriores do horário e do profissional, a situação anterior e quem realizou a alteração.
 
+A grade visual da agenda mantém 08:00–18:00 como base e se expande quando há consultas agendadas fora desse período.
+
 O paciente associado a uma consulta existente não pode ser substituído; para atender outra pessoa, deve ser criado um novo agendamento.
 
 ---
@@ -462,6 +460,7 @@ O prontuário reúne informações do acompanhamento clínico, enquanto os regis
 /api/exames
 /api/prescricoes
 /api/documentos-clinicos
+/api/evolucoes
 ```
 
 Os módulos possuem operações próprias de consulta e gerenciamento.
@@ -484,10 +483,19 @@ O mecanismo unificado de documentos clínicos contempla diferentes seções, inc
 - Atestados.
 - Documentos e anexos.
 
+Esse mecanismo mantém compatibilidade com os formulários atuais. A coleção/API específica `evolucoes` fornece registro append-only para consumo por integrações futuras; os componentes Angular existentes ainda usam `documentos_clinicos` para as anotações e documentos da seção Evoluções.
+
 A consulta pode ser filtrada por seção:
 
 ```http
 GET /api/documentos-clinicos/paciente/{pacienteId}?secao=ACOLHIMENTO
+```
+
+Evoluções podem ser registradas e consultadas pela API. O registro inicial é finalizado e append-only; não há endpoint de edição/retificação nesta versão. Profissionais precisam de vínculo ativo com o paciente; administradores podem consultar e registrar mediante identificação do profissional responsável.
+
+```http
+GET /api/evolucoes/paciente/{pacienteId}
+POST /api/evolucoes
 ```
 
 Resultados de exames têm atualização própria para separar a solicitação do registro do resultado:
@@ -887,26 +895,19 @@ Linux/macOS:
 ./mvnw package -DskipTests
 ```
 
-### Resultado da validação local — 10/11/2026
+### Validação
 
-A suíte Java completa foi executada localmente com sucesso:
+Última execução local em 11/11/2026:
 
 | Verificação | Resultado |
 |---|---|
-| Testes executados | **116** |
-| Falhas | **0** |
-| Erros | **0** |
-| Testes ignorados | **0** |
-| Suíte Java completa | **BUILD SUCCESS** |
-| Compilação das classes principais | Sucesso |
-| Compilação das classes de teste | Sucesso |
-| Empacotamento Maven com testes ignorados | Sucesso |
+| Maven `test` | 123 testes, 0 falhas, 0 erros, 0 ignorados |
+| Maven `-DskipTests package` | BUILD SUCCESS |
+| Angular `npm test -- --watch=false` | 15 testes, todos aprovados |
+| Angular build de desenvolvimento | Compilação concluída |
+| Angular build de produção | Não confirmado: falha ao buscar Google Fonts no ambiente sem DNS externo |
 
-Os testes abrangem autenticação, segurança JWT, administradores, agenda, consultas, diagnósticos, disponibilidades, documentos clínicos, envio de e-mails de boas-vindas, exames, pacientes, preferências, prescrições, profissionais, prontuários, recuperação de senha, secretarias, tratamentos e vínculos entre profissionais e pacientes.
-
-A execução de `package -DskipTests` também confirmou a compilação das classes de teste, embora não execute os testes.
-
-**Observação:** os resultados representam a validação local. Não comprovam, isoladamente, o funcionamento do frontend, a persistência no MongoDB Atlas real, a construção da imagem Docker ou o deploy no Render.
+Os testes Java usaram somente URI Mongo local de teste; não houve conexão nem verificação de persistência no Atlas. O contexto Spring carregou sem servidor Mongo local ativo; os testes de regras usam mocks. Repita validações após alterações de código.
 
 Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
 
@@ -918,7 +919,7 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 
 | Área | Situação |
 |---|---|
-| Backend Java / Spring Boot | Principais módulos implementados; testes Java aprovados localmente |
+| Backend Java / Spring Boot | Principais módulos implementados; suíte deve ser executada após cada revisão |
 | Frontend Angular integrado | Integração local existente |
 | Serviços Angular de integração | Implementados para os principais módulos |
 | Tratamento de falhas da API | Melhorado; validação integrada pendente |
@@ -936,6 +937,7 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Permissões clínicas por vínculo | Implementadas localmente; validação integrada pendente |
 | Prontuário centralizado | Implementado |
 | Documentos clínicos e anexos | Implementados |
+| Evoluções clínicas append-only | Backend implementado; API ainda não conectada à seção Angular existente |
 | Arquivamento lógico de documentos clínicos | Implementado localmente |
 | Diagnósticos e CID | Implementados |
 | Arquivamento lógico de diagnósticos | Implementado localmente |
@@ -956,9 +958,9 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Preferências individuais | Persistência implementada |
 | Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
 | Swagger / OpenAPI | Implementado |
-| Testes Java | 116 executados; 0 falhas e 0 erros |
-| Build Maven | Validado localmente |
-| Build Angular | Pendente de validação da revisão atual |
+| Testes Java | 123 aprovados localmente nesta revisão |
+| Build Maven | `package -DskipTests` concluído localmente |
+| Build Angular | Desenvolvimento compilado; produção pendente por dependência externa de fontes |
 | Docker da versão atual | Pendente de validação |
 | Deploy integrado atual | Pendente de validação |
 | Testes com MongoDB Atlas real | Pendentes de validação completa |
@@ -1059,10 +1061,10 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Melhorar a validação da grade de horários no backend.
 - [x] Implementar regras de conflitos de consultas por intervalo completo.
 - [x] Corrigir a compatibilidade do teste do serviço de e-mail de boas-vindas.
-- [x] Executar a suíte Java completa: 116 testes aprovados.
-- [x] Validar a compilação e o empacotamento Maven localmente.
+- [x] Executar a suíte Java completa na revisão atual.
+- [x] Validar a compilação e o empacotamento Maven na revisão atual.
 - [ ] Revisar integralmente as alterações locais antes do commit.
-- [ ] Validar o build Angular da revisão atual.
+- [x] Validar o build Angular de desenvolvimento da revisão atual.
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.

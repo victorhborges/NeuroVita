@@ -1,6 +1,6 @@
 {
     "/api/**": {
-        "target": "https://neurovita.onrender.com",
+        "target": "https://neurovita-dev.onrender.com",
         "secure": true,
         "changeOrigin": true,
         "logLevel": "debug"

@@ -3,6 +3,7 @@ package com.neurovita.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -59,6 +60,22 @@ class ConsultaServiceTest {
     @Test
     void duracaoPadraoDaRequisicaoEhCinquentaMinutos() {
         assertEquals(50, new ConsultaRequest().getDuracao());
+    }
+
+    @Test
+    void propagaFalhaDaConsultaMongoPorPeriodoSemBuscarTodaColecao() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 11, 10, 0, 0);
+        LocalDateTime fim = inicio.plusDays(7);
+        RuntimeException falhaMongo = new RuntimeException("falha Mongo simulada");
+        when(consultaRepository
+                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
+                .thenThrow(falhaMongo);
+
+        RuntimeException recebida = assertThrows(RuntimeException.class,
+                () -> consultaService.listarTodos(inicio, fim));
+
+        assertSame(falhaMongo, recebida);
+        verify(consultaRepository, never()).findAll();
     }
 
     @Test
@@ -358,58 +375,46 @@ class ConsultaServiceTest {
     }
 
     @Test
-    void filtroGeralUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+    void falhaDaConsultaGeralPorPeriodoEhPropagadaSemBuscaAmpla() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
-        Consulta noInicio = consultaExistente();
-        noInicio.setDataHora(inicio);
-        Consulta noFim = consultaExistente();
-        noFim.setDataHora(fim);
-        Consulta semData = consultaExistente();
-        semData.setDataHora(null);
-
+        DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
         when(consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
-                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
-        when(consultaRepository.findAll()).thenReturn(List.of(noInicio, noFim, semData));
+                .thenThrow(falha);
 
-        assertEquals(1, consultaService.listarTodos(inicio, fim).size());
-        verify(consultaRepository).findAll();
+        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+                () -> consultaService.listarTodos(inicio, fim)));
+        verify(consultaRepository, never()).findAll();
     }
 
     @Test
-    void filtroDePacienteUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+    void falhaDaConsultaDePacientePorPeriodoEhPropagadaSemBuscarTodasAsConsultasDoPaciente() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
-        Consulta dentro = consultaExistente();
-        dentro.setDataHora(inicio.plusHours(10));
-        Consulta fora = consultaExistente();
-        fora.setDataHora(fim);
+        DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
         when(consultaRepository.findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
                 "pac-1", inicio, fim))
-                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
-        when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of(dentro, fora));
+                .thenThrow(falha);
 
-        assertEquals(1, consultaService.listarPorPaciente("pac-1", inicio, fim).size());
-        verify(consultaRepository).findByPacienteId("pac-1");
+        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+                () -> consultaService.listarPorPaciente("pac-1", inicio, fim)));
+        verify(consultaRepository, never()).findByPacienteId("pac-1");
     }
 
     @Test
-    void filtroDeProfissionalUsaFallbackQuandoMongoFalhaNaConsultaPorPeriodo() {
+    void falhaDaConsultaDeProfissionalPorPeriodoEhPropagadaSemBuscarTodasAsConsultasDoProfissional() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
-        Consulta dentro = consultaExistente();
-        dentro.setDataHora(inicio.plusHours(10));
-        Consulta fora = consultaExistente();
-        fora.setDataHora(fim);
+        DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
         when(consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
                 "prof-1", inicio, fim))
-                .thenThrow(new DataAccessResourceFailureException("falha simulada"));
-        when(consultaRepository.findByProfissionalId("prof-1")).thenReturn(List.of(dentro, fora));
+                .thenThrow(falha);
 
-        assertEquals(1, consultaService.listarPorProfissional("prof-1", inicio, fim).size());
-        verify(consultaRepository).findByProfissionalId("prof-1");
+        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+                () -> consultaService.listarPorProfissional("prof-1", inicio, fim)));
+        verify(consultaRepository, never()).findByProfissionalId("prof-1");
     }
 
     @Test

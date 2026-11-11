@@ -1,4 +1,4 @@
-import { horariosDaDisponibilidade } from './status';
+import { horariosAgendaParaConsultas, horariosDaDisponibilidade, minutosDe } from './status';
 
 describe('horariosDaDisponibilidade', () => {
   it('gera consultas de 50 minutos com inícios a cada 60 minutos', () => {
@@ -32,5 +32,34 @@ describe('horariosDaDisponibilidade', () => {
         { horaInicio: '08:00:00', horaFim: '12:00:00', ativo: true },
       ]),
     ).not.toContain('12:00');
+  });
+});
+
+describe('horariosAgendaParaConsultas', () => {
+  it('expande a grade para exibir consultas fora da faixa visual padrão', () => {
+    const horarios = horariosAgendaParaConsultas([
+      { inicio: '07:30', duracao: 50 },
+      { inicio: '19:00', duracao: 50 },
+    ]);
+
+    expect(horarios[0]).toBe('07:30');
+    expect(horarios.at(-1)).toBe('20:00');
+    expect(horarios).toContain('19:00');
+  });
+
+  it('mantém a faixa padrão quando não existem consultas fora dela', () => {
+    const horarios = horariosAgendaParaConsultas([
+      { inicio: '09:00', duracao: 50 },
+    ]);
+
+    expect(horarios[0]).toBe('08:00');
+    expect(horarios.at(-1)).toBe('18:00');
+  });
+});
+
+describe('minutosDe', () => {
+  it('converte horários com e sem segundos recebidos da API', () => {
+    expect(minutosDe('13:30')).toBe(810);
+    expect(minutosDe('13:30:00')).toBe(810);
   });
 });
