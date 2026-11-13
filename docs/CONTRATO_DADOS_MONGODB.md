@@ -310,7 +310,7 @@ Pedido/resultado de exame associado a paciente e profissional. Nome e IDs requer
 | Campo | BSON / Java | Obrigatoriedade e regra |
 |---|---|---|
 | `_id` | ObjectId ou String / `String` | Identificador. |
-| `pacienteId`, `profissionalId`, `nome`, `tipo`, `resultado`, `observacoes` | String | IDs/nome requeridos; demais opcionais conforme request. |
+| `pacienteId`, `profissionalId`, `nome`, `tipo`, `descricaoSolicitacao`, `resultado`, `observacoes` | String | IDs/nome requeridos; demais opcionais conforme request. `descricaoSolicitacao` guarda o texto da solicitação (exames, justificativa clínica e CID); não faz parte do histórico de resultados. |
 | `dataRealizacao` | Date / `LocalDate` | Opcional na solicitação; requerida para envio de resultado. |
 | `solicitadoEm`, `criadoEm`, `resultadoAtualizadoEm`, `arquivadoEm` | Date / `LocalDateTime` | Controlados pelo service, alguns ausentes até evento correspondente. |
 | `anexosResultado` | Array de `{nome, conteudoBase64, tipoMime}` | Default vazio. |
@@ -318,7 +318,7 @@ Pedido/resultado de exame associado a paciente e profissional. Nome e IDs requer
 | `ativo` | Boolean / `Boolean` | Default true; ausente/null interpretado ativo. |
 
 ```json
-{ "_id":{"$oid":"671000000000000000000016"}, "pacienteId":"671000000000000000000004", "profissionalId":"671000000000000000000007", "nome":"Exame ilustrativo", "tipo":null, "dataRealizacao":null, "resultado":null, "observacoes":null, "solicitadoEm":{"$date":"2026-11-11T12:00:00Z"}, "criadoEm":{"$date":"2026-11-11T12:00:00Z"}, "resultadoAtualizadoEm":null, "anexosResultado":[], "historicoResultados":[], "ativo":true, "arquivadoEm":null }
+{ "_id":{"$oid":"671000000000000000000016"}, "pacienteId":"671000000000000000000004", "profissionalId":"671000000000000000000007", "nome":"Exame ilustrativo", "tipo":null, "descricaoSolicitacao":"Exames solicitados, justificativa clínica e CID.", "dataRealizacao":null, "resultado":null, "observacoes":null, "solicitadoEm":{"$date":"2026-11-11T12:00:00Z"}, "criadoEm":{"$date":"2026-11-11T12:00:00Z"}, "resultadoAtualizadoEm":null, "anexosResultado":[], "historicoResultados":[], "ativo":true, "arquivadoEm":null }
 ```
 
 ### 3.16 `prescricoes` — `Prescricao`
@@ -407,8 +407,8 @@ Todos os campos abaixo são IDs String ordinários. O banco não aplica foreign 
 | `prontuarios.pacienteId` | `pacientes._id` | Um por paciente segundo service | `existsByPacienteId`; recomendável unique após auditoria. |
 | `prontuarios.profissionalId` | `profissionais._id` | Um profissional atual do registro | Verificado em fluxos de escrita/acesso. |
 | `prontuarios.consultaId` | `consultas._id` | Opcional | String id, pode ser nulo. |
-| `documentos_clinicos`, `diagnosticos`, `tratamentos`, `exames`, `prescricoes` `.pacienteId` | `pacientes._id` | N por paciente, normalmente requerido | Serviços verificam paciente e autorizam profissional conforme módulo; clínicos arquivam logicamente. |
-| Mesmos documentos clínicos `.profissionalId` | `profissionais._id` | N por profissional | Autoria/histórico; não reescrever ao trocar vínculo atual. |
+| `documentos_clinicos`, `evolucoes`, `diagnosticos`, `tratamentos`, `exames`, `prescricoes` `.pacienteId` | `pacientes._id` | N por paciente, normalmente requerido | Serviços verificam paciente e autorizam profissional conforme módulo; módulos clínicos arquivam logicamente quando aplicável. |
+| Mesmas entidades clínicas `.profissionalId` | `profissionais._id` | N por profissional | Autoria/histórico; não reescrever ao trocar vínculo atual. |
 | `preferencias_usuarios.email` | `usuarios.email` | Preferências 0..1 por usuário em intenção | Serviço busca por email case-insensitive; modelo não guarda usuárioId. |
 | `recuperacoes_senha.email` | `usuarios.email` | Estado temporário por usuário | Busca case-insensitive e expiração validada pelo service. |
 
@@ -525,4 +525,5 @@ Não havia conexão de banco/credencial de leitura disponibilizada nesta tarefa;
 3. Origem e timezone de dados legados eventualmente migrados de Node/Mongoose.
 4. Convenção temporal explícita e compatível com os valores históricos.
 5. Índices existentes e possíveis duplicidades antes de índices unique.
-6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento e avaliações: atualmente são tratados genericamente por `DocumentoClinico`, sem enum/coleção específica. A tela de prontuário existente já consulta e cadastra registros próprios de `Evolucao`; documentos clínicos legados continuam carregados separadamente e não são convertidos automaticamente.
+6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento, rastreio, devolutiva e avaliações: as telas de texto do MVP podem persistir esses documentos pelas operações genéricas de `DocumentoClinico` (GET por paciente/seção, POST, PUT e arquivamento lógico). Não há enum/collection por tipo, geração ou assinatura formal, nem regras próprias de processo. Não adicionar campos ou collections sem decisão funcional. A tela de prontuário existente também consulta e cadastra registros próprios de `Evolucao`; documentos clínicos legados continuam carregados separadamente e não são convertidos automaticamente.
+7. Definição funcional de autenticação em duas etapas: o PDF atualizado mostra um controle para ativar 2FA, mas não especifica fator, ativação/verificação, recuperação ou interação com o login. Não há suporte 2FA implementado; definir o fluxo antes de criar campos ou endpoints.

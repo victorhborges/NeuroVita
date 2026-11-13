@@ -31,6 +31,8 @@ public class ExameController {
         this.exameService = exameService;
     }
 
+    @Operation(summary = "Solicitar exame",
+            description = "Registra o exame solicitado e sua justificativa clínica. Não registra data nem histórico de resultado.")
     @PostMapping
     public ResponseEntity<ExameResponse> salvar(
             @Valid @RequestBody ExameRequest request) {
@@ -52,6 +54,8 @@ public class ExameController {
         return ResponseEntity.ok(exameService.buscarPorId(id));
     }
 
+    @Operation(summary = "Atualizar solicitação de exame",
+            description = "Atualiza os dados da solicitação sem alterar o resultado. Use a operação /{id}/resultado para registrar resultados.")
     @PutMapping("/{id}")
     public ResponseEntity<ExameResponse> atualizar(
             @PathVariable String id,
@@ -62,7 +66,7 @@ public class ExameController {
 
     @PutMapping("/{id}/resultado")
     @Operation(summary = "Registrar ou atualizar resultado do exame",
-            description = "Mantém a solicitação original e registra o resultado, anexos e histórico de revisões.")
+            description = "Mantém a solicitação original. Na atualização, campos omitidos preservam seus valores; anexos podem ser removidos com lista vazia. Revisões são registradas apenas quando há mudança efetiva.")
     public ResponseEntity<ExameResponse> registrarResultado(
             @PathVariable String id,
             @Valid @RequestBody ExameResultadoRequest request) {

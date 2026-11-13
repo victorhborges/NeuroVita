@@ -95,7 +95,7 @@ export class SecaoPaciente {
       await Promise.all(arquivos.map((arquivo) => {
         const anexo = anexoDe(arquivo);
         return this.clinica.salvarDocumento({
-        ...(this.cfg().id === 'evolucoes' || this.cfg().id === 'medicamentos'
+        ...(this.cfg().id === 'evolucoes' || this.cfg().id === 'medicamentos' || this.cfg().id === 'exames'
           ? { origem: 'documento-clinico' as const }
           : {}),
         pacienteId: this.id(), secao: this.cfg().id, titulo: semExtensao(arquivo.name),

@@ -47,7 +47,7 @@ public class SecretariaService {
         validarEmailDisponivel(request.getEmail(), null);
 
         Secretaria secretaria = new Secretaria();
-        preencher(secretaria, request);
+        preencher(secretaria, request, false);
 
         Secretaria salva = secretariaRepository.save(secretaria);
 
@@ -124,22 +124,25 @@ public class SecretariaService {
             boolean estadoContaAnterior = usuario.isAtivo();
 
             // Somente depois da validação da conta, prepara a atualização.
-            preencher(secretaria, request);
-
-            boolean novoEstado = Boolean.TRUE.equals(secretaria.getAtivo());
+            preencher(secretaria, request, true);
 
             usuario.setNome(secretaria.getNome());
             usuario.setEmail(secretaria.getEmail());
 
-            // Centraliza a persistência e a tentativa de compensação.
-            SincronizacaoAtivo.salvar(
-                    estadoAnterior,
-                    estadoContaAnterior,
-                    novoEstado,
-                    secretaria::setAtivo,
-                    () -> secretariaRepository.save(secretaria),
-                    usuario::setAtivo,
-                    () -> usuarioRepository.save(usuario));
+            if (request.getAtivo() == null) {
+                secretariaRepository.save(secretaria);
+                usuarioRepository.save(usuario);
+            } else {
+                // Centraliza a persistência e a tentativa de compensação do status.
+                SincronizacaoAtivo.salvar(
+                        estadoAnterior,
+                        estadoContaAnterior,
+                        request.getAtivo(),
+                        secretaria::setAtivo,
+                        () -> secretariaRepository.save(secretaria),
+                        usuario::setAtivo,
+                        () -> usuarioRepository.save(usuario));
+            }
 
         } catch (ResponseStatusException e) {
             // Preserva erros HTTP de negócio, como 409 CONFLICT.
@@ -186,30 +189,37 @@ public class SecretariaService {
 
     private void preencher(
             Secretaria secretaria,
-            SecretariaRequest request) {
+            SecretariaRequest request,
+            boolean atualizacaoParcial) {
 
         secretaria.setNome(request.getNome().trim());
         secretaria.setEmail(request.getEmail().trim());
 
-        secretaria.setTelefone(
-                request.getTelefone() == null
-                        ? null
-                        : request.getTelefone().trim());
-
-        secretaria.setEmailContato(request.getEmailContato());
-        secretaria.setDataNascimento(request.getDataNascimento());
-        secretaria.setCpf(request.getCpf());
-        secretaria.setEndereco(request.getEndereco());
+        if (!atualizacaoParcial || request.getTelefone() != null)
+            secretaria.setTelefone(request.getTelefone() == null
+                    ? null : request.getTelefone().trim());
+        if (!atualizacaoParcial || request.getEmailContato() != null)
+            secretaria.setEmailContato(request.getEmailContato());
+        if (!atualizacaoParcial || request.getDataNascimento() != null)
+            secretaria.setDataNascimento(request.getDataNascimento());
+        if (!atualizacaoParcial || request.getCpf() != null)
+            secretaria.setCpf(request.getCpf());
+        if (!atualizacaoParcial || request.getEndereco() != null)
+            secretaria.setEndereco(request.getEndereco());
         if (request.getCep() != null && !request.getCep().isBlank()) {
             secretaria.setCep(request.getCep());
         }
         if (request.getCidade() != null && !request.getCidade().isBlank()) {
             secretaria.setCidade(request.getCidade());
         }
-        secretaria.setCargo(request.getCargo());
-        secretaria.setAdmissao(request.getAdmissao());
-        secretaria.setAtivo(
-                request.getAtivo() == null ? true : request.getAtivo());
+        if (!atualizacaoParcial || request.getCargo() != null)
+            secretaria.setCargo(request.getCargo());
+        if (!atualizacaoParcial || request.getAdmissao() != null)
+            secretaria.setAdmissao(request.getAdmissao());
+        if (request.getAtivo() != null)
+            secretaria.setAtivo(request.getAtivo());
+        else if (!atualizacaoParcial)
+            secretaria.setAtivo(true);
     }
 
     private void validarRequest(SecretariaRequest request) {

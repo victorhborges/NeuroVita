@@ -63,7 +63,7 @@ export class DocumentoLeitura {
   protected readonly formatar = formatarData;
 
   protected podeAnexar(doc: Documento): boolean {
-    return doc.origem !== 'evolucao' && doc.origem !== 'prescricao';
+    return doc.origem !== 'evolucao' && doc.origem !== 'prescricao' && doc.origem !== 'exame';
   }
 
   protected escolherArquivo(): void {

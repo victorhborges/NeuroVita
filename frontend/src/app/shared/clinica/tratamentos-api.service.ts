@@ -30,6 +30,10 @@ export class TratamentosApiService {
   private readonly http = inject(HttpClient);
   private readonly api = '/api/tratamentos';
 
+  listarTodos(): Observable<TratamentoApi[]> {
+    return this.http.get<TratamentoApi[]>(this.api);
+  }
+
   listarPorPaciente(pacienteId: string): Observable<TratamentoApi[]> {
     return this.http.get<TratamentoApi[]>(`${this.api}/paciente/${encodeURIComponent(pacienteId)}`);
   }

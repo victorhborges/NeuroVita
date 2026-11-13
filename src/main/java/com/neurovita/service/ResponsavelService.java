@@ -14,21 +14,30 @@ import com.neurovita.dto.ResponsavelRequest;
 import com.neurovita.dto.ResponsavelResponse;
 import com.neurovita.exception.ResourceNotFoundException;
 import com.neurovita.model.Responsavel;
+import com.neurovita.model.Usuario;
 import com.neurovita.repository.ResponsavelRepository;
+import com.neurovita.repository.UsuarioRepository;
 import com.neurovita.repository.VinculoResponsavelRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class ResponsavelService {
 
     private final ResponsavelRepository responsavelRepository;
     private final VinculoResponsavelRepository vinculoRepository;
+    private final VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public ResponsavelService(
             ResponsavelRepository responsavelRepository,
-            VinculoResponsavelRepository vinculoRepository) {
+            VinculoResponsavelRepository vinculoRepository,
+            VinculoProfissionalPacienteRepository vinculoProfissionalRepository,
+            UsuarioRepository usuarioRepository) {
 
         this.responsavelRepository = responsavelRepository;
         this.vinculoRepository = vinculoRepository;
+        this.vinculoProfissionalRepository = vinculoProfissionalRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     public ResponsavelResponse salvar(ResponsavelRequest request) {
@@ -40,7 +49,7 @@ public class ResponsavelService {
         validarDadosUnicos(cpf, email, null);
 
         Responsavel responsavel = new Responsavel();
-        preencherResponsavel(responsavel, request, cpf, email);
+        preencherResponsavel(responsavel, request, cpf, email, false);
 
         return new ResponsavelResponse(
                 responsavelRepository.save(responsavel));
@@ -56,7 +65,7 @@ public class ResponsavelService {
     }
 
     public ResponsavelResponse buscarPorId(String id) {
-        exigirAdministradorOuSecretaria();
+        validarAcessoLeitura(id);
 
         return new ResponsavelResponse(buscarResponsavel(id));
     }
@@ -73,7 +82,7 @@ public class ResponsavelService {
         String email = normalizarEmail(request.getEmail());
 
         validarDadosUnicos(cpf, email, id);
-        preencherResponsavel(responsavel, request, cpf, email);
+        preencherResponsavel(responsavel, request, cpf, email, true);
 
         return new ResponsavelResponse(
                 responsavelRepository.save(responsavel));
@@ -105,14 +114,20 @@ public class ResponsavelService {
             Responsavel responsavel,
             ResponsavelRequest request,
             String cpf,
-            String email) {
+            String email,
+            boolean atualizacaoParcial) {
 
         responsavel.setNome(request.getNome().trim());
-        responsavel.setCpf(cpf);
-        responsavel.setEmail(email);
-        responsavel.setTelefone(normalizarTexto(request.getTelefone()));
-        responsavel.setDataNascimento(request.getDataNascimento());
-        responsavel.setEndereco(normalizarTexto(request.getEndereco()));
+        if (!atualizacaoParcial || request.getCpf() != null)
+            responsavel.setCpf(cpf);
+        if (!atualizacaoParcial || request.getEmail() != null)
+            responsavel.setEmail(email);
+        if (!atualizacaoParcial || request.getTelefone() != null)
+            responsavel.setTelefone(normalizarTexto(request.getTelefone()));
+        if (!atualizacaoParcial || request.getDataNascimento() != null)
+            responsavel.setDataNascimento(request.getDataNascimento());
+        if (!atualizacaoParcial || request.getEndereco() != null)
+            responsavel.setEndereco(normalizarTexto(request.getEndereco()));
     }
 
     private void validarDadosUnicos(
@@ -181,6 +196,41 @@ public class ResponsavelService {
             throw new AccessDeniedException(
                     "Somente administradores ou secretarias podem "
                     + "gerenciar responsáveis.");
+        }
+    }
+
+    private void validarAcessoLeitura(String responsavelId) {
+        Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
+        if (autenticacao == null || !autenticacao.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+        boolean autorizadoGestor = autenticacao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        || a.getAuthority().equals("ROLE_SECRETARIA"));
+        if (autorizadoGestor) return;
+
+        boolean profissional = autenticacao.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
+        if (!profissional) {
+            throw new AccessDeniedException("Perfil sem permissão para consultar responsável.");
+        }
+
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(autenticacao.getName())
+                .orElseThrow(() -> new AccessDeniedException("Usuário não encontrado."));
+        if (usuario.getEntidadeId() == null || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException("Usuário sem vínculo profissional.");
+        }
+        String profissionalId = usuario.getEntidadeId();
+        boolean possuiPacienteVinculadoAtivo = vinculoRepository.findByResponsavelId(responsavelId)
+                .stream()
+                .anyMatch(vinculo -> vinculo.getPacienteId() != null
+                        && vinculoProfissionalRepository
+                        .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                                vinculo.getPacienteId(), profissionalId)
+                        .isPresent());
+        if (!possuiPacienteVinculadoAtivo) {
+            throw new AccessDeniedException(
+                    "A consulta do responsável requer vínculo profissional ativo com o paciente.");
         }
     }
 }

@@ -9,6 +9,7 @@ export interface ExameApi {
   profissionalId: string;
   nome: string;
   tipo?: string | null;
+  descricaoSolicitacao?: string | null;
   dataRealizacao?: string | null;
   resultado?: string | null;
   observacoes?: string | null;
@@ -26,9 +27,7 @@ export interface ExameRequestApi {
   profissionalId: string;
   nome: string;
   tipo?: string;
-  dataRealizacao?: string;
-  resultado?: string;
-  observacoes?: string;
+  descricaoSolicitacao?: string;
 }
 
 export interface ExameResultadoRequestApi {

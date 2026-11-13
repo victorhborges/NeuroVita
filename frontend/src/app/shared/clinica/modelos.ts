@@ -177,6 +177,8 @@ export interface Documento {
   origem?: 'documento-clinico' | 'evolucao' | 'prescricao' | 'exame';
   subtitulo?: string;
   profissionalId?: string;
+  /** Data real, preenchida somente depois do resultado do exame. */
+  dataRealizacao?: string | null;
   titulo: string;
   /** 'aaaa-mm-dd' */
   dataSessao: string;

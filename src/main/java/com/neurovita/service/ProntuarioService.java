@@ -97,7 +97,7 @@ public class ProntuarioService {
         }
 
         validarVinculos(request);
-        preencherProntuario(prontuario, request);
+        atualizarCamposProntuario(prontuario, request);
         if (prontuario.getCriadoEm() == null) {
             prontuario.setCriadoEm(LocalDateTime.now());
         }
@@ -136,6 +136,15 @@ public class ProntuarioService {
         prontuario.setAvaliacao(request.getAvaliacao());
         prontuario.setPlanoTratamento(request.getPlanoTratamento());
         prontuario.setPrescricao(request.getPrescricao());
+    }
+
+    private void atualizarCamposProntuario(
+            Prontuario prontuario, ProntuarioRequest request) {
+        if (request.getConsultaId() != null) prontuario.setConsultaId(request.getConsultaId());
+        if (request.getQueixaPrincipal() != null) prontuario.setQueixaPrincipal(request.getQueixaPrincipal());
+        if (request.getAvaliacao() != null) prontuario.setAvaliacao(request.getAvaliacao());
+        if (request.getPlanoTratamento() != null) prontuario.setPlanoTratamento(request.getPlanoTratamento());
+        if (request.getPrescricao() != null) prontuario.setPrescricao(request.getPrescricao());
     }
 
     private void validarVinculos(ProntuarioRequest request) {

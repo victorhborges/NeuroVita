@@ -19,7 +19,7 @@ import { DiagnosticosApiService } from './diagnosticos-api.service';
 import { Aviso } from '../aviso/aviso';
 import { EvolucaoApi, EvolucoesApiService } from './evolucoes-api.service';
 import { PrescricaoApi, PrescricoesApiService } from './prescricoes-api.service';
-import { AnexoExameApi, ExameApi, ExamesApiService } from './exames-api.service';
+import { ExameApi, ExamesApiService } from './exames-api.service';
 import { VinculoProfissionalPacienteApi, VinculosProfissionaisPacientesApiService } from './vinculos-profissionais-pacientes-api.service';
 
 export type NovoPaciente = Pick<Paciente, 'nome' | 'nascimento' | 'telefone' | 'email' | 'endereco'>;
@@ -104,6 +104,9 @@ export class Clinica {
       const profissionaisMap = new Map(profissionais.map((p) => [p.id, p]));
       this._agendamentos.set(consultas.map((c) => this.agendamentoDaApi(c)));
       this._pacientes.set(pacientes.map((p) => this.pacienteDaApi(p, responsaveis, consultas)));
+      if (perfil === 'psicologo' || perfil === 'psiquiatra') {
+        this.carregarResponsaveisVinculados(pacientes);
+      }
       const disponibilidadeAnteriorPorId = new Map(
         this._profissionais().map((p) => [p.id, p.disponibilidade]),
       );
@@ -122,6 +125,53 @@ export class Clinica {
       })));
       // Associa consultas aos profissionais para que a interface use nomes vindos da API.
       this._agendamentos.update((lista) => lista.map((a) => ({ ...a, local: a.local || profissionaisMap.get(a.profissionalId)?.nome || '' })));
+    });
+  }
+
+  private carregarResponsaveisVinculados(pacientes: PacienteApi[]): void {
+    const ids = [...new Set(pacientes.flatMap((paciente) =>
+      (paciente.responsaveis ?? []).map((vinculo) => vinculo.responsavelId),
+    ).filter(Boolean))];
+    if (!ids.length) return;
+
+    forkJoin(ids.map((id) => this.responsaveisApi.buscarPorId(id).pipe(
+      catchError(() => of(null)),
+    ))).pipe(takeUntil(this.cancelarLeiturasDaSessao)).subscribe((respostas) => {
+      const porId = new Map(respostas.filter((item): item is ResponsavelApi => item !== null)
+        .map((item) => [item.id, item]));
+      if (porId.size !== ids.length) {
+        this.aviso.mostrar('Alguns dados de responsáveis não puderam ser carregados.');
+      }
+
+      this._pacientes.update((atuais) => atuais.map((paciente) => {
+        const contatos = paciente.responsaveis.map((vinculo) => {
+          const responsavel = vinculo.id ? porId.get(vinculo.id) : undefined;
+          return responsavel ? {
+            ...vinculo,
+            nome: responsavel.nome,
+            telefone: responsavel.telefone ?? '',
+            endereco: responsavel.endereco ?? '',
+            email: responsavel.email,
+            nascimento: responsavel.dataNascimento,
+            cpf: responsavel.cpf,
+          } : vinculo;
+        });
+        const principal = contatos[0];
+        return {
+          ...paciente,
+          responsaveis: contatos,
+          responsavel: principal ? {
+            ...paciente.responsavel,
+            nome: principal.nome,
+            relacao: principal.relacao,
+            telefone: principal.telefone,
+            endereco: principal.endereco,
+            email: principal.email,
+            nascimento: principal.nascimento,
+            cpf: principal.cpf,
+          } : paciente.responsavel,
+        };
+      }));
     });
   }
 
@@ -355,8 +405,9 @@ export class Clinica {
       tipoExame: item.tipo,
       titulo: item.nome,
       dataSessao: item.dataRealizacao || item.solicitadoEm.slice(0, 10),
+      dataRealizacao: item.dataRealizacao,
       tipoAtendimento: null,
-      conteudo: item.observacoes || item.resultado || '',
+      conteudo: item.descricaoSolicitacao ?? '',
       atualizadoEm: item.resultadoAtualizadoEm || item.criadoEm,
       anexos,
       arquivo: anexos.length === 1 ? anexos[0] : undefined,
@@ -766,11 +817,19 @@ export class Clinica {
     }
 
     if (completo.secao === 'exames'
+      && dados.origem !== 'documento-clinico'
       && (!dados.id || dados.origem === 'exame')) {
       const id = dados.id?.startsWith('exame:')
         ? dados.id.slice('exame:'.length)
         : undefined;
-      const anexos = await this.anexosComoApi(completo.anexos);
+      const anexosExistentes = id
+        ? this._documentos().find((documento) => documento.id === dados.id)?.anexos ?? []
+        : [];
+      const alterouAnexos = completo.anexos.length !== anexosExistentes.length
+        || completo.anexos.some((anexo, indice) => anexo.url !== anexosExistentes[indice]?.url);
+      if (alterouAnexos) {
+        throw new Error('Arquivos enviados pela seção do prontuário são documentos clínicos; não podem ser registrados como resultado de exame.');
+      }
       const profissionalId = dados.profissionalId
         ?? await this.profissionalUnicoDoPaciente(completo.pacienteId);
       const request = {
@@ -778,50 +837,13 @@ export class Clinica {
         profissionalId,
         nome: completo.titulo,
         ...(completo.tipoExame ? { tipo: completo.tipoExame } : {}),
-        dataRealizacao: completo.dataSessao,
-        ...(dados.origem === 'exame' && completo.resultado
-          ? { resultado: completo.resultado }
-          : {}),
-        observacoes: completo.conteudo,
+        descricaoSolicitacao: completo.conteudo,
       };
       let salvo: ExameApi;
       if (id) {
-        const anexosAnteriores = this._documentos().find((item) => item.id === dados.id)?.anexos ?? [];
-        const urlsAnteriores = new Set(anexosAnteriores.map((anexo) => anexo.url));
-        const alterouAnexos = anexos.length !== anexosAnteriores.length
-          || anexos.some((anexo) => !urlsAnteriores.has(
-            `data:${anexo.tipoMime};base64,${anexo.conteudoBase64}`,
-          ));
-        if (alterouAnexos) {
-          if (!anexos.length && !completo.resultado?.trim()) {
-            throw new Error('Para remover os anexos do exame, registre um resultado textual antes.');
-          }
-          const somenteSolicitacao = {
-            pacienteId: request.pacienteId,
-            profissionalId: request.profissionalId,
-            nome: request.nome,
-            ...(request.tipo ? { tipo: request.tipo } : {}),
-          };
-          await firstValueFrom(this.examesApi.atualizar(id, somenteSolicitacao));
-          salvo = await firstValueFrom(this.examesApi.registrarResultado(id, {
-            dataRealizacao: completo.dataSessao,
-            ...(completo.resultado ? { resultado: completo.resultado } : {}),
-            observacoes: completo.conteudo,
-            anexos,
-          }));
-        } else {
-          salvo = await firstValueFrom(this.examesApi.atualizar(id, request));
-        }
+        salvo = await firstValueFrom(this.examesApi.atualizar(id, request));
       } else {
         salvo = await firstValueFrom(this.examesApi.criar(request));
-        if (anexos.length) {
-          salvo = await firstValueFrom(this.examesApi.registrarResultado(salvo.id, {
-            dataRealizacao: completo.dataSessao,
-            ...(completo.resultado ? { resultado: completo.resultado } : {}),
-            observacoes: completo.conteudo,
-            anexos,
-          }));
-        }
       }
       const documento = this.exameComoDocumento(salvo);
       this.substituirOrigemDocumento(completo.pacienteId, 'exame', [
@@ -875,22 +897,6 @@ export class Clinica {
       throw new Error('Não foi possível identificar um único profissional ativo para este paciente.');
     }
     return profissionaisAtivos[0];
-  }
-
-  private async anexosComoApi(anexos: Documento['anexos']): Promise<AnexoExameApi[]> {
-    return Promise.all(anexos.map(async (anexo) => {
-      const resposta = await fetch(anexo.url);
-      if (!resposta.ok) throw new Error(`Não foi possível ler o anexo ${anexo.nome}.`);
-      const blob = await resposta.blob();
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binario = '';
-      bytes.forEach((byte) => binario += String.fromCharCode(byte));
-      return {
-        nome: anexo.nome,
-        conteudoBase64: btoa(binario),
-        tipoMime: blob.type || 'application/octet-stream',
-      };
-    }));
   }
 
 }

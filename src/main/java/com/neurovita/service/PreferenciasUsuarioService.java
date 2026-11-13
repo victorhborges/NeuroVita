@@ -39,14 +39,22 @@ public class PreferenciasUsuarioService {
         PreferenciasUsuario preferencias = repository.findByEmailIgnoreCase(email)
                 .orElseGet(PreferenciasUsuario::new);
         preferencias.setEmail(email);
-        preferencias.setLembretesConsultaEmail(request.getLembretesConsultaEmail());
-        preferencias.setAlertasConsultasPendentes(request.getAlertasConsultasPendentes());
-        preferencias.setNotificacoesSistema(request.getNotificacoesSistema());
-        preferencias.setTema(normalizar(request.getTema()));
-        preferencias.setIdioma(normalizar(request.getIdioma()));
-        preferencias.setFormatoData(normalizar(request.getFormatoData()));
-        preferencias.setDuracaoPadraoConsulta(request.getDuracaoPadraoConsulta());
-        preferencias.setInicioSemana(normalizar(request.getInicioSemana()));
+        if (request.getLembretesConsultaEmail() != null) {
+            preferencias.setLembretesConsultaEmail(request.getLembretesConsultaEmail());
+        }
+        if (request.getAlertasConsultasPendentes() != null) {
+            preferencias.setAlertasConsultasPendentes(request.getAlertasConsultasPendentes());
+        }
+        if (request.getNotificacoesSistema() != null) {
+            preferencias.setNotificacoesSistema(request.getNotificacoesSistema());
+        }
+        if (request.getTema() != null) preferencias.setTema(normalizar(request.getTema()));
+        if (request.getIdioma() != null) preferencias.setIdioma(normalizar(request.getIdioma()));
+        if (request.getFormatoData() != null) preferencias.setFormatoData(normalizar(request.getFormatoData()));
+        if (request.getDuracaoPadraoConsulta() != null) {
+            preferencias.setDuracaoPadraoConsulta(request.getDuracaoPadraoConsulta());
+        }
+        if (request.getInicioSemana() != null) preferencias.setInicioSemana(normalizar(request.getInicioSemana()));
         preferencias.setAtualizadaEm(LocalDateTime.now());
         return new PreferenciasUsuarioResponse(repository.save(preferencias));
     }

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, map } from 'rxjs';
+import { Observable, Subject, map, tap } from 'rxjs';
 
 import { Perfil, CONFIG_PERFIS } from './perfil';
 
@@ -107,6 +107,18 @@ export class Auth {
       '/api/auth/primeiro-acesso/alterar-senha',
       { novaSenha, confirmarSenha },
     );
+  }
+
+  alterarSenhaAutenticada(
+    senhaAtual: string,
+    novaSenha: string,
+    confirmarSenha: string,
+  ): Observable<void> {
+    return this.http.post<void>('/api/auth/alterar-senha', {
+      senhaAtual,
+      novaSenha,
+      confirmarSenha,
+    }).pipe(tap(() => this.sair()));
   }
 
   obterToken(): string | null {

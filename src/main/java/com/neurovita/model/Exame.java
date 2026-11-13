@@ -19,6 +19,7 @@ public class Exame {
 
     private String nome;
     private String tipo;
+    private String descricaoSolicitacao;
     private LocalDate dataRealizacao;
     private String resultado;
     private String observacoes;
@@ -71,6 +72,14 @@ public class Exame {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public String getDescricaoSolicitacao() {
+        return descricaoSolicitacao;
+    }
+
+    public void setDescricaoSolicitacao(String descricaoSolicitacao) {
+        this.descricaoSolicitacao = descricaoSolicitacao;
     }
 
     public LocalDate getDataRealizacao() {

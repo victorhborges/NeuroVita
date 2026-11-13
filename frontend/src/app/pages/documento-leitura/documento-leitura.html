@@ -23,7 +23,7 @@
           <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().id === 'evolucoes' ? 'Evolução do Paciente' : doc.titulo }}</h2>
 
           <div class="doc-campos cartao">
-            <div class="campo-mini">{{ cfg().id === 'exames' ? 'Data de realização' : 'Data da sessão' }}<span class="campo-leitura">{{ formatar(doc.dataSessao) }}</span></div>
+            <div class="campo-mini">{{ cfg().id === 'exames' ? (doc.dataRealizacao ? 'Data de realização' : 'Solicitado em') : 'Data da sessão' }}<span class="campo-leitura">{{ formatar(doc.dataSessao) }}</span></div>
             @if (doc.tipoAtendimento) {
               <div class="campo-mini">Tipo de atendimento<span class="campo-leitura">{{ doc.tipoAtendimento }}</span></div>
             }
@@ -59,6 +59,14 @@
             </div>
           } @else {
             <div class="doc-texto cartao texto-rico" [innerHTML]="doc.conteudo | htmlSeguro"></div>
+          }
+          @if (cfg().id === 'exames' && doc.resultado) {
+            <h3>Resultado</h3>
+            <div class="doc-texto cartao texto-rico" [innerHTML]="doc.resultado | htmlSeguro"></div>
+          }
+          @if (cfg().id === 'exames' && doc.observacoes) {
+            <h3>Observações do resultado</h3>
+            <div class="doc-texto cartao texto-rico" [innerHTML]="doc.observacoes | htmlSeguro"></div>
           }
         } @else {
           <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().tituloCartao }}</h2>

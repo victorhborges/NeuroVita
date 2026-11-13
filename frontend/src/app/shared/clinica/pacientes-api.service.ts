@@ -25,7 +25,10 @@ export interface PacienteApi {
     validadePlano: string | null;
 }
 
-export interface PacienteRequestApi extends Omit<PacienteApi, 'id'> {}
+export interface PacienteRequestApi extends Partial<Omit<PacienteApi, 'id'>> {
+    nome: string;
+    dataNascimento: string;
+}
 
 @Injectable({
     providedIn: 'root',

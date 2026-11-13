@@ -1,7 +1,6 @@
 package com.neurovita.dto;
 
-import java.time.LocalDate;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 public class ExameRequest {
@@ -16,9 +15,8 @@ public class ExameRequest {
     private String nome;
 
     private String tipo;
-    private LocalDate dataRealizacao;
-    private String resultado;
-    private String observacoes;
+    @Schema(description = "Texto da solicitação, incluindo exames pedidos, justificativa clínica e CID relacionado.")
+    private String descricaoSolicitacao;
 
     public ExameRequest() {
     }
@@ -55,27 +53,12 @@ public class ExameRequest {
         this.tipo = tipo;
     }
 
-    public LocalDate getDataRealizacao() {
-        return dataRealizacao;
+    public String getDescricaoSolicitacao() {
+        return descricaoSolicitacao;
     }
 
-    public void setDataRealizacao(LocalDate dataRealizacao) {
-        this.dataRealizacao = dataRealizacao;
+    public void setDescricaoSolicitacao(String descricaoSolicitacao) {
+        this.descricaoSolicitacao = descricaoSolicitacao;
     }
 
-    public String getResultado() {
-        return resultado;
-    }
-
-    public void setResultado(String resultado) {
-        this.resultado = resultado;
-    }
-
-    public String getObservacoes() {
-        return observacoes;
-    }
-
-    public void setObservacoes(String observacoes) {
-        this.observacoes = observacoes;
-    }
 }

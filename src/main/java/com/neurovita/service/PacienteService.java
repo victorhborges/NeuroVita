@@ -80,7 +80,7 @@ public class PacienteService {
                 validarResponsaveis(request);
 
         Paciente paciente = new Paciente();
-        preencherPaciente(paciente, request);
+        preencherPaciente(paciente, request, true);
         aplicarPlanoSaude(paciente, request, true);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
@@ -186,31 +186,46 @@ public class PacienteService {
         Paciente paciente = buscarPaciente(id);
         boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
-        validarEmailDisponivel(request.getEmail(), id);
-        List<VinculoResponsavelRequest> responsaveis =
-                validarResponsaveis(request);
+        if (request.getEmail() != null) {
+                validarEmailDisponivel(request.getEmail(), id);
+        }
+        List<VinculoResponsavelRequest> responsaveis = request.getResponsaveis() == null
+                ? null
+                : validarResponsaveis(request);
+        if (responsaveis == null
+                && Period.between(request.getDataNascimento(), LocalDate.now()).getYears() < 18
+                && vinculoRepository.findByPacienteId(id).isEmpty()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Pacientes menores de 18 anos devem ter pelo menos um responsável vinculado.");
+        }
 
-        preencherPaciente(paciente, request);
+        preencherPaciente(paciente, request, false);
         aplicarPlanoSaude(paciente, request, false);
 
         Paciente atualizado = pacienteRepository.save(paciente);
 
-        atualizarVinculos(atualizado.getId(), responsaveis);
+        if (responsaveis != null) {
+                atualizarVinculos(atualizado.getId(), responsaveis);
+        }
 
         Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
         if (usuario != null) {
-            boolean estadoContaAnterior = usuario.isAtivo();
-            boolean novoEstado = Boolean.TRUE.equals(atualizado.getAtivo());
             usuario.setNome(atualizado.getNome());
             usuario.setEmail(atualizado.getEmail());
-            SincronizacaoAtivo.salvar(
-                    estadoAnterior,
-                    estadoContaAnterior,
-                    novoEstado,
-                    paciente::setAtivo,
-                    () -> pacienteRepository.save(paciente),
-                    usuario::setAtivo,
-                    () -> usuarioRepository.save(usuario));
+            if (request.getAtivo() == null) {
+                usuarioRepository.save(usuario);
+            } else {
+                boolean estadoContaAnterior = usuario.isAtivo();
+                SincronizacaoAtivo.salvar(
+                        estadoAnterior,
+                        estadoContaAnterior,
+                        request.getAtivo(),
+                        paciente::setAtivo,
+                        () -> pacienteRepository.save(paciente),
+                        usuario::setAtivo,
+                        () -> usuarioRepository.save(usuario));
+            }
         }
 
         return criarResposta(atualizado);
@@ -248,21 +263,23 @@ public class PacienteService {
 
     private void preencherPaciente(
             Paciente paciente,
-            PacienteRequest request) {
+            PacienteRequest request,
+            boolean novoCadastro) {
 
         paciente.setNome(request.getNome());
         paciente.setDataNascimento(request.getDataNascimento());
-        paciente.setEmail(request.getEmail());
-        paciente.setCpf(request.getCpf());
-        paciente.setTelefone(request.getTelefone());
-        paciente.setEndereco(request.getEndereco());
+        if (request.getEmail() != null) paciente.setEmail(request.getEmail());
+        if (request.getCpf() != null) paciente.setCpf(request.getCpf());
+        if (request.getTelefone() != null) paciente.setTelefone(request.getTelefone());
+        if (request.getEndereco() != null) paciente.setEndereco(request.getEndereco());
         if (request.getCep() != null && !request.getCep().isBlank()) {
                 paciente.setCep(request.getCep());
         }
         if (request.getCidade() != null && !request.getCidade().isBlank()) {
                 paciente.setCidade(request.getCidade());
         }
-        paciente.setAtivo(request.getAtivo() == null ? true : request.getAtivo());
+        if (request.getAtivo() != null) paciente.setAtivo(request.getAtivo());
+        else if (novoCadastro && paciente.getAtivo() == null) paciente.setAtivo(true);
 
     }
 

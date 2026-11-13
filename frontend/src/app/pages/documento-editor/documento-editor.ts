@@ -41,10 +41,11 @@ export class DocumentoEditor {
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
   protected readonly cfg = computed(() => SECOES[this.secaoValida() ?? 'evolucoes']);
   protected readonly doc = computed(() => this.clinica.documentos().find((d) => d.id === this.docId()));
-  protected readonly mostraData = computed(() =>
-    this.doc()?.origem === 'documento-clinico'
-      || this.secaoValida() !== 'medicamentos',
-  );
+  protected readonly mostraData = computed(() => {
+    const documento = this.doc();
+    if (this.secaoValida() === 'exames') return documento?.origem === 'documento-clinico';
+    return documento?.origem === 'documento-clinico' || this.secaoValida() !== 'medicamentos';
+  });
   protected readonly mostraTipoAtendimento = computed(() => {
     const documento = this.doc();
     if (documento) return documento.origem === 'documento-clinico';
@@ -52,8 +53,8 @@ export class DocumentoEditor {
   });
   protected readonly permiteAnexos = computed(() => {
     const origem = this.doc()?.origem;
-    if (origem === 'evolucao' || origem === 'prescricao') return false;
-    if (!this.doc() && (this.secaoValida() === 'evolucoes' || this.secaoValida() === 'medicamentos')) return false;
+    if (origem === 'evolucao' || origem === 'prescricao' || origem === 'exame') return false;
+    if (!this.doc() && ['evolucoes', 'medicamentos', 'exames'].includes(this.secaoValida() ?? '')) return false;
     return true;
   });
 

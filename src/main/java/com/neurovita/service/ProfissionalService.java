@@ -60,7 +60,7 @@ public class ProfissionalService {
         validarModalidades(request);
 
         Profissional profissional = new Profissional();
-        preencherProfissional(profissional, request);
+        preencherProfissional(profissional, request, false);
 
         Profissional salvo = profissionalRepository.save(profissional);
         String senhaProvisoria = request.getSenhaProvisoria() == null || request.getSenhaProvisoria().isBlank()
@@ -124,9 +124,11 @@ public class ProfissionalService {
         Profissional profissional = buscarProfissional(id);
         boolean estadoAnterior = Boolean.TRUE.equals(profissional.getAtivo());
 
-        validarEmailDisponivel(request.getEmail(), id);
-        validarModalidades(request);
-        preencherProfissional(profissional, request);
+        if (request.getEmail() != null) {
+            validarEmailDisponivel(request.getEmail(), id);
+        }
+        validarModalidades(request, profissional);
+        preencherProfissional(profissional, request, true);
 
         Usuario usuario = usuarioRepository.findByEntidadeId(id)
                 .orElse(null);
@@ -135,17 +137,21 @@ public class ProfissionalService {
             profissionalRepository.save(profissional);
         } else {
             boolean estadoContaAnterior = usuario.isAtivo();
-            boolean novoEstado = Boolean.TRUE.equals(profissional.getAtivo());
             usuario.setNome(profissional.getNome());
             usuario.setEmail(profissional.getEmail());
-            SincronizacaoAtivo.salvar(
-                    estadoAnterior,
-                    estadoContaAnterior,
-                    novoEstado,
-                    profissional::setAtivo,
-                    () -> profissionalRepository.save(profissional),
-                    usuario::setAtivo,
-                    () -> usuarioRepository.save(usuario));
+            if (request.getAtivo() == null) {
+                profissionalRepository.save(profissional);
+                usuarioRepository.save(usuario);
+            } else {
+                SincronizacaoAtivo.salvar(
+                        estadoAnterior,
+                        estadoContaAnterior,
+                        request.getAtivo(),
+                        profissional::setAtivo,
+                        () -> profissionalRepository.save(profissional),
+                        usuario::setAtivo,
+                        () -> usuarioRepository.save(usuario));
+            }
         }
 
         return new ProfissionalResponse(profissional);
@@ -246,29 +252,56 @@ public class ProfissionalService {
 
     private void preencherProfissional(
             Profissional profissional,
-            ProfissionalRequest request) {
+            ProfissionalRequest request,
+            boolean atualizacaoParcial) {
 
         profissional.setNome(request.getNome());
-        profissional.setEmail(request.getEmail());
-        profissional.setEmailContato(request.getEmailContato());
-        profissional.setDataNascimento(request.getDataNascimento());
-        profissional.setCpf(request.getCpf());
-        profissional.setTelefone(request.getTelefone());
+        if (!atualizacaoParcial || request.getEmail() != null)
+            profissional.setEmail(request.getEmail());
+        if (!atualizacaoParcial || request.getEmailContato() != null)
+            profissional.setEmailContato(request.getEmailContato());
+        if (!atualizacaoParcial || request.getDataNascimento() != null)
+            profissional.setDataNascimento(request.getDataNascimento());
+        if (!atualizacaoParcial || request.getCpf() != null)
+            profissional.setCpf(request.getCpf());
+        if (!atualizacaoParcial || request.getTelefone() != null)
+            profissional.setTelefone(request.getTelefone());
 
         profissional.setCategoria(request.getCategoria());
-        profissional.setFormacaoAcademica(request.getFormacaoAcademica());
-        profissional.setNumeroRegistro(request.getNumeroRegistro());
-        profissional.setAnoConclusao(request.getAnoConclusao());
+        if (!atualizacaoParcial || request.getFormacaoAcademica() != null)
+            profissional.setFormacaoAcademica(request.getFormacaoAcademica());
+        if (!atualizacaoParcial || request.getNumeroRegistro() != null)
+            profissional.setNumeroRegistro(request.getNumeroRegistro());
+        if (!atualizacaoParcial || request.getAnoConclusao() != null)
+            profissional.setAnoConclusao(request.getAnoConclusao());
 
-        profissional.setAtendeOnline(request.getAtendeOnline());
-        profissional.setAtendePresencial(request.getAtendePresencial() == null
-                || request.getAtendePresencial());
-        profissional.setAtivo(request.getAtivo());
+        if (request.getAtendeOnline() != null)
+            profissional.setAtendeOnline(request.getAtendeOnline());
+        if (request.getAtendePresencial() != null)
+            profissional.setAtendePresencial(request.getAtendePresencial());
+        else if (!atualizacaoParcial)
+            profissional.setAtendePresencial(true);
+        if (request.getAtivo() != null)
+            profissional.setAtivo(request.getAtivo());
     }
 
     private void validarModalidades(ProfissionalRequest request) {
         if (!Boolean.TRUE.equals(request.getAtendeOnline())
                 && Boolean.FALSE.equals(request.getAtendePresencial())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O profissional deve atender em pelo menos uma modalidade.");
+        }
+    }
+
+    private void validarModalidades(ProfissionalRequest request, Profissional atual) {
+        boolean online = request.getAtendeOnline() == null
+                ? Boolean.TRUE.equals(atual.getAtendeOnline())
+                : request.getAtendeOnline();
+        boolean presencial = request.getAtendePresencial() == null
+                ? !Boolean.FALSE.equals(atual.getAtendePresencial())
+                : request.getAtendePresencial();
+        if (!online && !presencial) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "O profissional deve atender em pelo menos uma modalidade.");

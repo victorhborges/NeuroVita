@@ -2,6 +2,7 @@ package com.neurovita.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -70,10 +71,6 @@ public class ExameService {
         preencherExame(exame, request);
         exame.setSolicitadoEm(LocalDateTime.now());
         exame.setCriadoEm(LocalDateTime.now());
-        if (request.getDataRealizacao() != null || request.getResultado() != null
-                || request.getObservacoes() != null) {
-            exame.setResultadoAtualizadoEm(LocalDateTime.now());
-        }
 
         return new ExameResponse(exameRepository.save(exame));
     }
@@ -130,43 +127,80 @@ public class ExameService {
         }
 
         exame.setNome(request.getNome());
-        exame.setTipo(request.getTipo());
-        if (request.getDataRealizacao() != null || request.getResultado() != null
-                || request.getObservacoes() != null) {
-            LocalDateTime agora = LocalDateTime.now();
-            exame.registrarResultadoAnterior(agora, obterAutenticacao().getName());
-            exame.setDataRealizacao(request.getDataRealizacao());
-            exame.setResultado(request.getResultado());
-            exame.setObservacoes(request.getObservacoes());
-            exame.setResultadoAtualizadoEm(agora);
+        if (request.getTipo() != null) exame.setTipo(request.getTipo());
+        if (request.getDescricaoSolicitacao() != null) {
+            exame.setDescricaoSolicitacao(request.getDescricaoSolicitacao());
         }
-
         return new ExameResponse(exameRepository.save(exame));
     }
 
     public ExameResponse registrarResultado(String id, ExameResultadoRequest request) {
-        if (request == null || request.getDataRealizacao() == null) {
+        if (request == null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "A data de realização do exame é obrigatória.");
+                    HttpStatus.BAD_REQUEST, "Os dados do resultado são obrigatórios.");
         }
         Exame exame = buscarExame(id);
         validarAcessoEdicaoExclusao(exame);
         exigirAtivo(exame);
-        validarAnexos(request.getAnexos());
-        if ((request.getResultado() == null || request.getResultado().isBlank())
-                && (request.getAnexos() == null || request.getAnexos().isEmpty())) {
+
+        List<AnexoClinico> anexos = request.getAnexos() == null
+                ? exame.getAnexosResultado() == null ? List.of() : exame.getAnexosResultado()
+                : request.getAnexos();
+        validarAnexos(anexos);
+        LocalDate dataRealizacao = request.getDataRealizacao() == null
+                ? exame.getDataRealizacao()
+                : request.getDataRealizacao();
+        String resultado = request.getResultado() == null
+                ? exame.getResultado()
+                : request.getResultado();
+        String observacoes = request.getObservacoes() == null
+                ? exame.getObservacoes()
+                : request.getObservacoes();
+
+        if (dataRealizacao == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "A data de realização do exame é obrigatória.");
+        }
+        if ((resultado == null || resultado.isBlank()) && anexos.isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "Informe o resultado ou anexe o documento do exame.");
         }
 
+        boolean houveAlteracao = !Objects.equals(exame.getDataRealizacao(), dataRealizacao)
+                || !Objects.equals(exame.getResultado(), resultado)
+                || !Objects.equals(exame.getObservacoes(), observacoes)
+                || !anexosIguais(exame.getAnexosResultado(), anexos);
+        if (!houveAlteracao) {
+            return new ExameResponse(exame);
+        }
+
         LocalDateTime agora = LocalDateTime.now();
         exame.registrarResultadoAnterior(agora, obterAutenticacao().getName());
-        exame.setDataRealizacao(request.getDataRealizacao());
-        exame.setResultado(request.getResultado());
-        exame.setObservacoes(request.getObservacoes());
-        exame.setAnexosResultado(request.getAnexos());
+        exame.setDataRealizacao(dataRealizacao);
+        exame.setResultado(resultado);
+        exame.setObservacoes(observacoes);
+        exame.setAnexosResultado(anexos);
         exame.setResultadoAtualizadoEm(agora);
         return new ExameResponse(exameRepository.save(exame));
+    }
+
+    private boolean anexosIguais(List<AnexoClinico> existentes, List<AnexoClinico> recebidos) {
+        if (existentes == null) existentes = List.of();
+        if (recebidos == null) recebidos = List.of();
+        if (existentes == recebidos) return true;
+        if (existentes.size() != recebidos.size()) return false;
+        for (int i = 0; i < existentes.size(); i++) {
+            AnexoClinico a = existentes.get(i);
+            AnexoClinico b = recebidos.get(i);
+            if (a == b) continue;
+            if (a == null || b == null
+                    || !Objects.equals(a.getNome(), b.getNome())
+                    || !Objects.equals(a.getConteudoBase64(), b.getConteudoBase64())
+                    || !Objects.equals(a.getTipoMime(), b.getTipoMime())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void deletar(String id) {
@@ -211,12 +245,7 @@ public class ExameService {
         exame.setProfissionalId(request.getProfissionalId());
         exame.setNome(request.getNome());
         exame.setTipo(request.getTipo());
-        if (request.getDataRealizacao() != null || request.getResultado() != null
-                || request.getObservacoes() != null) {
-            exame.setDataRealizacao(request.getDataRealizacao());
-            exame.setResultado(request.getResultado());
-            exame.setObservacoes(request.getObservacoes());
-        }
+        exame.setDescricaoSolicitacao(request.getDescricaoSolicitacao());
     }
 
     private void validarAnexos(List<AnexoClinico> anexos) {

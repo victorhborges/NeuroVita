@@ -162,10 +162,10 @@ public class TratamentoService {
         tratamento.setPacienteId(request.getPacienteId());
         tratamento.setProfissionalId(request.getProfissionalId());
         tratamento.setDescricao(request.getDescricao());
-        tratamento.setObjetivo(request.getObjetivo());
-        tratamento.setFrequencia(request.getFrequencia());
-        tratamento.setDuracao(request.getDuracao());
-        tratamento.setObservacoes(request.getObservacoes());
+        if (request.getObjetivo() != null) tratamento.setObjetivo(request.getObjetivo());
+        if (request.getFrequencia() != null) tratamento.setFrequencia(request.getFrequencia());
+        if (request.getDuracao() != null) tratamento.setDuracao(request.getDuracao());
+        if (request.getObservacoes() != null) tratamento.setObservacoes(request.getObservacoes());
     }
 
     private void exigirAtivo(Tratamento tratamento) {

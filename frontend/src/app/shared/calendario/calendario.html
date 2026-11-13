@@ -2,11 +2,11 @@
   <h2 class="calendario-titulo">Calendário</h2>
 
   <div class="calendario-mes">
-    <button type="button" class="calendario-seta" aria-label="Mês anterior">
+    <button type="button" class="calendario-seta" aria-label="Mês anterior" (click)="navegarMes.emit(-1)">
       <app-icone nome="seta-esquerda" />
     </button>
     <span class="calendario-mes-nome">{{ mes() }}</span>
-    <button type="button" class="calendario-seta" aria-label="Próximo mês">
+    <button type="button" class="calendario-seta" aria-label="Próximo mês" (click)="navegarMes.emit(1)">
       <app-icone nome="seta-direita" />
     </button>
   </div>
