@@ -265,6 +265,9 @@ class SecretariaServiceTest {
     @Test
     void deveAtualizarSecretariaEContaDeAcesso() {
         Secretaria secretaria = criarSecretaria("secretaria-123");
+        secretaria.setEmailContato("contato@neurovita.com");
+        secretaria.setCpf("12345678901");
+        secretaria.setCargo("Recepção");
         Usuario usuario = criarUsuarioSecretaria("secretaria-123");
 
         SecretariaRequest request = criarRequest();
@@ -288,6 +291,10 @@ class SecretariaServiceTest {
 
         assertEquals("Maria Silva Atualizada", response.getNome());
         assertEquals("(61) 97777-7777", response.getTelefone());
+        assertEquals("contato@neurovita.com", response.getEmailContato());
+        assertEquals("12345678901", response.getCpf());
+        assertEquals("Recepção", response.getCargo());
+        assertTrue(usuario.isAtivo());
         assertEquals("Maria Silva Atualizada", usuario.getNome());
         assertEquals("maria@neurovita.com", usuario.getEmail());
 

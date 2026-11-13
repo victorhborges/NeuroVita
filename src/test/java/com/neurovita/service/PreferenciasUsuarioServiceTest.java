@@ -79,4 +79,44 @@ class PreferenciasUsuarioServiceTest {
 
         assertNotNull(response);
     }
+
+    @Test
+    void atualizacaoParcialPreservaPreferenciasOmitidas() {
+        autenticar("pessoa@neurovita.test");
+        PreferenciasUsuario existente = new PreferenciasUsuario();
+        existente.setEmail("pessoa@neurovita.test");
+        existente.setTema("CLARO");
+        existente.setIdioma("PORTUGUES");
+        existente.setLembretesConsultaEmail(true);
+        existente.setDuracaoPadraoConsulta(50);
+        when(repository.findByEmailIgnoreCase("pessoa@neurovita.test"))
+                .thenReturn(Optional.of(existente));
+        when(repository.save(any(PreferenciasUsuario.class))).thenAnswer(i -> i.getArgument(0));
+        PreferenciasUsuarioRequest request = new PreferenciasUsuarioRequest();
+        request.setTema("ESCURO");
+
+        var response = service.salvar(request);
+
+        assertEquals("ESCURO", response.tema());
+        assertEquals("PORTUGUES", response.idioma());
+        assertEquals(true, response.lembretesConsultaEmail());
+        assertEquals(50, response.duracaoPadraoConsulta());
+    }
+
+    @Test
+    void atualizacaoParcialPermiteDesativarBooleano() {
+        autenticar("pessoa@neurovita.test");
+        PreferenciasUsuario existente = new PreferenciasUsuario();
+        existente.setEmail("pessoa@neurovita.test");
+        existente.setNotificacoesSistema(true);
+        when(repository.findByEmailIgnoreCase("pessoa@neurovita.test"))
+                .thenReturn(Optional.of(existente));
+        when(repository.save(any(PreferenciasUsuario.class))).thenAnswer(i -> i.getArgument(0));
+        PreferenciasUsuarioRequest request = new PreferenciasUsuarioRequest();
+        request.setNotificacoesSistema(false);
+
+        var response = service.salvar(request);
+
+        assertEquals(false, response.notificacoesSistema());
+    }
 }

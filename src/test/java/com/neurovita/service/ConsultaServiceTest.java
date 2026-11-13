@@ -2,6 +2,7 @@ package com.neurovita.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,11 +43,13 @@ import com.neurovita.model.Paciente;
 import com.neurovita.model.Profissional;
 import com.neurovita.model.StatusConsulta;
 import com.neurovita.model.Usuario;
+import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DisponibilidadeRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ConsultaServiceTest {
@@ -55,11 +59,139 @@ class ConsultaServiceTest {
     @Mock private ProfissionalRepository profissionalRepository;
     @Mock private DisponibilidadeRepository disponibilidadeRepository;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private VinculoProfissionalPacienteRepository vinculoRepository;
     @InjectMocks private ConsultaService consultaService;
 
     @Test
     void duracaoPadraoDaRequisicaoEhCinquentaMinutos() {
         assertEquals(50, new ConsultaRequest().getDuracao());
+    }
+
+    @Test
+    void criarConsultaSemVinculoCriaVinculoComIdentidadeEDataDoServidor() {
+        prepararAgendamentoValido("prof-1");
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
+                .thenReturn(Optional.empty());
+        LocalDateTime antes = LocalDateTime.now();
+
+        consultaService.salvar(request("ONLINE"));
+
+        LocalDateTime depois = LocalDateTime.now();
+        ArgumentCaptor<VinculoProfissionalPaciente> captor =
+                ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+        verify(vinculoRepository).save(captor.capture());
+        VinculoProfissionalPaciente criado = captor.getValue();
+        assertEquals("pac-1", criado.getPacienteId());
+        assertEquals("prof-1", criado.getProfissionalId());
+        assertEquals("admin@neurovita.com", criado.getIniciadoPor());
+        assertNotNull(criado.getIniciadoEm());
+        assertFalse(criado.getIniciadoEm().isBefore(antes));
+        assertFalse(criado.getIniciadoEm().isAfter(depois));
+    }
+
+    @Test
+    void criarConsultaComVinculoAtivoNaoDuplica() {
+        prepararAgendamentoValido("prof-1");
+        VinculoProfissionalPaciente ativo = new VinculoProfissionalPaciente();
+        ativo.setPacienteId("pac-1");
+        ativo.setProfissionalId("prof-1");
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
+                .thenReturn(Optional.of(ativo));
+
+        consultaService.salvar(request("ONLINE"));
+
+        verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
+    }
+
+    @Test
+    void remarcarParaOutroProfissionalCriaNovoVinculoEPreservaAnterior() {
+        Consulta existente = consultaExistente();
+        when(consultaRepository.findById("consulta-1")).thenReturn(Optional.of(existente));
+        prepararAgendamentoValido("prof-2");
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-2"))
+                .thenReturn(Optional.empty());
+        ConsultaRequest request = request("ONLINE");
+        request.setProfissionalId("prof-2");
+
+        consultaService.atualizar("consulta-1", request);
+
+        ArgumentCaptor<VinculoProfissionalPaciente> captor =
+                ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+        verify(vinculoRepository).save(captor.capture());
+        assertEquals("pac-1", captor.getValue().getPacienteId());
+        assertEquals("prof-2", captor.getValue().getProfissionalId());
+        verify(vinculoRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void atualizarConsultaAntigaSemVinculoCriaVinculoAtual() {
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(consultaExistente()));
+        prepararAgendamentoValido("prof-1");
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
+                .thenReturn(Optional.empty());
+
+        consultaService.atualizar("consulta-1", request("ONLINE"));
+
+        verify(vinculoRepository).save(any(VinculoProfissionalPaciente.class));
+    }
+
+    @Test
+    void cancelarConsultaNaoAlteraVinculos() {
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(consultaExistente()));
+
+        consultaService.cancelar("consulta-1");
+
+        verify(vinculoRepository, never()).findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1");
+        verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
+        verify(vinculoRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void falhaNaValidacaoNaoCriaVinculo() {
+        pacienteAtivo();
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        Profissional inativo = new Profissional();
+        inativo.setAtivo(false);
+        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(inativo));
+
+        assertThrows(ResponseStatusException.class,
+                () -> consultaService.salvar(request("ONLINE")));
+
+        verify(consultaRepository, never()).save(any(Consulta.class));
+        verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
+        verify(vinculoRepository, never()).findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                any(), any());
+    }
+
+    private void prepararAgendamentoValido(String profissionalId) {
+        pacienteAtivo();
+        when(profissionalRepository.existsById(profissionalId)).thenReturn(true);
+        Profissional profissional = new Profissional();
+        profissional.setId(profissionalId);
+        profissional.setAtivo(true);
+        profissional.setAtendeOnline(true);
+        profissional.setDisponibilidadeIds(List.of("disp-1"));
+        when(profissionalRepository.findById(profissionalId))
+                .thenReturn(Optional.of(profissional));
+
+        Disponibilidade disponibilidade = new Disponibilidade();
+        disponibilidade.setAtivo(true);
+        disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
+        disponibilidade.setHoraInicio(LocalTime.of(9, 0));
+        disponibilidade.setHoraFim(LocalTime.of(12, 0));
+        when(disponibilidadeRepository.findById("disp-1"))
+                .thenReturn(Optional.of(disponibilidade));
+        when(consultaRepository.findByProfissionalId(profissionalId)).thenReturn(List.of());
+        when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+        when(consultaRepository.save(any(Consulta.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test

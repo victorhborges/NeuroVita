@@ -12,24 +12,24 @@ import org.springframework.data.mongodb.repository.Query;
 
 class ConsultaRepositoryQueryTest {
 
-    private static final LocalDateTime INICIO =
-            LocalDateTime.of(2026, 11, 10, 0, 0);
+        private static final LocalDateTime INICIO =
+                LocalDateTime.of(2026, 11, 10, 0, 0);
 
-    private static final LocalDateTime FIM =
-            LocalDateTime.of(2026, 11, 17, 0, 0);
+        private static final LocalDateTime FIM =
+                LocalDateTime.of(2026, 11, 17, 0, 0);
 
-    @Test
-    void consultaPorPacienteUsaUmUnicoCampoDataHoraComGteELt() throws Exception {
+        @Test
+        void consultaPorPacienteUsaUmUnicoCampoDataHoraComGteELt() throws Exception {
         Document consulta = construirConsulta(
                 "findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan",
                 "\"pac-1\"", dataBson(INICIO), dataBson(FIM));
 
         assertEquals("pac-1", consulta.getString("pacienteId"));
         validarIntervalo(consulta);
-    }
+        }
 
-    @Test
-    void consultaPorProfissionalUsaUmUnicoCampoDataHoraComGteELt() throws Exception {
+        @Test
+        void consultaPorProfissionalUsaUmUnicoCampoDataHoraComGteELt() throws Exception {
         Document consulta = construirConsulta(
                 "findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan",
                 "\"prof-1\"", dataBson(INICIO), dataBson(FIM));

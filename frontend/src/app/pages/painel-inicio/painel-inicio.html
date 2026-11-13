@@ -9,7 +9,7 @@
           <app-banner [variante]="config().banner.variante" [titulo]="config().banner.titulo" [texto]="config().banner.texto" />
         </div>
         <div class="painel-coluna">
-          <app-calendario [mes]="mesCalendario()" [semanas]="semanas()" />
+          <app-calendario [mes]="mesCalendario()" [semanas]="semanas()" (navegarMes)="navegarMes($event)" />
           <app-proximas-consultas [consultas]="proximas()" [menuAcoes]="config().menuAcoes" [rota]="rotaAgenda()" />
         </div>
       </div>

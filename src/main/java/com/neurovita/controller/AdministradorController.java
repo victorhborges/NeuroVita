@@ -16,6 +16,8 @@ import com.neurovita.dto.AdministradorRequest;
 import com.neurovita.dto.AdministradorResponse;
 import com.neurovita.service.AdministradorService;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 @RestController
 @RequestMapping("/api/administradores")
 public class AdministradorController {
@@ -27,22 +29,27 @@ public class AdministradorController {
     }
 
     @PostMapping
+    @Operation(summary = "Criar conta de administrador")
     public ResponseEntity<AdministradorResponse> criar(@RequestBody AdministradorRequest request) {
         return ResponseEntity.ok(administradorService.criar(request));
     }
 
     @GetMapping
+    @Operation(summary = "Listar administradores")
     public ResponseEntity<List<AdministradorResponse>> listarTodos() {
 
         return ResponseEntity.ok(administradorService.listarTodos());
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Consultar administrador por ID")
     public ResponseEntity<AdministradorResponse> buscarPorId(@PathVariable String id) {
         return ResponseEntity.ok(administradorService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Atualizar cadastro de administrador",
+            description = "A senha é opcional na atualização; quando omitida, o hash atual é preservado.")
     public ResponseEntity<AdministradorResponse> atualizar(
             @PathVariable String id,
             @RequestBody AdministradorRequest request) {
@@ -51,6 +58,7 @@ public class AdministradorController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir cadastro de administrador")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         administradorService.deletar(id);
 

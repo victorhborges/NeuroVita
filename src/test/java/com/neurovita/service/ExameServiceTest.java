@@ -18,6 +18,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.neurovita.model.Exame;
+import com.neurovita.dto.ExameRequest;
 import com.neurovita.dto.ExameResultadoRequest;
 import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoProfissionalPaciente;
@@ -142,6 +143,120 @@ class ExameServiceTest {
         assertEquals(exame.getSolicitadoEm(), response.getSolicitadoEm());
         assertNotNull(response.getResultadoAtualizadoEm());
         verify(exameRepository).save(exame);
+    }
+
+    @Test
+    void atualizacaoParcialDoResultadoPreservaDataObservacoesEAnexos() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setDataRealizacao(java.time.LocalDate.of(2026, 11, 9));
+        exame.setResultado("Resultado anterior");
+        exame.setObservacoes("Observação mantida");
+        var anexo = new com.neurovita.model.DocumentoClinico.AnexoClinico();
+        anexo.setNome("laudo.pdf");
+        anexo.setConteudoBase64("cGRm");
+        anexo.setTipoMime("application/pdf");
+        exame.setAnexosResultado(List.of(anexo));
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class))).thenAnswer(i -> i.getArgument(0));
+        ExameResultadoRequest request = new ExameResultadoRequest();
+        request.setResultado("Resultado atualizado");
+
+        var response = service.registrarResultado("e1", request);
+
+        assertEquals(java.time.LocalDate.of(2026, 11, 9), response.getDataRealizacao());
+        assertEquals("Resultado atualizado", response.getResultado());
+        assertEquals("Observação mantida", response.getObservacoes());
+        assertEquals("laudo.pdf", response.getAnexosResultado().get(0).getNome());
+        assertEquals(1, response.getHistoricoResultados().size());
+        assertEquals("Resultado anterior", response.getHistoricoResultados().get(0).getResultado());
+    }
+
+    @Test
+    void atualizacaoSemAlteracaoNaoDuplicaHistoricoDeResultado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setDataRealizacao(java.time.LocalDate.of(2026, 11, 9));
+        exame.setResultado("Resultado mantido");
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        ExameResultadoRequest request = new ExameResultadoRequest();
+        request.setResultado("Resultado mantido");
+
+        var response = service.registrarResultado("e1", request);
+
+        assertTrue(response.getHistoricoResultados().isEmpty());
+        verify(exameRepository, never()).save(any(Exame.class));
+    }
+
+    @Test
+    void novaSolicitacaoArmazenaDescricaoSemPreencherDataOuAtualizacaoDeResultado() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        ExameRequest request = new ExameRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setNome("Hemograma");
+        request.setDescricaoSolicitacao("Hemograma completo. Justificativa e CID.");
+
+        var response = service.salvar(request);
+
+        assertEquals("Hemograma completo. Justificativa e CID.", response.getDescricaoSolicitacao());
+        assertNull(response.getDataRealizacao());
+        assertNull(response.getResultado());
+        assertNull(response.getResultadoAtualizadoEm());
+        assertTrue(response.getHistoricoResultados().isEmpty());
+    }
+
+    @Test
+    void atualizarSomenteSolicitacaoPreservaResultadoSemCriarHistorico() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        var resultadoAtualizadoEm = java.time.LocalDateTime.of(2026, 11, 10, 10, 30);
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        exame.setNome("Hemograma");
+        exame.setTipo("Laboratorial");
+        exame.setDescricaoSolicitacao("Descrição anterior");
+        exame.setDataRealizacao(java.time.LocalDate.of(2026, 11, 9));
+        exame.setResultado("Resultado existente");
+        exame.setResultadoAtualizadoEm(resultadoAtualizadoEm);
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        ExameRequest request = new ExameRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setNome("Hemograma ampliado");
+        request.setDescricaoSolicitacao("Nova descrição clínica e CID.");
+
+        var response = service.atualizar("e1", request);
+
+        assertEquals("Nova descrição clínica e CID.", response.getDescricaoSolicitacao());
+        assertEquals("Laboratorial", response.getTipo());
+        assertEquals("Resultado existente", response.getResultado());
+        assertEquals(java.time.LocalDate.of(2026, 11, 9), response.getDataRealizacao());
+        assertEquals(resultadoAtualizadoEm, response.getResultadoAtualizadoEm());
+        assertTrue(response.getHistoricoResultados().isEmpty());
     }
 
     @Test

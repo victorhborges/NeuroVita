@@ -158,4 +158,37 @@ class TratamentoServiceTest {
                 () -> service.atualizar("t1", request));
         verify(tratamentoRepository, never()).save(any());
     }
+
+    @Test
+    void atualizacaoComCamposOpcionaisOmitidosPreservaValoresExistentes() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Tratamento tratamento = new Tratamento();
+        tratamento.setId("t1");
+        tratamento.setPacienteId("pac-1");
+        tratamento.setProfissionalId("prof-1");
+        tratamento.setDescricao("Descrição antiga");
+        tratamento.setObjetivo("Objetivo salvo");
+        tratamento.setFrequencia("Semanal");
+        tratamento.setDuracao("12 semanas");
+        tratamento.setObservacoes("Observação salva");
+        when(tratamentoRepository.findById("t1")).thenReturn(Optional.of(tratamento));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+        when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+        when(tratamentoRepository.save(any(Tratamento.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        TratamentoRequest request = new TratamentoRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-1");
+        request.setDescricao("Descrição alterada");
+
+        var resposta = service.atualizar("t1", request);
+
+        assertEquals("Descrição alterada", resposta.getDescricao());
+        assertEquals("Objetivo salvo", resposta.getObjetivo());
+        assertEquals("Semanal", resposta.getFrequencia());
+        assertEquals("12 semanas", resposta.getDuracao());
+        assertEquals("Observação salva", resposta.getObservacoes());
+    }
 }

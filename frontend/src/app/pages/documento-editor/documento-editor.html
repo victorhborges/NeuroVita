@@ -17,22 +17,28 @@
         @if (cfg().camposNoEditor) {
           <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().tituloCartao }}</h2>
           <div class="doc-campos cartao">
-            <label class="campo-mini">Data da sessão
-              <input type="date" [max]="hoje" [value]="dataSessao()" (input)="dataSessao.set($any($event.target).value)" />
-            </label>
-            <label class="campo-mini">Tipo de atendimento
-              <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
-                <option value="Presencial" [selected]="tipo() === 'Presencial'">Presencial</option>
-                <option value="Online" [selected]="tipo() === 'Online'">Online</option>
-              </select>
-            </label>
-            <div class="campo-mini">Anexar arquivos
-              <label class="botao-upload">Fazer Upload de arquivos
-                <input type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+            @if (mostraData()) {
+              <label class="campo-mini">{{ cfg().id === 'exames' ? 'Data de realização' : 'Data da sessão' }}
+                <input type="date" [max]="hoje" [value]="dataSessao()" (input)="dataSessao.set($any($event.target).value)" />
               </label>
-            </div>
+            }
+            @if (mostraTipoAtendimento()) {
+              <label class="campo-mini">Tipo de atendimento
+                <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
+                  <option value="Presencial" [selected]="tipo() === 'Presencial'">Presencial</option>
+                  <option value="Online" [selected]="tipo() === 'Online'">Online</option>
+                </select>
+              </label>
+            }
+            @if (permiteAnexos()) {
+              <div class="campo-mini">Anexar arquivos
+                <label class="botao-upload">Fazer Upload de arquivos
+                  <input type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+                </label>
+              </div>
+            }
           </div>
-          @if (anexos().length) {
+          @if (permiteAnexos() && anexos().length) {
             <ul class="anexos" aria-label="Arquivos anexados">
               @for (a of anexos(); track a.url) {
                 <li><app-icone nome="arquivo-texto" /> {{ a.nome }}

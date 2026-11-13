@@ -166,7 +166,6 @@ class PacienteServiceTest {
         when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
         when(pacienteRepository.save(any(Paciente.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
         when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
 
         var response = pacienteService.atualizar("pac-1", request);
@@ -204,13 +203,79 @@ class PacienteServiceTest {
 
         when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
         when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
-        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
         when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
 
         var response = pacienteService.atualizar("pac-1", request);
 
         assertEquals("70000000", response.getCep());
         assertEquals("Brasília", response.getCidade());
+    }
+
+    @Test
+    void atualizacaoParcialPreservaDadosOpcionaisEResponsaveisOmitidos() {
+        Paciente paciente = paciente("pac-1");
+        paciente.setEmail("paciente@teste.com");
+        paciente.setCpf("123.456.789-00");
+        paciente.setTelefone("61999999999");
+        paciente.setEndereco("Endereço salvo");
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Atualizado");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+
+        var response = pacienteService.atualizar("pac-1", request);
+
+        assertEquals("paciente@teste.com", response.getEmail());
+        assertEquals("123.456.789-00", response.getCpf());
+        assertEquals("61999999999", response.getTelefone());
+        assertEquals("Endereço salvo", response.getEndereco());
+        verify(vinculoRepository, never()).save(any(VinculoResponsavel.class));
+        verify(vinculoRepository, never()).deleteAll(any());
+    }
+
+    @Test
+    void listaVaziaRemoveExplicitamenteVinculosDePacienteAdulto() {
+        Paciente paciente = paciente("pac-1");
+        VinculoResponsavel vinculo = new VinculoResponsavel();
+        vinculo.setPacienteId("pac-1");
+        vinculo.setResponsavelId("resp-1");
+        vinculo.setGrauParentesco("Mãe");
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Teste");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        request.setResponsaveis(List.of());
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+        when(vinculoRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of(vinculo), List.of());
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+
+        pacienteService.atualizar("pac-1", request);
+
+        verify(vinculoRepository).deleteAll(List.of(vinculo));
+    }
+
+    @Test
+    void atualizacaoSemCampoAtivoNaoInativaContaDoPaciente() {
+        Paciente paciente = paciente("pac-1");
+        Usuario usuario = usuario("pac-1");
+        usuario.setAtivo(false);
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Atualizado");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+
+        pacienteService.atualizar("pac-1", request);
+
+        assertTrue(paciente.getAtivo());
+        assertFalse(usuario.isAtivo());
+        verify(usuarioRepository).save(usuario);
     }
 
     @Test

@@ -2,7 +2,7 @@
 
 Front-end do **NeuroVita**, um sistema web para clínicas de psicologia e psiquiatria, com foco em agendamento de consultas e acompanhamento de pacientes. Projeto da faculdade, feito em **Angular**.
 
-> **Status:** em desenvolvimento. O front-end está funcionando com dados de teste. A ligação com o back-end ainda não foi feita.
+> **Status:** em desenvolvimento. Login, agenda e fluxos clínicos descritos na seção de integração abaixo consomem o backend com JWT. Algumas telas ainda usam dados de demonstração ou aguardam os formulários/ações que serão entregues pela equipe frontend.
 
 ## Perfis de usuário
 
@@ -57,9 +57,9 @@ Depois abra **http://localhost:4200** no navegador.
 | `npm run build` | Gera a versão de produção em `dist/` |
 | `npm test` | Roda os testes |
 
-## Login de teste (sem back-end)
+## Contas de demonstração
 
-Na tela de login, ao clicar no campo de e-mail aparece a lista de contas de teste. A senha de todas é **`123456`**.
+Na tela de login, a lista de contas de demonstração auxilia a preencher o formulário. O login é validado pelo endpoint real `/api/auth/login`; essas contas precisam existir no ambiente configurado e a senha não é aceita por uma autenticação local simulada.
 
 | E-mail | Vai para |
 | --- | --- |
@@ -118,11 +118,11 @@ src/
       pacientes/  prontuario/  secao-paciente/
       documento-leitura/  documento-editor/  agenda/
     shared/                  -> o que é usado em mais de uma tela
-      auth.ts                -> login de teste
+      auth.ts                -> login JWT e gestão da sessão
       perfil.ts              -> os 4 perfis e o que muda em cada um
       dados-demo.ts          -> dados fictícios das telas iniciais
       dados-agenda.ts        -> dados fictícios da agenda
-      clinica/               -> pacientes e documentos (em memória) e dados fictícios
+      clinica/               -> fachada e serviços Angular para APIs clínicas, com alguns dados de demonstração legados
       editor-texto/  menu-lateral/  cabecalho/  agenda-do-dia/  calendario/ ...
 public/
   img/                       -> logo e imagens
@@ -144,19 +144,26 @@ São as mesmas páginas do psicólogo (`pages/pacientes`, `prontuario`, `secao-p
 
 - **Disponibilidade do profissional:** o que o administrador cadastra (dias, faixas de horário, online e/ou presencial) vale na hora de agendar. A tela de consultas só mostra os horários em que o profissional atende (`Clinica.disponivel`).
 - **Excluir profissional:** se ele tiver consultas na agenda, o sistema não deixa excluir e sugere inativar. Sem consultas, a exclusão é permitida.
-- **Acesso ao sistema:** o formulário gera uma senha temporária e guarda o e-mail de acesso, mas o login de teste continua usando só as 4 contas fixas. O back-end precisa gravar a senha com segurança e enviar o e-mail de boas-vindas (`TODO` nos formulários).
+- **Acesso ao sistema:** cadastros de profissionais e secretarias podem persistir no backend; envio de boas-vindas depende de configuração de e-mail. A lista exibida no login é apenas um auxílio visual e não substitui a autenticação JWT.
 - **Pacientes:** o administrador só consulta; cadastrar, editar e excluir é da secretária.
 
-## Ligando ao back-end
+## Integração com o back-end
 
-Hoje tudo é fictício. Os pontos que precisam ser trocados estão marcados com `TODO` no código.
+O frontend usa JWT por meio do interceptor HTTP e a fachada `shared/clinica/clinica.ts` para carregar e atualizar os dados consumidos pelas telas existentes.
 
-- **Login:** `shared/auth.ts`. Trocar por uma chamada à API. O servidor deve devolver o perfil do usuário (`psicologo`, `psiquiatra`, `secretaria` ou `admin`). Depois, remover a lista de e-mails de teste em `pages/login`.
-- **Pacientes e documentos:** `shared/clinica/clinica.ts` guarda tudo **em memória** (some ao recarregar a página). Trocar os métodos por chamadas HTTP, mantendo os mesmos tipos (`shared/clinica/modelos.ts`).
-- **Dados das telas iniciais e da agenda:** `shared/dados-demo.ts` e `shared/dados-agenda.ts`.
-- **Arquivos enviados:** hoje usam endereços temporários do navegador. No back-end, enviar o arquivo de verdade.
-- **Texto formatado:** o editor guarda HTML. A limpeza feita no front (`limparHtml`, em `shared/util.ts`) deve ser repetida no servidor antes de gravar.
-- **Rotas protegidas:** hoje qualquer pessoa abre as telas pelo endereço. Quando o login for real, proteger com um guard.
+- **Evoluções:** `evolucoes-api.service.ts` usa `GET /api/evolucoes/paciente/{pacienteId}` e `POST /api/evolucoes`. Novas evoluções são append-only; documentos antigos da seção continuam no endpoint genérico e não são convertidos.
+- **Prescrições:** `prescricoes-api.service.ts` usa `GET /api/prescricoes/paciente/{pacienteId}`, `POST /api/prescricoes` e `PUT /api/prescricoes/{id}`. Os medicamentos estruturados já retornados pela API são preservados nas atualizações, mesmo sem campos próprios para editá-los no formulário atual.
+- **Exames:** `exames-api.service.ts` integra a tela de solicitação com `/api/exames`; o texto da solicitação é persistido em `descricaoSolicitacao`, sem preencher data de realização ou histórico de resultado. A tela atual não registra resultados; `PUT /{id}/resultado` permanece disponível na API. Uploads genéricos do prontuário continuam em `documentos_clinicos` e não são convertidos em anexos de resultado.
+- **Vínculos profissionais-pacientes:** `vinculos-profissionais-pacientes-api.service.ts` consulta o histórico em `GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}`. A criação automática após salvar ou remarcar uma consulta é responsabilidade do backend.
+- **Responsáveis no prontuário:** profissionais consultam responsáveis individualmente por `GET /api/responsaveis/{id}` apenas quando possuem vínculo ativo com algum paciente relacionado. Listagem e escrita permanecem restritas a administrador/secretaria.
+- **Preferências:** `preferencias-api.service.ts` lê e atualiza o contrato completo do endpoint `/api/preferencias`. Atualizações omitem campos inalterados; o backend preserva esses valores. O formulário de configuração ainda não está presente.
+- **Senha autenticada:** `Auth.alterarSenhaAutenticada` chama `POST /api/auth/alterar-senha`, conforme contrato existente, e encerra a sessão local após sucesso porque o backend invalida o JWT anterior. A ação de configuração ainda não tem tela.
+- **Prontuários:** `prontuarios-api.service.ts` disponibiliza consulta por paciente/ID, criação e atualização do contrato existente. O prontuário visual atual é uma composição de paciente, consultas e documentos clínicos e não possui campos de edição para os campos centrais da entidade; conectar esses campos depende da interface correspondente.
+- **Administradores:** `administradores-api.service.ts` disponibiliza CRUD para `/api/administradores`, protegido no backend para o perfil administrador. Não há tela de gerenciamento de administradores no frontend atual.
+- **Tratamentos:** `tratamentos-api.service.ts` oferece consulta por paciente, consulta por ID, criação, atualização e arquivamento em `/api/tratamentos`. A API também expõe listagem autorizada. Não há formulário ou tela de tratamento existente para conectar; nenhuma tela foi criada. Operações e regras de acesso estão descritas no Swagger.
+- **Compatibilidade:** documentos clínicos antigos permanecem acessíveis pelo endpoint `/api/documentos-clinicos`; não há migração ou conversão automática.
+
+Os serviços usam as respostas reais da API. Falhas HTTP são informadas pelas telas e não são tratadas como sucesso. A validação de autorização continua no backend, independentemente dos guards Angular.
 
 ## Equipe
 

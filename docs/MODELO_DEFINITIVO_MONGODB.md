@@ -17,14 +17,14 @@ O texto de proposta contém recomendações úteis, mas não representa o contra
 | `consultas.duracaoMinutos`, `responsavelId`, `unidadeId`, `salaId` | Campo atual é `duracao`; não há os demais campos | O Java ignora os novos campos e não aplica suas regras. |
 | `preferencias_usuarios.usuarioId` | Busca atual usa `email` | Preferências não seriam localizadas pelo serviço. |
 | `recuperacoes_senha.usuarioId` | Fluxo atual persiste e busca por `email` | Recuperação de conta incompatível. |
-| Novas coleções `evolucoes`, `avaliacoes_clinicas`, `arquivos_clinicos`, `auditoria_eventos`, `unidades_atendimento`, `salas` | Não há modelos `@Document`, repositories ou services correspondentes no código atual | Coleções vazias não ativam funcionalidades; API não as utiliza. |
+| Novas coleções `avaliacoes_clinicas`, `arquivos_clinicos`, `auditoria_eventos`, `unidades_atendimento`, `salas` | Não há modelos `@Document`, repositories ou services correspondentes no código atual | Coleções vazias não ativam funcionalidades; API não as utiliza. A coleção `evolucoes` já existe no backend e não faz parte desta lista de propostas futuras. |
 | Campos adicionais como `criadoEm`/`atualizadoEm` em entidades onde o modelo não os define | Ausentes nos modelos correspondentes | Não serão persistidos nem atualizados pelo backend atual. |
 
 Essas podem ser evoluções futuras, mas exigem desenvolvimento Java, integração de telas, autorização e testes antes de serem parte do contrato do banco. A existência de uma tela protótipo no MVP, isoladamente, não torna um campo parte do modelo implementado.
 
 ## 2. Coleções a provisionar
 
-O código contém 18 modelos `@Document`. São as coleções exatas:
+O código contém 19 modelos `@Document`. São as coleções exatas:
 
 1. `usuarios`
 2. `administradores`
@@ -38,12 +38,13 @@ O código contém 18 modelos `@Document`. São as coleções exatas:
 10. `consultas`
 11. `prontuarios`
 12. `documentos_clinicos`
-13. `diagnosticos`
-14. `tratamentos`
-15. `exames`
-16. `prescricoes`
-17. `preferencias_usuarios`
-18. `recuperacoes_senha`
+13. `evolucoes`
+14. `diagnosticos`
+15. `tratamentos`
+16. `exames`
+17. `prescricoes`
+18. `preferencias_usuarios`
+19. `recuperacoes_senha`
 
 O Spring Data pode criar uma coleção na primeira gravação. Não é obrigatório criar previamente coleções vazias. Se a equipe optar por provisioná-las manualmente, usar os nomes acima, manter MongoDB padrão de `_id` e não inserir documentos inventados como seed. Nenhuma outra coleção está ligada a um modelo persistente nesta versão.
 
@@ -108,7 +109,7 @@ Nunca apontar testes automatizados para produção. Não usar cópia de produç�
 
 1. Confirmar por canal seguro o cluster e o nome de cada database de ambiente; conferir URI sem registrá-la em documentação.
 2. Começar por um database de desenvolvimento vazio, separado dos demais.
-3. Criar as 18 coleções listadas (ou deixar Spring criá-las no primeiro save), sem as coleções propostas que ainda não existem no Java.
+3. Criar as 19 coleções listadas (ou deixar Spring criá-las no primeiro save), sem as coleções propostas que ainda não existem no Java.
 4. Aplicar nomes/tipos BSON segundo `CONTRATO_DADOS_MONGODB.md`; guardar IDs de referência como strings.
 5. Usar apenas documentos sintéticos de teste e os endpoints da aplicação para semear cadastros; não montar usuários com senha manual em claro.
 6. Confirmar persistência e leitura de um documento de cada módulo por meio da API.
@@ -128,21 +129,24 @@ O PDF apresenta protótipos e fluxos de interface. A matriz abaixo compara o que
 | Agendamento, agenda e disponibilidade | `consultas`, `disponibilidades`, `profissionais.disponibilidadeIds` | Implementado com janelas semanais, conflitos e histórico; não usar um relacionamento alternativo `disponibilidades.profissionalId` sem mudar o código. |
 | Modalidade e local da consulta | `Consulta.modalidade`, `Consulta.local` | Campos textuais genéricos; não há entidades de unidade ou sala. O protótipo que mostra sala/unidade não está coberto como relacionamento de dados. |
 | Seleção e histórico de responsável | `responsaveis`, `vinculosResponsaveis` | Cadastro e vínculo existem; `Consulta` não grava qual responsável foi selecionado no agendamento e o vínculo de responsável atual não possui encerramento/histórico. |
-| Prontuário e histórico clínico | `prontuarios`, `consultas`, `documentos_clinicos` | Cobertura básica. A estrutura não é ainda um prontuário multidisciplinar com tipos e autoria independentes para cada evolução. |
-| Devolutivas, rastreio, acolhimento e evolução social mostrados nas páginas clínicas | Campo `DocumentoClinico.secao`/`conteudo` pode guardar texto genérico | Persistência genérica possível, mas não há modelos nem regras específicas para esses processos. Não afirmar como fluxos estruturados concluídos. |
-| Laudos, atestados psicológicos, declarações e relatórios mostrados no protótipo | `documentos_clinicos` com `secao`, `titulo`, `dataSessao`, `tipoAtendimento`, `conteudo`, `anexos` | Pode representar documento em termos genéricos; não há categoria fechada, campos próprios, emissão formal ou versionamento completo de cada tipo. |
+| Prontuário e histórico clínico | `prontuarios`, `consultas`, `documentos_clinicos`, `evolucoes` | Cobertura básica com evolução clínica estruturada, autoria e registro preservado; não há edição/retificação de evolução nesta versão nem prontuário multidisciplinar completo. |
+| Evoluções clínicas | Coleção `evolucoes` (`Evolucao`) e API `/api/evolucoes` | Criação finalizada e listagem por paciente, protegidas por vínculo ativo para profissionais. Não há edição/retificação nesta versão. |
+| Devolutivas, rastreio, acolhimento e evolução social mostrados nas páginas clínicas | Campo `DocumentoClinico.secao`/`conteudo` pode guardar texto genérico | API de documentos permite criar, consultar por paciente/seção, editar e arquivar conteúdo genérico. Não há modelos nem regras de processo específicas para esses fluxos. |
+| Laudos, atestados psicológicos, declarações, encaminhamentos, avaliações psicológicas e relatórios mostrados no protótipo | `documentos_clinicos` com `secao`, `titulo`, `dataSessao`, `tipoAtendimento`, `conteudo`, `anexos` | O backend persiste o conteúdo textual editável nas operações genéricas de documento. Não há categoria fechada, campos clínicos próprios, geração/assinatura de documento formal ou versionamento completo por tipo. |
 | Diagnósticos, tratamentos, exames e prescrições | Coleções homônimas | Há persistência própria e regras presentes no código; anexos e histórico seguem estruturas existentes, não um serviço geral de arquivo externo. |
+| Conteúdo da solicitação de exame (exames solicitados, justificativa clínica e CID) | `exames.descricaoSolicitacao` | Campo opcional novo no contrato da aplicação. A equipe responsável pelo banco deve incluí-lo no schema/validator utilizado; não é necessário backfill e documentos antigos podem permanecer sem ele. |
 | Preferências/configurações | `preferencias_usuarios` | Persistidas e localizadas por e-mail, conforme contrato atual; não trocar para `usuarioId` sem alterar serviço Java. |
+| Opção visual de autenticação em duas etapas | Nenhum campo, endpoint ou fluxo correspondente | O PDF atualizado mostra somente o controle para ativar 2FA. Fator, ativação/verificação, recuperação e fluxo de login não foram definidos; implementação depende de decisão funcional. |
 | Upload/visualização de documentos | `documentos_clinicos.anexos` e anexos de exame | O modelo atual armazena conteúdo Base64 embutido com limites aplicados no serviço; armazenamento externo de arquivos não está implementado. |
 | Salas, unidades, auditoria clínica append-only e notificações persistentes | Nenhum modelo/coleção correspondente no código atual | Não coberto. Não criar essas coleções vazias como se habilitassem a funcionalidade. |
 
-**Conclusão da comparação:** o contrato MongoDB descrito aqui e em `CONTRATO_DADOS_MONGODB.md` é compatível com o backend atual e considera o MVP ao registrar seus módulos e lacunas. Ele **não representa integralmente todos os fluxos visuais do PDF como funcionalidades persistidas e estruturadas**. Para a orientação desta etapa, o banco deve continuar seguindo o código. Se o responsável funcional decidir que campos/fluxos do protótipo são obrigatórios além do backend atual, isso será uma decisão de escopo e precisará vir acompanhada da implementação correspondente antes de alterar o banco.
+**Conclusão da comparação:** o contrato MongoDB descrito aqui e em `CONTRATO_DADOS_MONGODB.md` representa o backend e suas lacunas conhecidas. Para a solicitação de exame descrita no PDF atualizado, o projeto agora persiste o texto clínico em `exames.descricaoSolicitacao`. A equipe responsável pelo banco deve adicionar esse campo opcional ao schema/validator que utiliza. Não é necessário backfill, e não foi feita alteração direta no banco.
 
 ## 10. O que este documento não conclui
 
-- Não confirma que o Atlas atual tem as 18 coleções, os tipos descritos ou índices recomendados.
+- Não confirma que o Atlas atual tem as 19 coleções, os tipos descritos ou índices recomendados.
 - Não identifica a exceção original do HTTP 500 de consultas por período. No ambiente publicado as rotas filtradas falharam com 500, mas sem logs privados e inspeção BSON não é possível provar se o problema é tipo armazenado, conversão, execução ou leitura.
-- Não declara os módulos adicionais do texto colado (evoluções independentes, avaliações, armazenamento externo, auditoria, unidades/salas ou notificações) implementados.
+- Não declara os módulos adicionais do texto colado (avaliações, armazenamento externo, auditoria, unidades/salas ou notificações) implementados. Evoluções possuem modelo, repositório, service e API próprios no backend atual.
 - Não substitui aprovação do contrato pelo responsável do backend e da equipe que opera Atlas.
 
 ## 11. Checklist de aceite do database de desenvolvimento

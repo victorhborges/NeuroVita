@@ -15,6 +15,7 @@ import com.neurovita.dto.ProntuarioRequest;
 import com.neurovita.dto.ProntuarioResponse;
 import com.neurovita.service.ProntuarioService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -28,6 +29,7 @@ public class ProntuarioController {
     }
 
     @PostMapping
+    @Operation(summary = "Criar prontuário central do paciente")
     public ResponseEntity<ProntuarioResponse> salvar(
         @Valid @RequestBody ProntuarioRequest request) {
 
@@ -37,6 +39,7 @@ public class ProntuarioController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Consultar prontuário por ID")
     public ResponseEntity<ProntuarioResponse> buscarPorId(
             @PathVariable String id) {
 
@@ -46,6 +49,8 @@ public class ProntuarioController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Atualizar campos do prontuário",
+            description = "Atualiza apenas os campos enviados; campos omitidos ou nulos são preservados. Paciente e autoria não podem ser trocados.")
     public ResponseEntity<ProntuarioResponse> atualizar(
             @PathVariable String id,
             @Valid @RequestBody ProntuarioRequest request) {
@@ -57,6 +62,7 @@ public class ProntuarioController {
     }
 
     @GetMapping("/paciente/{pacienteId}")
+    @Operation(summary = "Consultar prontuário por paciente")
     public ResponseEntity<ProntuarioResponse> buscarPorPaciente(
             @PathVariable String pacienteId) {
 

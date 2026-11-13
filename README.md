@@ -6,9 +6,9 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status atual:** backend e frontend integrados na branch `develop`, com implementação dos principais módulos de gestão, agenda, prontuário, registros clínicos, autenticação e controle de acesso. A revisão atual inclui melhorias na integração entre frontend e API, tratamento de falhas, vínculos profissionais, agendamento, diagnósticos, preferências e cadastros.
+> **Status atual (revisão local de 13/11/2026):** os fluxos clínicos existentes de evoluções, prescrições e solicitações de exames usam APIs específicas; autenticação JWT, agenda e cadastros também possuem integração Angular/backend. Serviços Angular para prontuários, administradores e preferências estão disponíveis aguardando as respectivas telas/ações de edição. A integração funcional completa ainda depende de validação da equipe e das telas pendentes.
 >
-> Na revisão local de 11/11/2026, os testes Java e Angular passaram, o empacotamento Maven passou e o build Angular de desenvolvimento compilou. O build Angular de produção não foi confirmado neste ambiente porque a otimização tenta buscar fontes externas. Atlas, Docker e Render não foram validados.
+> Nesta revisão, a compilação Maven de produção e testes compilou com sucesso; os testes Angular reportaram 23/23 aprovados, embora o processo não tenha encerrado normalmente. Os testes Java direcionados ficaram presos na inicialização do agente Mockito. O build Angular de produção gerou o bundle, mas falhou ao gravar a saída (`EPERM` no diretório de build) e emitiu aviso de orçamento de 62,61 kB acima do limite. Atlas, Docker e Render não foram acessados.
 
 ---
 
@@ -124,7 +124,7 @@ src/main/resources/static/
 
 A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
 
-O frontend utiliza serviços de integração para acessar os módulos da API, incluindo pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias e preferências.
+O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend.
 
 O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
@@ -202,12 +202,15 @@ DELETE /api/pacientes/{id}
 - Número da carteirinha e validade do plano permanecem opcionais.
 - Quando o paciente não possui plano de saúde, a identificação do plano não é obrigatória.
 - Campos omitidos em atualizações parciais devem preservar os dados existentes quando a operação permitir esse comportamento.
+- No `PUT /api/pacientes/{id}`, nome e data de nascimento continuam obrigatórios; vínculos de responsáveis omitidos são preservados e uma lista vazia solicita a remoção dos vínculos permitidos pela regra de idade.
 
 CEP e cidade são aceitos pelo backend, mas ainda são opcionais para compatibilidade com o frontend atual. O preenchimento obrigatório do CEP previsto visualmente no MVP ainda precisa ser confirmado e alinhado ao contrato integrado.
 
 Os dados de responsáveis são armazenados separadamente dos pacientes, com os relacionamentos registrados na coleção `vinculosResponsaveis`.
 
 A inativação preserva o cadastro e o histórico relacionado.
+
+Profissionais com vínculo ativo podem consultar, por ID, os dados de responsáveis associados aos pacientes vinculados, para preencher a seção de responsável exibida no prontuário. A listagem global e as operações de criação, alteração e exclusão continuam restritas a administradores e secretarias.
 
 ---
 
@@ -465,6 +468,21 @@ O prontuário reúne informações do acompanhamento clínico, enquanto os regis
 
 Os módulos possuem operações próprias de consulta e gerenciamento.
 
+Os clientes Angular de prontuários e administradores estão preparados para os endpoints existentes. A tela de prontuário atual ainda não expõe os campos centrais da entidade `Prontuario`, e não há tela de gerenciamento de administradores; nenhuma tela foi criada nesta etapa.
+
+O módulo de tratamentos está disponível pela API para integração futura, sem tela/formulário no frontend atual:
+
+```http
+POST   /api/tratamentos
+GET    /api/tratamentos
+GET    /api/tratamentos/{id}
+GET    /api/tratamentos/paciente/{pacienteId}
+PUT    /api/tratamentos/{id}
+DELETE /api/tratamentos/{id}  # arquivamento lógico
+```
+
+As operações estão descritas no Swagger. Profissionais só acessam tratamentos de pacientes com vínculo ativo; edição e arquivamento do tratamento ficam restritos ao profissional autor ou administrador, conforme as regras do serviço.
+
 Diagnósticos aceitam e retornam `cid`. Uma atualização que omita esse campo preserva o código anteriormente registrado. A interface existente mostra o CID do diagnóstico ativo quando esse dado está presente.
 
 ### Documentos clínicos
@@ -483,7 +501,20 @@ O mecanismo unificado de documentos clínicos contempla diferentes seções, inc
 - Atestados.
 - Documentos e anexos.
 
-Esse mecanismo mantém compatibilidade com os formulários atuais. A coleção/API específica `evolucoes` fornece registro append-only para consumo por integrações futuras; os componentes Angular existentes ainda usam `documentos_clinicos` para as anotações e documentos da seção Evoluções.
+As telas de laudo, encaminhamento, avaliação psicológica e atestado mostradas no MVP trabalham com conteúdo textual editável. O backend usa a collection existente `documentos_clinicos`, sem collection ou DTO por tipo documental. A API salva a seção, título, data, tipo de atendimento, conteúdo e anexos; ela não gera documento assinado, PDF formal ou assinatura digital. Acolhimento, rastreio, devolutiva, relatórios e declarações também podem ser representados como registros genéricos, mas não possuem regras de processo próprias.
+
+Documentos clínicos antigos continuam sendo lidos e editados pelo endpoint genérico, sem conversão automática. Novas evoluções e anotações feitas pela tela existente usam a API específica `evolucoes`; a listagem combina os registros legados com os registros dessa API. Evoluções específicas são append-only, sem edição ou anexos nesta versão.
+
+O contrato genérico disponível às telas atuais e futuras é:
+
+```http
+GET    /api/documentos-clinicos/paciente/{pacienteId}?secao={secao}
+POST   /api/documentos-clinicos
+PUT    /api/documentos-clinicos/{id}
+DELETE /api/documentos-clinicos/{id}  # arquivamento lógico
+```
+
+O corpo de criação/edição contém `pacienteId`, `secao`, `titulo`, `dataSessao` (`yyyy-MM-dd`), `tipoAtendimento`, `conteudo` (texto/HTML) e `anexos`. `profissionalId` não transfere autoria: para profissionais, o backend usa a identidade autenticada; criação administrativa exige identificar um profissional válido. Profissionais precisam de vínculo ativo com o paciente e só editam os próprios documentos. O Swagger expõe essas operações. As seções são strings, sem enum fechado no contrato MongoDB.
 
 A consulta pode ser filtrada por seção:
 
@@ -498,11 +529,17 @@ GET /api/evolucoes/paciente/{pacienteId}
 POST /api/evolucoes
 ```
 
-Resultados de exames têm atualização própria para separar a solicitação do registro do resultado:
+Solicitações gravam o texto clínico em `descricaoSolicitacao`; não atribuem data de realização nem alteram o histórico de resultados. A tela existente cria e atualiza solicitações. Resultados continuam em operação própria, e anexos enviados pela lista do prontuário permanecem documentos clínicos genéricos, sem serem associados como resultado do exame:
 
 ```http
+POST /api/exames
+PUT /api/exames/{id}
 PUT /api/exames/{id}/resultado
 ```
+
+Na operação de resultado, campos omitidos preservam os valores existentes; uma lista de anexos vazia solicita sua remoção. A data de realização é exigida quando ainda não há data registrada; se já existir, pode ser omitida para preservá-la. Uma chamada sem alterações efetivas não grava uma revisão duplicada no histórico.
+
+`descricaoSolicitacao` é campo opcional novo no documento `exames`; documentos anteriores permanecem válidos sem esse campo. A equipe responsável pelo MongoDB precisa refletir o campo no schema/validator adotado pelo banco. Nenhuma alteração foi feita no Atlas.
 
 ### Arquivamento lógico
 
@@ -548,6 +585,8 @@ Preferências individuais de tema, idioma, formato de data, notificações, dura
 GET /api/preferencias
 PUT /api/preferencias
 ```
+
+O `PUT` aceita atualizações parciais: campos omitidos ou nulos preservam os valores existentes; valores booleanos `false` são aplicados normalmente.
 
 O salvamento das preferências de notificação não envia e-mails ou notificações por si só. A integração de envio permanece dependente de configuração externa.
 
@@ -654,7 +693,7 @@ O logout encerra a sessão no frontend e limpa os dados clínicos mantidos em me
 
 As configurações sensíveis devem ser fornecidas por variáveis de ambiente, nunca armazenadas diretamente no código ou publicadas no Git.
 
-A autenticação em duas etapas (2FA) permanece pendente de definição dos requisitos e do fluxo completo de autenticação. Não é considerada funcionalidade implementada.
+A versão atualizada do MVP mostra uma opção de ativar autenticação em duas etapas, mas não define o fator, ativação/verificação, recuperação nem o fluxo de login. O suporte 2FA permanece pendente de decisão funcional e não é considerado implementado; não foi criado mecanismo improvisado ou dependência externa.
 
 ---
 
@@ -897,17 +936,18 @@ Linux/macOS:
 
 ### Validação
 
-Última execução local em 11/11/2026:
+Execuções locais desta revisão em 13/11/2026:
 
 | Verificação | Resultado |
 |---|---|
-| Maven `test` | 123 testes, 0 falhas, 0 erros, 0 ignorados |
-| Maven `-DskipTests package` | BUILD SUCCESS |
-| Angular `npm test -- --watch=false` | 15 testes, todos aprovados |
-| Angular build de desenvolvimento | Compilação concluída |
-| Angular build de produção | Não confirmado: falha ao buscar Google Fonts no ambiente sem DNS externo |
+| Maven `-DskipTests test-compile` | BUILD SUCCESS (135 fontes Java e 25 fontes de teste compiladas) |
+| Maven testes de desserialização JSON | 5 testes passaram: responsável e anexo omitidos, `null` explícito e listas vazias são desserializados de forma distinta |
+| Maven testes de serviço direcionados | Não concluídos: processo parou após iniciar `ExameServiceTest` e carregar dinamicamente o agente Mockito; interrompido localmente |
+| Angular `npm test -- --watch=false` | Vitest reportou 6 arquivos e 23 testes aprovados; processo não encerrou normalmente e foi interrompido após o resumo |
+| Angular build de produção | Bundle gerado (562,61 kB), mas gravação do output terminou com `EPERM` ao criar diretório `browser`; portanto build não aprovado |
+| `git diff --check` | Sem erros de whitespace na última execução; repetir após as alterações mais recentes |
 
-Os testes Java usaram somente URI Mongo local de teste; não houve conexão nem verificação de persistência no Atlas. O contexto Spring carregou sem servidor Mongo local ativo; os testes de regras usam mocks. Repita validações após alterações de código.
+Não houve conexão com MongoDB Atlas nem mudança de configuração do banco. A execução direcionada de testes Java nesta revisão não terminou, portanto nenhum resultado de teste Java é declarado como aprovado.
 
 Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
 
@@ -919,10 +959,10 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 
 | Área | Situação |
 |---|---|
-| Backend Java / Spring Boot | Principais módulos implementados; suíte deve ser executada após cada revisão |
-| Frontend Angular integrado | Integração local existente |
-| Serviços Angular de integração | Implementados para os principais módulos |
-| Tratamento de falhas da API | Melhorado; validação integrada pendente |
+| Backend Java / Spring Boot | Principais módulos e APIs do MVP implementados; execução completa da suíte Java segue pendente nesta revisão |
+| Frontend Angular integrado | Login, consultas/agenda e fluxos clínicos descritos na seção de integração consomem APIs; demais fluxos requerem validação funcional |
+| Serviços Angular de integração | Serviços clínicos existentes, além de clientes de prontuário, administradores e preferências para telas/ações ainda não entregues |
+| Tratamento de falhas da API | Erros permanecem explícitos; leituras críticas preservam dados já carregados quando uma requisição falha |
 | Logout e limpeza de dados em memória | Implementados localmente |
 | MongoDB Atlas | Configurado; validação integral pendente |
 | Pacientes e responsáveis | Implementados |
@@ -937,15 +977,15 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Permissões clínicas por vínculo | Implementadas localmente; validação integrada pendente |
 | Prontuário centralizado | Implementado |
 | Documentos clínicos e anexos | Implementados |
-| Evoluções clínicas append-only | Backend implementado; API ainda não conectada à seção Angular existente |
+| Evoluções clínicas append-only | API integrada à seção Angular existente; registros legados preservados e sem conversão automática |
 | Arquivamento lógico de documentos clínicos | Implementado localmente |
 | Diagnósticos e CID | Implementados |
 | Arquivamento lógico de diagnósticos | Implementado localmente |
-| Tratamentos | Implementados |
+| Tratamentos | Backend e serviço Angular implementados; falta uma interface existente para conectá-los |
 | Arquivamento lógico de tratamentos | Implementado localmente |
-| Exames e resultados | Implementados |
+| Exames e resultados | API integrada ao formulário clínico existente; resultado e anexos usam endpoint próprio |
 | Arquivamento lógico de exames | Implementado localmente |
-| Prescrições textuais | Implementadas |
+| Prescrições textuais | API integrada ao formulário clínico existente |
 | Itens estruturados de prescrição | Implementados localmente |
 | Histórico de revisões de prescrições | Implementado |
 | Consultas e agenda | Implementadas |
@@ -958,9 +998,9 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Preferências individuais | Persistência implementada |
 | Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
 | Swagger / OpenAPI | Implementado |
-| Testes Java | 123 aprovados localmente nesta revisão |
-| Build Maven | `package -DskipTests` concluído localmente |
-| Build Angular | Desenvolvimento compilado; produção pendente por dependência externa de fontes |
+| Testes Java | Não concluídos nesta revisão; Surefire ficou preso na inicialização dinâmica do agente Mockito |
+| Build Maven | `-DskipTests test-compile` concluído localmente com sucesso |
+| Build Angular | Bundle otimizado gerado, mas gravação terminou com `EPERM`; aviso de orçamento inicial excedido em 62,61 kB |
 | Docker da versão atual | Pendente de validação |
 | Deploy integrado atual | Pendente de validação |
 | Testes com MongoDB Atlas real | Pendentes de validação completa |
@@ -1061,10 +1101,10 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Melhorar a validação da grade de horários no backend.
 - [x] Implementar regras de conflitos de consultas por intervalo completo.
 - [x] Corrigir a compatibilidade do teste do serviço de e-mail de boas-vindas.
-- [x] Executar a suíte Java completa na revisão atual.
-- [x] Validar a compilação e o empacotamento Maven na revisão atual.
+- [ ] Executar a suíte Java completa na revisão atual (bloqueada pela inicialização do agente Mockito).
+- [x] Validar a compilação Maven e dos testes na revisão atual (`test-compile`).
 - [ ] Revisar integralmente as alterações locais antes do commit.
-- [x] Validar o build Angular de desenvolvimento da revisão atual.
+- [ ] Concluir o build Angular de produção (bundle compilado; emissão de arquivos falhou com `EPERM`).
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.

@@ -47,12 +47,17 @@ export interface DiaCalendario {
 
 export const DIAS_DA_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function calendarioDoMes(data: Date, datasComConsulta: Set<string>): DiaCalendario[][] {
+export function calendarioDoMes(
+  data: Date,
+  datasComConsulta: Set<string>,
+  dataSelecionada?: string,
+): DiaCalendario[][] {
   const ano = data.getFullYear();
   const mes = data.getMonth();
   const primeiro = new Date(ano, mes, 1);
   const inicio = new Date(ano, mes, 1 - primeiro.getDay());
-  const hoje = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  const hoje = dataSelecionada
+    ?? `${ano}-${String(mes + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   const semanas: DiaCalendario[][] = [];
   for (let semana = 0; semana < 6; semana++) {
     const dias: DiaCalendario[] = [];

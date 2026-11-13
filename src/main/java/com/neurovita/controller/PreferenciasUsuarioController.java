@@ -31,7 +31,7 @@ public class PreferenciasUsuarioController {
 
     @PutMapping
     @Operation(summary = "Salvar preferências do usuário autenticado",
-            description = "Armazena opções pessoais; não dispara notificações ou e-mails.")
+            description = "Atualiza somente as opções presentes e não nulas no corpo; campos omitidos são preservados. Não dispara notificações ou e-mails.")
     public ResponseEntity<PreferenciasUsuarioResponse> salvar(
             @Valid @RequestBody PreferenciasUsuarioRequest request) {
         return ResponseEntity.ok(service.salvar(request));

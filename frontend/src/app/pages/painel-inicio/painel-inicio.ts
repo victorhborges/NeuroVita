@@ -62,11 +62,15 @@ export class PainelInicio {
 
   private readonly consultas = signal<ConsultaApi[]>([]);
   private readonly pacientes = signal<PacienteApi[]>([]);
-
-  protected readonly mesCalendario = computed(() => new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date()));
-  protected readonly semanas = computed(() => calendarioDoMes(new Date(), new Set(this.consultas().map((c) => c.dataHora.slice(0, 10)))));
-
   private readonly hojeISO = this.dataAtualISO();
+  private readonly mesVisivel = signal(new Date());
+
+  protected readonly mesCalendario = computed(() => new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(this.mesVisivel()));
+  protected readonly semanas = computed(() => calendarioDoMes(
+    this.mesVisivel(),
+    new Set(this.consultas().map((consulta) => consulta.dataHora.slice(0, 10))),
+    this.hojeISO,
+  ));
 
   private dataAtualISO(): string {
     const hoje = new Date();
@@ -75,6 +79,12 @@ export class PainelInicio {
     const dia = String(hoje.getDate()).padStart(2, '0');
 
     return `${ano}-${mes}-${dia}`;
+  }
+
+  protected navegarMes(delta: number): void {
+    this.mesVisivel.update((atual) =>
+      new Date(atual.getFullYear(), atual.getMonth() + delta, 1),
+    );
   }
 
   constructor() {

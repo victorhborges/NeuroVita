@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.neurovita.model.Prontuario;
 import com.neurovita.model.Usuario;
+import com.neurovita.dto.ProntuarioRequest;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
@@ -70,5 +71,33 @@ class ProntuarioServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(AccessDeniedException.class, () -> service.buscarPorId("pr-1"));
+    }
+
+    @Test
+    void atualizacaoParcialPreservaCamposOmitidosDoProntuario() {
+        autenticarProfissional();
+        Prontuario existente = new Prontuario();
+        existente.setId("pr-1");
+        existente.setPacienteId("pac-1");
+        existente.setProfissionalId("prof-2");
+        existente.setConsultaId("consulta-1");
+        existente.setQueixaPrincipal("Queixa preservada");
+        existente.setAvaliacao("Avaliação anterior");
+        when(prontuarios.findById("pr-1")).thenReturn(Optional.of(existente));
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-2"))
+                .thenReturn(Optional.of(new com.neurovita.model.VinculoProfissionalPaciente()));
+        when(pacientes.existsById("pac-1")).thenReturn(true);
+        when(profissionais.existsById("prof-2")).thenReturn(true);
+        when(prontuarios.save(any(Prontuario.class))).thenAnswer(i -> i.getArgument(0));
+        ProntuarioRequest request = new ProntuarioRequest();
+        request.setPacienteId("pac-1");
+        request.setProfissionalId("prof-2");
+        request.setAvaliacao("Avaliação atualizada");
+
+        var resposta = service.atualizar("pr-1", request);
+
+        assertEquals("consulta-1", resposta.getConsultaId());
+        assertEquals("Queixa preservada", resposta.getQueixaPrincipal());
+        assertEquals("Avaliação atualizada", resposta.getAvaliacao());
     }
 }

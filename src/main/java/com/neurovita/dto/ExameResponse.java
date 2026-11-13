@@ -7,6 +7,7 @@ import java.util.List;
 import com.neurovita.model.Exame;
 import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Exame.HistoricoResultado;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ExameResponse {
 
@@ -17,6 +18,8 @@ public class ExameResponse {
 
     private String nome;
     private String tipo;
+    @Schema(description = "Conteúdo da solicitação; independente do resultado e do seu histórico.")
+    private String descricaoSolicitacao;
     private LocalDate dataRealizacao;
     private String resultado;
     private String observacoes;
@@ -37,6 +40,7 @@ public class ExameResponse {
 
         this.nome = exame.getNome();
         this.tipo = exame.getTipo();
+        this.descricaoSolicitacao = exame.getDescricaoSolicitacao();
         this.dataRealizacao = exame.getDataRealizacao();
         this.resultado = exame.getResultado();
         this.observacoes = exame.getObservacoes();
@@ -69,6 +73,10 @@ public class ExameResponse {
 
     public String getTipo() {
         return tipo;
+    }
+
+    public String getDescricaoSolicitacao() {
+        return descricaoSolicitacao;
     }
 
     public LocalDate getDataRealizacao() {

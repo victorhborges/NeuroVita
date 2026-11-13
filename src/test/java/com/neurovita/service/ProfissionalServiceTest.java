@@ -115,6 +115,42 @@ class ProfissionalServiceTest {
     }
 
     @Test
+    void atualizacaoParcialPreservaCamposOpcionaisEModalidadesOmitidas() {
+        Profissional atual = new Profissional();
+        atual.setId("prof-1");
+        atual.setNome("Ana Lima");
+        atual.setEmail("ana@neurovita.com");
+        atual.setCategoria("PSICOLOGO");
+        atual.setAtendeOnline(true);
+        atual.setAtendePresencial(false);
+        atual.setAtivo(true);
+        atual.setEmailContato("contato@neurovita.com");
+        atual.setNumeroRegistro("CRP-123");
+        Usuario usuario = new Usuario();
+        usuario.setAtivo(false);
+        ProfissionalRequest request = new ProfissionalRequest();
+        request.setNome("Ana Lima Atualizada");
+        request.setCategoria("PSICOLOGO");
+
+        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(atual));
+        when(usuarioRepository.findByEntidadeId("prof-1")).thenReturn(Optional.of(usuario));
+        when(profissionalRepository.save(any(Profissional.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+
+        var response = profissionalService.atualizar("prof-1", request);
+
+        assertEquals("Ana Lima Atualizada", response.getNome());
+        assertEquals("ana@neurovita.com", response.getEmail());
+        assertEquals("contato@neurovita.com", response.getEmailContato());
+        assertEquals("CRP-123", response.getNumeroRegistro());
+        assertTrue(response.getAtendeOnline());
+        assertFalse(response.getAtendePresencial());
+        assertTrue(response.getAtivo());
+        assertFalse(usuario.isAtivo());
+    }
+
+    @Test
     void reverteInativacaoDaEntidadeQuandoFalhaAoRevogarConta() {
         Profissional profissional = new Profissional();
         profissional.setId("prof-1");

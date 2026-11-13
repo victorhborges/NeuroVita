@@ -37,7 +37,7 @@
 
         @if (cfg().filtros === 'data-busca') {
           <div class="doc-filtros">
-            <label class="campo-mini">Data da sessão
+            <label class="campo-mini">{{ cfg().id === 'exames' ? 'Data da solicitação' : 'Data da sessão' }}
               <input type="date" [max]="hoje" [value]="dataFiltro()" (input)="dataFiltro.set($any($event.target).value)" />
             </label>
             <label class="campo-busca-mini">

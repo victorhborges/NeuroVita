@@ -16,6 +16,7 @@ import com.neurovita.dto.ResponsavelRequest;
 import com.neurovita.dto.ResponsavelResponse;
 import com.neurovita.service.ResponsavelService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -42,6 +43,8 @@ public class ResponsavelController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Consultar dados de um responsável",
+            description = "Administradores e secretarias podem consultar cadastros. Profissionais só podem consultar o responsável quando possuem vínculo ativo com ao menos um paciente relacionado.")
     public ResponseEntity<ResponsavelResponse> buscarPorId(
             @PathVariable String id) {
 

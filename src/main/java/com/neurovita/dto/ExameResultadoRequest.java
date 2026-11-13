@@ -1,22 +1,24 @@
 package com.neurovita.dto;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.neurovita.model.DocumentoClinico.AnexoClinico;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 
 public class ExameResultadoRequest {
 
-    @NotNull(message = "A data de realização do exame é obrigatória.")
+    @Schema(description = "Data real da realização. Obrigatória para o primeiro resultado; omitida em atualizações pode preservar a data registrada.")
     private LocalDate dataRealizacao;
+    @Schema(description = "Resultado; quando omitido, mantém o valor atual.")
     private String resultado;
+    @Schema(description = "Observações do resultado; quando omitidas, mantêm o valor atual.")
     private String observacoes;
     @Valid
-    private List<AnexoClinico> anexos = new ArrayList<>();
+    @Schema(description = "Anexos do resultado. Campo omitido preserva os atuais; lista vazia remove os anexos.")
+    private List<AnexoClinico> anexos;
 
     public LocalDate getDataRealizacao() { return dataRealizacao; }
     public void setDataRealizacao(LocalDate dataRealizacao) { this.dataRealizacao = dataRealizacao; }
@@ -26,6 +28,6 @@ public class ExameResultadoRequest {
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
     public List<AnexoClinico> getAnexos() { return anexos; }
     public void setAnexos(List<AnexoClinico> anexos) {
-        this.anexos = anexos == null ? new ArrayList<>() : anexos;
+        this.anexos = anexos;
     }
 }

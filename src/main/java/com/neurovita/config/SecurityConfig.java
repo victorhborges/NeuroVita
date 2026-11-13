@@ -262,7 +262,13 @@ public class SecurityConfig {
                                 "/api/evolucoes/**"
                         ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
 
-                        // Gerenciamento de responsáveis
+                        // Leitura pontual no prontuário; o service valida vínculo ativo.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/responsaveis/*")
+                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+
+                        // Demais operações de responsáveis são gerenciamento administrativo.
                         .requestMatchers("/api/responsaveis/**")
                         .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
 

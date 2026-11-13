@@ -17,6 +17,10 @@ import { SecretariasApiService } from './secretarias-api.service';
 import { DisponibilidadesApiService } from './disponibilidades-api.service';
 import { DiagnosticosApiService } from './diagnosticos-api.service';
 import { Aviso } from '../aviso/aviso';
+import { EvolucaoApi, EvolucoesApiService } from './evolucoes-api.service';
+import { PrescricaoApi, PrescricoesApiService } from './prescricoes-api.service';
+import { ExameApi, ExamesApiService } from './exames-api.service';
+import { VinculoProfissionalPacienteApi, VinculosProfissionaisPacientesApiService } from './vinculos-profissionais-pacientes-api.service';
 
 export type NovoPaciente = Pick<Paciente, 'nome' | 'nascimento' | 'telefone' | 'email' | 'endereco'>;
 export type DadosDocumento = Omit<Documento, 'id' | 'atualizadoEm'> & { id?: string };
@@ -32,6 +36,7 @@ export class Clinica {
   private readonly _secretarias = signal<Secretaria[]>([]);
   private readonly _agendamentos = signal<Agendamento[]>([]);
   private readonly _documentos = signal<Documento[]>([]);
+  private readonly _vinculosPorPaciente = signal<Record<string, VinculoProfissionalPacienteApi[]>>({});
   private readonly cancelarLeiturasDaSessao = new Subject<void>();
   private readonly documentosApi = inject(DocumentosApiService);
   private readonly auth = inject(Auth);
@@ -43,12 +48,17 @@ export class Clinica {
   private readonly disponibilidadesApi = inject(DisponibilidadesApiService);
   private readonly diagnosticosApi = inject(DiagnosticosApiService);
   private readonly aviso = inject(Aviso);
+  private readonly evolucoesApi = inject(EvolucoesApiService);
+  private readonly prescricoesApi = inject(PrescricoesApiService);
+  private readonly examesApi = inject(ExamesApiService);
+  private readonly vinculosApi = inject(VinculosProfissionaisPacientesApiService);
 
   readonly pacientes = this._pacientes.asReadonly();
   readonly profissionais = this._profissionais.asReadonly();
   readonly secretarias = this._secretarias.asReadonly();
   readonly agendamentos = this._agendamentos.asReadonly();
   readonly documentos = this._documentos.asReadonly();
+  readonly vinculosPorPaciente = this._vinculosPorPaciente.asReadonly();
 
   constructor() {
     this.auth.sessaoAlterada$.subscribe((autenticado) => {
@@ -66,6 +76,7 @@ export class Clinica {
     this._secretarias.set([]);
     this._agendamentos.set([]);
     this._documentos.set([]);
+    this._vinculosPorPaciente.set({});
   }
 
   private carregarDadosDaApi(): void {
@@ -93,6 +104,9 @@ export class Clinica {
       const profissionaisMap = new Map(profissionais.map((p) => [p.id, p]));
       this._agendamentos.set(consultas.map((c) => this.agendamentoDaApi(c)));
       this._pacientes.set(pacientes.map((p) => this.pacienteDaApi(p, responsaveis, consultas)));
+      if (perfil === 'psicologo' || perfil === 'psiquiatra') {
+        this.carregarResponsaveisVinculados(pacientes);
+      }
       const disponibilidadeAnteriorPorId = new Map(
         this._profissionais().map((p) => [p.id, p.disponibilidade]),
       );
@@ -111,6 +125,53 @@ export class Clinica {
       })));
       // Associa consultas aos profissionais para que a interface use nomes vindos da API.
       this._agendamentos.update((lista) => lista.map((a) => ({ ...a, local: a.local || profissionaisMap.get(a.profissionalId)?.nome || '' })));
+    });
+  }
+
+  private carregarResponsaveisVinculados(pacientes: PacienteApi[]): void {
+    const ids = [...new Set(pacientes.flatMap((paciente) =>
+      (paciente.responsaveis ?? []).map((vinculo) => vinculo.responsavelId),
+    ).filter(Boolean))];
+    if (!ids.length) return;
+
+    forkJoin(ids.map((id) => this.responsaveisApi.buscarPorId(id).pipe(
+      catchError(() => of(null)),
+    ))).pipe(takeUntil(this.cancelarLeiturasDaSessao)).subscribe((respostas) => {
+      const porId = new Map(respostas.filter((item): item is ResponsavelApi => item !== null)
+        .map((item) => [item.id, item]));
+      if (porId.size !== ids.length) {
+        this.aviso.mostrar('Alguns dados de responsáveis não puderam ser carregados.');
+      }
+
+      this._pacientes.update((atuais) => atuais.map((paciente) => {
+        const contatos = paciente.responsaveis.map((vinculo) => {
+          const responsavel = vinculo.id ? porId.get(vinculo.id) : undefined;
+          return responsavel ? {
+            ...vinculo,
+            nome: responsavel.nome,
+            telefone: responsavel.telefone ?? '',
+            endereco: responsavel.endereco ?? '',
+            email: responsavel.email,
+            nascimento: responsavel.dataNascimento,
+            cpf: responsavel.cpf,
+          } : vinculo;
+        });
+        const principal = contatos[0];
+        return {
+          ...paciente,
+          responsaveis: contatos,
+          responsavel: principal ? {
+            ...paciente.responsavel,
+            nome: principal.nome,
+            relacao: principal.relacao,
+            telefone: principal.telefone,
+            endereco: principal.endereco,
+            email: principal.email,
+            nascimento: principal.nascimento,
+            cpf: principal.cpf,
+          } : paciente.responsavel,
+        };
+      }));
     });
   }
 
@@ -237,11 +298,123 @@ export class Clinica {
       takeUntil(this.cancelarLeiturasDaSessao),
     ).subscribe({
       next: (itens) => this._documentos.update((atuais) => [
-        ...atuais.filter((d) => d.pacienteId !== pacienteId),
+        ...atuais.filter((d) => d.pacienteId !== pacienteId || d.origem !== 'documento-clinico'),
         ...itens.map((item) => this.documentoDaApi(item)),
       ]),
       error: () => this.aviso.mostrar('Não foi possível carregar os documentos clínicos.'),
     });
+
+    const perfil = this.auth.obterPerfil();
+    if (perfil !== 'admin' && perfil !== 'psicologo' && perfil !== 'psiquiatra') return;
+
+    this.evolucoesApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
+      next: (itens) => this.substituirOrigemDocumento(
+        pacienteId, 'evolucao', itens.map((item) => this.evolucaoComoDocumento(item)),
+      ),
+      error: () => this.aviso.mostrar('Não foi possível carregar as evoluções clínicas.'),
+    });
+    this.prescricoesApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
+      next: (itens) => this.substituirOrigemDocumento(
+        pacienteId, 'prescricao', itens.map((item) => this.prescricaoComoDocumento(item)),
+      ),
+      error: () => this.aviso.mostrar('Não foi possível carregar as prescrições.'),
+    });
+    this.examesApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
+      next: (itens) => this.substituirOrigemDocumento(
+        pacienteId, 'exame', itens.map((item) => this.exameComoDocumento(item)),
+      ),
+      error: () => this.aviso.mostrar('Não foi possível carregar os exames.'),
+    });
+    this.vinculosApi.listarPorPaciente(pacienteId).pipe(
+      takeUntil(this.cancelarLeiturasDaSessao),
+    ).subscribe({
+      next: (itens) => this._vinculosPorPaciente.update((atuais) => ({
+        ...atuais,
+        [pacienteId]: itens,
+      })),
+      error: () => this.aviso.mostrar('Não foi possível carregar os vínculos profissionais do paciente.'),
+    });
+  }
+
+  private substituirOrigemDocumento(
+    pacienteId: string,
+    origem: NonNullable<Documento['origem']>,
+    documentos: Documento[],
+  ): void {
+    this._documentos.update((atuais) => [
+      ...atuais.filter((documento) =>
+        documento.pacienteId !== pacienteId || documento.origem !== origem),
+      ...documentos,
+    ]);
+  }
+
+  private evolucaoComoDocumento(item: EvolucaoApi): Documento {
+    return {
+      id: `evolucao:${item.id}`,
+      origem: 'evolucao',
+      pacienteId: item.pacienteId,
+      profissionalId: item.profissionalId,
+      secao: 'evolucoes',
+      subtitulo: item.tipoEvolucao,
+      tipoEvolucao: item.tipoEvolucao,
+      titulo: item.titulo,
+      dataSessao: item.dataAtendimento.slice(0, 10),
+      tipoAtendimento: null,
+      conteudo: item.conteudo,
+      atualizadoEm: item.atualizadoEm || item.criadoEm,
+      anexos: [],
+    };
+  }
+
+  private prescricaoComoDocumento(item: PrescricaoApi): Documento {
+    return {
+      id: `prescricao:${item.id}`,
+      origem: 'prescricao',
+      pacienteId: item.pacienteId,
+      profissionalId: item.profissionalId,
+      secao: 'medicamentos',
+      subtitulo: 'Prescrição',
+      titulo: 'Prescrição',
+      dataSessao: item.criadaEm.slice(0, 10),
+      tipoAtendimento: null,
+      conteudo: item.conteudo,
+      atualizadoEm: item.atualizadaEm,
+      anexos: [],
+      medicamentos: item.medicamentos ?? [],
+    };
+  }
+
+  private exameComoDocumento(item: ExameApi): Documento {
+    const anexos = (item.anexosResultado ?? []).map((anexo) => ({
+      nome: anexo.nome,
+      url: `data:${anexo.tipoMime};base64,${anexo.conteudoBase64}`,
+    }));
+    return {
+      id: `exame:${item.id}`,
+      origem: 'exame',
+      pacienteId: item.pacienteId,
+      profissionalId: item.profissionalId,
+      secao: 'exames',
+      subtitulo: item.tipo || (item.ativo ? 'Solicitação de exame' : 'Exame arquivado'),
+      tipoExame: item.tipo,
+      titulo: item.nome,
+      dataSessao: item.dataRealizacao || item.solicitadoEm.slice(0, 10),
+      dataRealizacao: item.dataRealizacao,
+      tipoAtendimento: null,
+      conteudo: item.descricaoSolicitacao ?? '',
+      atualizadoEm: item.resultadoAtualizadoEm || item.criadoEm,
+      anexos,
+      arquivo: anexos.length === 1 ? anexos[0] : undefined,
+      resultado: item.resultado,
+      observacoes: item.observacoes,
+      ativo: item.ativo,
+    };
   }
 
   carregarDiagnosticos(pacienteId: string): void {
@@ -577,6 +750,111 @@ export class Clinica {
       id: dados.id ?? '',
       atualizadoEm: new Date().toISOString(),
     };
+
+    if (completo.secao === 'evolucoes'
+      && (dados.origem === 'evolucao'
+        || (!dados.id && dados.origem !== 'documento-clinico'))) {
+      if (dados.id && dados.origem === 'evolucao') {
+        throw new Error('Evoluções registradas são imutáveis. Registre uma nova evolução para acrescentar informações.');
+      }
+      if (completo.anexos.length) {
+        throw new Error('A API de evoluções não aceita anexos. Remova os arquivos antes de registrar a evolução.');
+      }
+      const perfil = this.auth.obterPerfil();
+      const request = {
+        pacienteId: completo.pacienteId,
+        ...(perfil === 'admin'
+          ? { profissionalId: await this.profissionalUnicoDoPaciente(completo.pacienteId) }
+          : {}),
+        tipoEvolucao: 'SESSAO',
+        areaAtendimento: perfil === 'psiquiatra' ? 'Psiquiatria' : 'Psicologia',
+        titulo: completo.titulo,
+        dataAtendimento: `${completo.dataSessao}T00:00:00`,
+        conteudo: completo.conteudo,
+      };
+      const salvo = await firstValueFrom(this.evolucoesApi.criar(request));
+      const documento = this.evolucaoComoDocumento(salvo);
+      this.substituirOrigemDocumento(completo.pacienteId, 'evolucao', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === completo.pacienteId && item.origem === 'evolucao'),
+        documento,
+      ]);
+      return documento;
+    }
+
+    if (completo.secao === 'medicamentos'
+      && (dados.origem === 'prescricao'
+        || (!dados.id && dados.origem !== 'documento-clinico'))) {
+      if (completo.anexos.length) {
+        throw new Error('A API de prescrições não aceita anexos. Remova os arquivos antes de salvar.');
+      }
+      const perfil = this.auth.obterPerfil();
+      const id = dados.id?.startsWith('prescricao:')
+        ? dados.id.slice('prescricao:'.length)
+        : undefined;
+      const request = {
+        pacienteId: completo.pacienteId,
+        ...(perfil === 'admin'
+          ? { profissionalId: dados.profissionalId
+            ?? await this.profissionalUnicoDoPaciente(completo.pacienteId) }
+          : {}),
+        conteudo: completo.conteudo,
+        ...(dados.origem === 'prescricao' && dados.medicamentos
+          ? { medicamentos: dados.medicamentos }
+          : {}),
+      };
+      const salvo = await firstValueFrom(id
+        ? this.prescricoesApi.atualizar(id, request)
+        : this.prescricoesApi.criar(request));
+      const documento = this.prescricaoComoDocumento(salvo);
+      this.substituirOrigemDocumento(completo.pacienteId, 'prescricao', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === completo.pacienteId && item.origem === 'prescricao'
+          && item.id !== documento.id),
+        documento,
+      ]);
+      return documento;
+    }
+
+    if (completo.secao === 'exames'
+      && dados.origem !== 'documento-clinico'
+      && (!dados.id || dados.origem === 'exame')) {
+      const id = dados.id?.startsWith('exame:')
+        ? dados.id.slice('exame:'.length)
+        : undefined;
+      const anexosExistentes = id
+        ? this._documentos().find((documento) => documento.id === dados.id)?.anexos ?? []
+        : [];
+      const alterouAnexos = completo.anexos.length !== anexosExistentes.length
+        || completo.anexos.some((anexo, indice) => anexo.url !== anexosExistentes[indice]?.url);
+      if (alterouAnexos) {
+        throw new Error('Arquivos enviados pela seção do prontuário são documentos clínicos; não podem ser registrados como resultado de exame.');
+      }
+      const profissionalId = dados.profissionalId
+        ?? await this.profissionalUnicoDoPaciente(completo.pacienteId);
+      const request = {
+        pacienteId: completo.pacienteId,
+        profissionalId,
+        nome: completo.titulo,
+        ...(completo.tipoExame ? { tipo: completo.tipoExame } : {}),
+        descricaoSolicitacao: completo.conteudo,
+      };
+      let salvo: ExameApi;
+      if (id) {
+        salvo = await firstValueFrom(this.examesApi.atualizar(id, request));
+      } else {
+        salvo = await firstValueFrom(this.examesApi.criar(request));
+      }
+      const documento = this.exameComoDocumento(salvo);
+      this.substituirOrigemDocumento(completo.pacienteId, 'exame', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === completo.pacienteId && item.origem === 'exame'
+          && item.id !== documento.id),
+        documento,
+      ]);
+      return documento;
+    }
+
     const anexos = await Promise.all(completo.anexos.map(async (anexo) => {
       const resposta = await fetch(anexo.url);
       const blob = await resposta.blob();
@@ -587,7 +865,7 @@ export class Clinica {
     }));
     const request = {
       pacienteId: completo.pacienteId, secao: completo.secao, titulo: completo.titulo,
-      dataSessao: completo.dataSessao, tipoAtendimento: completo.tipoAtendimento,
+      dataSessao: completo.dataSessao, tipoAtendimento: completo.tipoAtendimento ?? 'Presencial',
       conteudo: completo.conteudo || `Arquivo anexado: ${completo.titulo}`, anexos,
     };
     const salvo = dados.id
@@ -601,11 +879,24 @@ export class Clinica {
   private documentoDaApi(item: DocumentoClinicoApi): Documento {
     const anexos = (item.anexos ?? []).map((a) => ({ nome: a.nome, url: `data:${a.tipoMime};base64,${a.conteudoBase64}` }));
     return {
-      id: item.id, pacienteId: item.pacienteId, secao: item.secao as Secao, titulo: item.titulo,
+      id: item.id, origem: 'documento-clinico', pacienteId: item.pacienteId, profissionalId: item.profissionalId,
+      secao: item.secao as Secao, titulo: item.titulo,
       dataSessao: item.dataSessao, tipoAtendimento: item.tipoAtendimento as TipoAtendimento,
       conteudo: item.conteudo, atualizadoEm: item.atualizadoEm,
       anexos, arquivo: item.conteudo.startsWith('Arquivo anexado:') ? anexos[0] : undefined,
     };
+  }
+
+  private async profissionalUnicoDoPaciente(pacienteId: string): Promise<string> {
+    const vinculos = await firstValueFrom(this.vinculosApi.listarPorPaciente(pacienteId));
+    this._vinculosPorPaciente.update((atuais) => ({ ...atuais, [pacienteId]: vinculos }));
+    const profissionaisAtivos = [...new Set(
+      vinculos.filter((vinculo) => vinculo.ativo).map((vinculo) => vinculo.profissionalId),
+    )];
+    if (profissionaisAtivos.length !== 1) {
+      throw new Error('Não foi possível identificar um único profissional ativo para este paciente.');
+    }
+    return profissionaisAtivos[0];
   }
 
 }

@@ -1,9 +1,9 @@
 package com.neurovita.dto;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -44,7 +44,8 @@ public class PacienteRequest {
     private Boolean ativo;
 
     @Valid
-    private List<VinculoResponsavelRequest> responsaveis = new ArrayList<>();
+    @Schema(description = "Responsável-paciente links. Omitted/null preserves current links on update; an empty list explicitly requests removal, subject to the minor-patient rule.")
+    private List<VinculoResponsavelRequest> responsaveis;
 
     private Boolean possuiPlanoSaude;
     private String planoSaude;
@@ -109,9 +110,7 @@ public class PacienteRequest {
 
     public void setResponsaveis(
             List<VinculoResponsavelRequest> responsaveis) {
-        this.responsaveis = responsaveis == null
-                ? new ArrayList<>()
-                : responsaveis;
+        this.responsaveis = responsaveis;
     }
 
     public Boolean getPossuiPlanoSaude() {
