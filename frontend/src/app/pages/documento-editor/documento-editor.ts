@@ -41,6 +41,21 @@ export class DocumentoEditor {
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
   protected readonly cfg = computed(() => SECOES[this.secaoValida() ?? 'evolucoes']);
   protected readonly doc = computed(() => this.clinica.documentos().find((d) => d.id === this.docId()));
+  protected readonly mostraData = computed(() =>
+    this.doc()?.origem === 'documento-clinico'
+      || this.secaoValida() !== 'medicamentos',
+  );
+  protected readonly mostraTipoAtendimento = computed(() => {
+    const documento = this.doc();
+    if (documento) return documento.origem === 'documento-clinico';
+    return !['evolucoes', 'medicamentos', 'exames'].includes(this.secaoValida() ?? '');
+  });
+  protected readonly permiteAnexos = computed(() => {
+    const origem = this.doc()?.origem;
+    if (origem === 'evolucao' || origem === 'prescricao') return false;
+    if (!this.doc() && (this.secaoValida() === 'evolucoes' || this.secaoValida() === 'medicamentos')) return false;
+    return true;
+  });
 
   protected readonly conteudo = signal('');
   protected readonly dataSessao = signal(this.hoje);
@@ -65,7 +80,8 @@ export class DocumentoEditor {
     this.clinica.documentosDe(this.id(), this.secaoValida() ?? undefined).map((d) => ({
       doc: d,
       dataBR: formatarData(d.dataSessao),
-      sub: d.secao === 'evolucoes' ? `Sessão ${d.tipoAtendimento.toLowerCase()}` : d.titulo,
+      sub: d.subtitulo || (d.secao === 'evolucoes'
+        ? `Sessão ${(d.tipoAtendimento ?? '').toLowerCase()}` : d.titulo),
     })),
   );
 
@@ -84,9 +100,9 @@ export class DocumentoEditor {
       this.carregado = true;
       this.conteudo.set(d.conteudo);
       this.dataSessao.set(d.dataSessao);
-      this.tipo.set(d.tipoAtendimento);
+      this.tipo.set(d.tipoAtendimento === 'Online' ? 'Online' : 'Presencial');
       this.anexos.set(d.anexos);
-      this.inicial.set({ conteudo: d.conteudo, dataSessao: d.dataSessao, tipo: d.tipoAtendimento, anexos: d.anexos.length });
+      this.inicial.set({ conteudo: d.conteudo, dataSessao: d.dataSessao, tipo: this.tipo(), anexos: d.anexos.length });
     });
   }
 
@@ -122,15 +138,27 @@ export class DocumentoEditor {
       existente?.titulo ??
       (cfg.id === 'evolucoes' ? `Evolução ${dataBR}` : primeiraLinha(this.conteudo()) || `${cfg.singular} ${dataBR}`);
 
-    const salvo = await this.clinica.salvarDocumento({
-      id: existente?.id, pacienteId: this.id(), secao: cfg.id, titulo, dataSessao: this.dataSessao(),
-      tipoAtendimento: this.tipo(), conteudo: this.conteudo(), anexos: this.anexos(), arquivo: existente?.arquivo,
-    });
+    try {
+      const salvo = await this.clinica.salvarDocumento({
+        id: existente?.id, origem: existente?.origem, profissionalId: existente?.profissionalId,
+        medicamentos: existente?.medicamentos, tipoExame: existente?.tipoExame,
+        resultado: existente?.resultado, observacoes: existente?.observacoes,
+        pacienteId: this.id(), secao: cfg.id, titulo, dataSessao: this.dataSessao(),
+        tipoAtendimento: this.tipo(), conteudo: this.conteudo(), anexos: this.anexos(), arquivo: existente?.arquivo,
+      });
 
-    this.confirmando.set(false);
-    this.carregado = true;
-    this.inicial.set({ conteudo: this.conteudo(), dataSessao: this.dataSessao(), tipo: this.tipo(), anexos: this.anexos().length });
-    this.aviso.mostrar('Alterações salvas com sucesso.');
-    this.router.navigate([this.raiz(), 'pacientes', this.id(), cfg.id, salvo.id]);
+      this.confirmando.set(false);
+      this.carregado = true;
+      this.inicial.set({ conteudo: this.conteudo(), dataSessao: this.dataSessao(), tipo: this.tipo(), anexos: this.anexos().length });
+      this.aviso.mostrar('Alterações salvas com sucesso.');
+      this.router.navigate([this.raiz(), 'pacientes', this.id(), cfg.id, salvo.id]);
+    } catch (erro) {
+      console.error('Falha ao salvar registro clínico:', erro);
+      this.confirmando.set(false);
+      const erroDaApi = typeof erro === 'object' && erro !== null && 'status' in erro;
+      this.aviso.mostrar(erro instanceof Error && !erroDaApi
+        ? erro.message
+        : 'Não foi possível salvar o registro clínico. Verifique os dados e tente novamente.');
+    }
   }
 }

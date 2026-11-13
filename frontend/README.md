@@ -147,16 +147,18 @@ São as mesmas páginas do psicólogo (`pages/pacientes`, `prontuario`, `secao-p
 - **Acesso ao sistema:** o formulário gera uma senha temporária e guarda o e-mail de acesso, mas o login de teste continua usando só as 4 contas fixas. O back-end precisa gravar a senha com segurança e enviar o e-mail de boas-vindas (`TODO` nos formulários).
 - **Pacientes:** o administrador só consulta; cadastrar, editar e excluir é da secretária.
 
-## Ligando ao back-end
+## Integração com o back-end
 
-Hoje tudo é fictício. Os pontos que precisam ser trocados estão marcados com `TODO` no código.
+O frontend usa JWT por meio do interceptor HTTP e a fachada `shared/clinica/clinica.ts` para carregar e atualizar os dados consumidos pelas telas existentes.
 
-- **Login:** `shared/auth.ts`. Trocar por uma chamada à API. O servidor deve devolver o perfil do usuário (`psicologo`, `psiquiatra`, `secretaria` ou `admin`). Depois, remover a lista de e-mails de teste em `pages/login`.
-- **Pacientes e documentos:** `shared/clinica/clinica.ts` guarda tudo **em memória** (some ao recarregar a página). Trocar os métodos por chamadas HTTP, mantendo os mesmos tipos (`shared/clinica/modelos.ts`).
-- **Dados das telas iniciais e da agenda:** `shared/dados-demo.ts` e `shared/dados-agenda.ts`.
-- **Arquivos enviados:** hoje usam endereços temporários do navegador. No back-end, enviar o arquivo de verdade.
-- **Texto formatado:** o editor guarda HTML. A limpeza feita no front (`limparHtml`, em `shared/util.ts`) deve ser repetida no servidor antes de gravar.
-- **Rotas protegidas:** hoje qualquer pessoa abre as telas pelo endereço. Quando o login for real, proteger com um guard.
+- **Evoluções:** `evolucoes-api.service.ts` usa `GET /api/evolucoes/paciente/{pacienteId}` e `POST /api/evolucoes`. Novas evoluções são append-only; documentos antigos da seção continuam no endpoint genérico e não são convertidos.
+- **Prescrições:** `prescricoes-api.service.ts` usa `GET /api/prescricoes/paciente/{pacienteId}`, `POST /api/prescricoes` e `PUT /api/prescricoes/{id}`. Os medicamentos estruturados já retornados pela API são preservados nas atualizações, mesmo sem campos próprios para editá-los no formulário atual.
+- **Exames:** `exames-api.service.ts` usa a API `/api/exames`, incluindo `PUT /{id}/resultado` para registrar resultados e anexos.
+- **Vínculos profissionais-pacientes:** `vinculos-profissionais-pacientes-api.service.ts` consulta o histórico em `GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}`. A criação automática após salvar ou remarcar uma consulta é responsabilidade do backend.
+- **Tratamentos:** `tratamentos-api.service.ts` contém os métodos correspondentes à API `/api/tratamentos`. Não há formulário ou tela de tratamento existente para conectar; nenhuma tela foi criada.
+- **Compatibilidade:** documentos clínicos antigos permanecem acessíveis pelo endpoint `/api/documentos-clinicos`; não há migração ou conversão automática.
+
+Os serviços usam as respostas reais da API. Falhas HTTP são informadas pelas telas e não são tratadas como sucesso. A validação de autorização continua no backend, independentemente dos guards Angular.
 
 ## Equipe
 

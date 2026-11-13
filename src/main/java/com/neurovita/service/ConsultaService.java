@@ -21,6 +21,7 @@ import com.neurovita.model.Disponibilidade;
 import com.neurovita.model.Profissional;
 import com.neurovita.model.StatusConsulta;
 import com.neurovita.model.Usuario;
+import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.DisponibilidadeRepository;
 import com.neurovita.repository.PacienteRepository;
@@ -63,7 +64,9 @@ public class ConsultaService {
         preencherConsulta(consulta, request);
         consulta.setStatus(StatusConsulta.PENDENTE);
 
-        return new ConsultaResponse(consultaRepository.save(consulta));
+        Consulta consultaSalva = consultaRepository.save(consulta);
+        garantirVinculoAtivo(consultaSalva);
+        return new ConsultaResponse(consultaSalva);
     }
 
     public List<ConsultaResponse> listarTodos() {
@@ -161,7 +164,9 @@ public class ConsultaService {
             consulta.setStatus(StatusConsulta.REMARCADA);
         }
 
-        return new ConsultaResponse(consultaRepository.save(consulta));
+        Consulta consultaSalva = consultaRepository.save(consulta);
+        garantirVinculoAtivo(consultaSalva);
+        return new ConsultaResponse(consultaSalva);
     }
 
     public ConsultaResponse confirmar(String id) {
@@ -557,6 +562,22 @@ public class ConsultaService {
         consulta.setLocal(request.getLocal());
         consulta.setModalidade(request.getModalidade());
         consulta.setDuracao(request.getDuracao());
+    }
+
+    private void garantirVinculoAtivo(Consulta consulta) {
+        if (vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                        consulta.getPacienteId(), consulta.getProfissionalId())
+                .isPresent()) {
+            return;
+        }
+
+        VinculoProfissionalPaciente vinculo = new VinculoProfissionalPaciente();
+        vinculo.setPacienteId(consulta.getPacienteId());
+        vinculo.setProfissionalId(consulta.getProfissionalId());
+        vinculo.setIniciadoEm(LocalDateTime.now());
+        vinculo.setIniciadoPor(obterAutenticacao().getName());
+        vinculoRepository.save(vinculo);
     }
 
     private Consulta buscarConsulta(String id) {

@@ -9,7 +9,9 @@
         <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, 'novo']">{{ cfg().botaoNovo }}</a>
       }
       @if (selecionado(); as doc) {
-        <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, doc.id, 'editar']">Editar {{ cfg().singular }}</a>
+        @if (doc.origem !== 'evolucao') {
+          <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, doc.id, 'editar']">Editar {{ cfg().singular }}</a>
+        }
       }
     </app-titulo-pagina>
 
@@ -21,13 +23,22 @@
           <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().id === 'evolucoes' ? 'Evolução do Paciente' : doc.titulo }}</h2>
 
           <div class="doc-campos cartao">
-            <div class="campo-mini">Data da sessão<span class="campo-leitura">{{ formatar(doc.dataSessao) }}</span></div>
-            <div class="campo-mini">Tipo de atendimento<span class="campo-leitura">{{ doc.tipoAtendimento }}</span></div>
-            <div class="campo-mini">Anexar arquivos
-              <button type="button" class="botao-upload" (click)="escolherArquivo()">Fazer Upload de arquivos</button>
-            </div>
+            <div class="campo-mini">{{ cfg().id === 'exames' ? 'Data de realização' : 'Data da sessão' }}<span class="campo-leitura">{{ formatar(doc.dataSessao) }}</span></div>
+            @if (doc.tipoAtendimento) {
+              <div class="campo-mini">Tipo de atendimento<span class="campo-leitura">{{ doc.tipoAtendimento }}</span></div>
+            }
+            @if (doc.origem === 'evolucao') {
+              <div class="campo-mini">Tipo de evolução<span class="campo-leitura">{{ doc.tipoEvolucao }}</span></div>
+            }
+            @if (podeAnexar(doc)) {
+              <div class="campo-mini">Anexar arquivos
+                <button type="button" class="botao-upload" (click)="escolherArquivo()">Fazer Upload de arquivos</button>
+              </div>
+            }
           </div>
-          <input #arquivo type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+          @if (podeAnexar(doc)) {
+            <input #arquivo type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
+          }
 
           @if (doc.anexos.length) {
             <ul class="anexos" aria-label="Arquivos anexados">

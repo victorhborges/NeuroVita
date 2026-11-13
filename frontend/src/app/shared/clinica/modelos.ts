@@ -173,14 +173,30 @@ export interface Documento {
   id: string;
   pacienteId: string;
   secao: Secao;
+  /** Identifica a API de origem sem alterar IDs dos documentos legados. */
+  origem?: 'documento-clinico' | 'evolucao' | 'prescricao' | 'exame';
+  subtitulo?: string;
+  profissionalId?: string;
   titulo: string;
   /** 'aaaa-mm-dd' */
   dataSessao: string;
-  tipoAtendimento: TipoAtendimento;
+  tipoAtendimento: TipoAtendimento | null;
   /** Texto formatado (HTML). */
   conteudo: string;
   atualizadoEm: string;
   anexos: Anexo[];
+  tipoEvolucao?: string;
+  medicamentos?: {
+    medicamento: string;
+    dosagem?: string | null;
+    posologia?: string | null;
+    frequencia?: string | null;
+    duracao?: string | null;
+  }[];
+  tipoExame?: string | null;
+  resultado?: string | null;
+  observacoes?: string | null;
+  ativo?: boolean;
   /** Presente quando o documento foi enviado como arquivo (upload). */
   arquivo?: Anexo;
 }

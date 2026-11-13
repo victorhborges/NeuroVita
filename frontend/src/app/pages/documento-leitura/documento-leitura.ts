@@ -5,7 +5,7 @@ import { Aviso } from '../../shared/aviso/aviso';
 import { anexoDe, baixarAnexo } from '../../shared/clinica/arquivos';
 import { Clinica } from '../../shared/clinica/clinica';
 import { SECOES, secaoDoPerfil } from '../../shared/clinica/secoes';
-import { Secao } from '../../shared/clinica/modelos';
+import { Documento, Secao } from '../../shared/clinica/modelos';
 import { FaixaPaciente } from '../../shared/faixa-paciente/faixa-paciente';
 import { HtmlSeguro } from '../../shared/html-seguro';
 import { Icone } from '../../shared/icone/icone';
@@ -45,7 +45,8 @@ export class DocumentoLeitura {
     this.clinica.documentosDe(this.id(), this.secaoValida() ?? undefined).map((d) => ({
       doc: d,
       dataBR: formatarData(d.dataSessao),
-      sub: d.secao === 'evolucoes' ? `Sessão ${d.tipoAtendimento.toLowerCase()}` : d.titulo,
+      sub: d.subtitulo || (d.secao === 'evolucoes'
+        ? `Sessão ${(d.tipoAtendimento ?? '').toLowerCase()}` : d.titulo),
     })),
   );
 
@@ -60,6 +61,10 @@ export class DocumentoLeitura {
   );
 
   protected readonly formatar = formatarData;
+
+  protected podeAnexar(doc: Documento): boolean {
+    return doc.origem !== 'evolucao' && doc.origem !== 'prescricao';
+  }
 
   protected escolherArquivo(): void {
     this.arquivoCampo()?.nativeElement.click();

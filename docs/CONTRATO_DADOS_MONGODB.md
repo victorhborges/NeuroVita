@@ -525,4 +525,4 @@ Não havia conexão de banco/credencial de leitura disponibilizada nesta tarefa;
 3. Origem e timezone de dados legados eventualmente migrados de Node/Mongoose.
 4. Convenção temporal explícita e compatível com os valores históricos.
 5. Índices existentes e possíveis duplicidades antes de índices unique.
-6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento e avaliações: atualmente são tratados genericamente por `DocumentoClinico`, sem enum/coleção específica. `Evolucao` foi adicionada como registro próprio, mas ainda não há tela Angular ligada a essa coleção.
+6. Definição funcional de valores `secao`/tipos para laudos, atestados, encaminhamentos, acolhimento e avaliações: atualmente são tratados genericamente por `DocumentoClinico`, sem enum/coleção específica. A tela de prontuário existente já consulta e cadastra registros próprios de `Evolucao`; documentos clínicos legados continuam carregados separadamente e não são convertidos automaticamente.

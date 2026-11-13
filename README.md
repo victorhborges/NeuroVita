@@ -124,7 +124,7 @@ src/main/resources/static/
 
 A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
 
-O frontend utiliza serviços de integração para acessar os módulos da API, incluindo pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias e preferências.
+O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend.
 
 O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
@@ -483,7 +483,7 @@ O mecanismo unificado de documentos clínicos contempla diferentes seções, inc
 - Atestados.
 - Documentos e anexos.
 
-Esse mecanismo mantém compatibilidade com os formulários atuais. A coleção/API específica `evolucoes` fornece registro append-only para consumo por integrações futuras; os componentes Angular existentes ainda usam `documentos_clinicos` para as anotações e documentos da seção Evoluções.
+Documentos clínicos antigos continuam sendo lidos e editados pelo endpoint genérico, sem conversão automática. Novas evoluções e anotações feitas pela tela existente usam a API específica `evolucoes`; a listagem combina os registros legados com os registros dessa API. Evoluções específicas são append-only, sem edição ou anexos nesta versão.
 
 A consulta pode ser filtrada por seção:
 
@@ -937,15 +937,15 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Permissões clínicas por vínculo | Implementadas localmente; validação integrada pendente |
 | Prontuário centralizado | Implementado |
 | Documentos clínicos e anexos | Implementados |
-| Evoluções clínicas append-only | Backend implementado; API ainda não conectada à seção Angular existente |
+| Evoluções clínicas append-only | API integrada à seção Angular existente; registros legados preservados e sem conversão automática |
 | Arquivamento lógico de documentos clínicos | Implementado localmente |
 | Diagnósticos e CID | Implementados |
 | Arquivamento lógico de diagnósticos | Implementado localmente |
-| Tratamentos | Implementados |
+| Tratamentos | Backend e serviço Angular implementados; falta uma interface existente para conectá-los |
 | Arquivamento lógico de tratamentos | Implementado localmente |
-| Exames e resultados | Implementados |
+| Exames e resultados | API integrada ao formulário clínico existente; resultado e anexos usam endpoint próprio |
 | Arquivamento lógico de exames | Implementado localmente |
-| Prescrições textuais | Implementadas |
+| Prescrições textuais | API integrada ao formulário clínico existente |
 | Itens estruturados de prescrição | Implementados localmente |
 | Histórico de revisões de prescrições | Implementado |
 | Consultas e agenda | Implementadas |
