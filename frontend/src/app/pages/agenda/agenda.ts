@@ -194,7 +194,15 @@ export class Agenda {
   protected readonly horarios = computed(() =>
     horariosAgendaParaConsultas(this.consultas()),
   );
-  protected readonly linhas = computed(() => this.horarios().map((_, i) => i));
+  protected readonly horas = computed(() => {
+    const horarios = this.horarios();
+    const inicio = Math.floor(minutosDe(horarios[0] ?? '08:00') / 60) * 60;
+    const fim = Math.ceil(minutosDe(horarios.at(-1) ?? '18:00') / 60) * 60;
+    return Array.from({ length: Math.floor((fim - inicio) / 60) + 1 }, (_, i) => {
+      const minutos = inicio + i * 60;
+      return `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
+    });
+  });
   protected readonly colunas = [0, 1, 2, 3, 4, 5];
   protected readonly statusLista = ORDEM_STATUS;
   protected readonly rotulo = ROTULO_STATUS;
@@ -417,8 +425,10 @@ export class Agenda {
           nome: paciente?.nome ?? 'Paciente',
           profNome: profissional?.nome ?? '—',
           dia: diaDaSemana(a.data),
-          linha: Math.floor((minutosDe(a.inicio) - minutosDe(this.horarios()[0])) / 30) + 2,
-          trechos: Math.max(1, Math.ceil(a.duracao / 30)),
+          fim: (() => {
+            const fim = minutosDe(a.inicio) + a.duracao;
+            return `${String(Math.floor(fim / 60)).padStart(2, '0')}:${String(fim % 60).padStart(2, '0')}`;
+          })(),
           destaque:
             !termo ||
             normalizar(paciente?.nome ?? '').includes(termo),
@@ -426,6 +436,16 @@ export class Agenda {
         };
       });
   });
+
+  protected readonly grade = computed(() =>
+    this.horas().map((hora) =>
+      this.colunas.map((coluna) =>
+        this.eventos()
+          .filter((evento) => evento.dia === coluna && Math.floor(minutosDe(evento.inicio) / 60) === minutosDe(hora) / 60)
+          .sort((a, b) => minutosDe(a.inicio) - minutosDe(b.inicio)),
+      ),
+    ),
+  );
 
   private readonly consultasHoje = computed(() =>
     this.consultas().filter((a) => a.data === this.hojeBase),

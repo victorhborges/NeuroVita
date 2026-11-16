@@ -2,7 +2,7 @@
 
 Front-end do **NeuroVita**, um sistema web para clínicas de psicologia e psiquiatria, com foco em agendamento de consultas e acompanhamento de pacientes. Projeto da faculdade, feito em **Angular**.
 
-> **Status:** em desenvolvimento. Login, agenda e fluxos clínicos descritos na seção de integração abaixo consomem o backend com JWT. Algumas telas ainda usam dados de demonstração ou aguardam os formulários/ações que serão entregues pela equipe frontend.
+> **Status:** em desenvolvimento. Login, agenda, cadastros e fluxos clínicos descritos na seção de integração consomem o backend com JWT. As telas Configurações e Ajuda e a atualização do painel foram incorporadas da referência FBR. Fale Conosco está visível, mas o projeto ainda não possui um canal/endereço de envio configurado.
 
 ## Perfis de usuário
 
@@ -15,7 +15,7 @@ O sistema tem 4 perfis. As telas são parecidas, mas o menu, os botões e as fun
 | **Secretária** | Início, Pacientes (cadastrar, editar e excluir), Profissionais, Gerenciamento de consultas e Agenda |
 | **Administrador** | Início, Pacientes (só consulta), Profissionais e Secretárias (cadastrar, editar, inativar e excluir) e Agenda |
 
-Todos os 4 perfis já têm as telas do protótipo. Faltam Configurações, Ajuda e as notificações (sino).
+Todos os 4 perfis possuem telas iniciais, agenda e fluxos clínicos conforme sua autorização. Configurações e Ajuda ficam disponíveis nos quatro perfis. As notificações persistem como preferência, mas não há serviço de entrega; 2FA aguarda definição funcional e não é ativado pela interface.
 
 ## Tecnologias
 
@@ -99,6 +99,10 @@ O e-mail não diferencia maiúsculas de minúsculas. Também dá para abrir cada
 | `/admin/secretarias/novo` | Cadastrar nova secretária |
 | `/admin/secretarias/:id/editar` | Editar secretária |
 | `/admin/agenda` | Agenda semanal (igual à da secretária) |
+| `/:perfil/configuracoes` | Preferências persistidas, informações da sessão e alteração de senha autenticada |
+| `/:perfil/ajuda` | Central de ajuda com busca de tópicos |
+| `/:perfil/ajuda/:topico` | Instruções estáticas para os fluxos cobertos |
+| `/:perfil/ajuda/fale-conosco` | Informação de que o canal de contato ainda precisa ser configurado |
 | qualquer outro | Página não encontrada |
 
 `:secao` no psicólogo: `evolucoes`, `laudos`, `encaminhamentos`, `avaliacoes` ou `atestados`.
@@ -156,8 +160,14 @@ O frontend usa JWT por meio do interceptor HTTP e a fachada `shared/clinica/clin
 - **Exames:** `exames-api.service.ts` integra a tela de solicitação com `/api/exames`; o texto da solicitação é persistido em `descricaoSolicitacao`, sem preencher data de realização ou histórico de resultado. A tela atual não registra resultados; `PUT /{id}/resultado` permanece disponível na API. Uploads genéricos do prontuário continuam em `documentos_clinicos` e não são convertidos em anexos de resultado.
 - **Vínculos profissionais-pacientes:** `vinculos-profissionais-pacientes-api.service.ts` consulta o histórico em `GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}`. A criação automática após salvar ou remarcar uma consulta é responsabilidade do backend.
 - **Responsáveis no prontuário:** profissionais consultam responsáveis individualmente por `GET /api/responsaveis/{id}` apenas quando possuem vínculo ativo com algum paciente relacionado. Listagem e escrita permanecem restritas a administrador/secretaria.
-- **Preferências:** `preferencias-api.service.ts` lê e atualiza o contrato completo do endpoint `/api/preferencias`. Atualizações omitem campos inalterados; o backend preserva esses valores. O formulário de configuração ainda não está presente.
-- **Senha autenticada:** `Auth.alterarSenhaAutenticada` chama `POST /api/auth/alterar-senha`, conforme contrato existente, e encerra a sessão local após sucesso porque o backend invalida o JWT anterior. A ação de configuração ainda não tem tela.
+- **Preferências:** `preferencias-api.service.ts` lê e atualiza `/api/preferencias`. Configurações salva tema, idioma, formato de data, duração padrão, início da semana e flags de notificação após confirmação. O tema e o formato de data são aplicados no frontend. O idioma é persistido, mas as traduções completas ainda não estão implementadas; início da semana é salvo, porém a grade de referência continua de segunda a sábado; as flags não enviam notificações. A própria versão de referência guarda estas opções sem aplicá-las às telas.
+- **Senha autenticada:** Configurações chama `POST /api/auth/alterar-senha` por `Auth.alterarSenhaAutenticada` e encerra a sessão local após sucesso. Nome e e-mail do perfil são somente leitura, pois o login não fornece ID da entidade nem há uma API de atualização do perfil autenticado.
+- **Autenticação em duas etapas:** não há toggle funcional. Fator, ativação, verificação e recuperação dependem de definição do MVP.
+- **Painel inicial:** a tabela da agenda é alimentada por consultas e pacientes da API; administradores e secretarias também carregam os profissionais para apresentar seus nomes. Falhas de carregamento são exibidas sem apresentar os dados como completos.
+- **Agenda semanal:** a grade atual mostra consultas reais agrupadas por faixa horária com horário, duração, modalidade e profissional. A referência mantém seis dias (segunda a sábado); a preferência de início da semana é salva na API, mas o protótipo não define comportamento para reorganizar essa grade.
+- **Prontuário:** segue os cartões e atalhos da referência atual, mantendo dados pessoais, responsáveis múltiplos, informações da última/próxima consulta e histórico. A criação de evolução permanece na seção correspondente e consome o fluxo clínico específico.
+- **Ajuda e contato:** Ajuda é conteúdo estático e usa as capturas da referência. Fale Conosco não simula envio; depende de definição do endereço/canal e do backend correspondente.
+- **Acesso por perfil:** a listagem de pacientes do profissional é somente para consulta e prontuário; cadastro permanece nos fluxos de secretaria/admin conforme os endpoints e permissões existentes. As rotas Angular das telas são carregadas sob demanda para reduzir o bundle inicial.
 - **Prontuários:** `prontuarios-api.service.ts` disponibiliza consulta por paciente/ID, criação e atualização do contrato existente. O prontuário visual atual é uma composição de paciente, consultas e documentos clínicos e não possui campos de edição para os campos centrais da entidade; conectar esses campos depende da interface correspondente.
 - **Administradores:** `administradores-api.service.ts` disponibiliza CRUD para `/api/administradores`, protegido no backend para o perfil administrador. Não há tela de gerenciamento de administradores no frontend atual.
 - **Tratamentos:** `tratamentos-api.service.ts` oferece consulta por paciente, consulta por ID, criação, atualização e arquivamento em `/api/tratamentos`. A API também expõe listagem autorizada. Não há formulário ou tela de tratamento existente para conectar; nenhuma tela foi criada. Operações e regras de acesso estão descritas no Swagger.

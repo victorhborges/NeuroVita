@@ -25,25 +25,25 @@
           @for (d of dias(); track d.iso) {
             <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2">{{ d.nome }}<br />{{ d.texto }}</div>
           }
-          @for (h of horarios(); track h; let i = $index) {
-            <div class="ag-hora" [style.grid-row]="i + 2">{{ h }}</div>
-            @for (c of colunas; track c) {
-              <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2"></div>
+          @for (linha of grade(); track $index; let i = $index) {
+            <div class="ag-hora" [style.grid-row]="i + 2">{{ horas()[i] }}</div>
+            @for (celula of linha; track $index; let c = $index) {
+              <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2" role="gridcell">
+                @for (e of celula; track e.id) {
+                  <button
+                    type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
+                    [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
+                    [attr.title]="e.nome + ' · ' + e.inicio + ' às ' + e.fim + ' · ' + e.atendimento + ' · ' + e.profNome"
+                    (click)="selecionar(e.id)"
+                  >
+                    <strong>{{ e.nome }}</strong>
+                    <span>{{ e.inicio }} - {{ e.fim }}</span>
+                    <span>{{ e.tipo }} · {{ e.atendimento }}</span>
+                    <small>{{ e.profNome }}</small>
+                  </button>
+                }
+              </div>
             }
-          }
-          @for (e of eventos(); track e.id) {
-            <button
-              type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
-              [style.grid-column]="e.dia + 2" [style.grid-row]="e.linha + ' / span ' + e.trechos"
-              [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
-              (click)="selecionar(e.id)"
-            >
-              <strong>{{ e.nome }}</strong>
-              <span>{{ e.tipo }}</span>
-              @if (e.trechos > 1) {
-                <small>{{ e.profNome }}</small>
-              }
-            </button>
           }
         </div>
       </div>

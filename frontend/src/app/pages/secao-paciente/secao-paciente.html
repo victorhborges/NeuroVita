@@ -65,17 +65,29 @@
 
         <input #arquivo type="file" multiple class="oculto" aria-label="Enviar arquivos" (change)="aoEnviar($event)" />
 
-        <ul class="doc-lista">
+        <ul class="gal-grade">
           @for (item of itens(); track item.doc.id) {
-            <li class="doc-item">
-              <app-icone nome="prancheta" class="doc-item-icone" />
-              <a class="doc-item-nome" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]">{{ item.doc.titulo }}</a>
-              <span class="doc-item-data">{{ item.dataBR }}</span>
-              <span class="doc-item-acoes">
-                <button type="button" aria-label="Compartilhar" title="Compartilhar" (click)="compartilhar(item.doc)"><app-icone nome="compartilhar" /></button>
-                <button type="button" aria-label="Baixar" title="Baixar" (click)="baixar(item.doc)"><app-icone nome="baixar" /></button>
-                <a aria-label="Visualizar" title="Visualizar" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]"><app-icone nome="olho" /></a>
-              </span>
+            <li class="gal-item">
+              @if (item.arquivo; as arquivo) {
+                <a class="gal-miniatura" [href]="arquivo.url" target="_blank" rel="noopener" [attr.aria-label]="'Abrir ' + item.doc.titulo">
+                  @if (item.imagem) { <img [src]="arquivo.url" [alt]="item.doc.titulo" loading="lazy" /> }
+                  @else { <app-icone nome="baixar" class="gal-nuvem" /> }
+                </a>
+              } @else {
+                <a class="gal-miniatura gal-miniatura-texto" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]" [attr.aria-label]="'Abrir ' + item.doc.titulo">
+                  <span>{{ item.miniatura || item.doc.titulo }}</span>
+                </a>
+              }
+              <div class="gal-rodape">
+                <div class="gal-dados">
+                  <a class="gal-nome" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]" [attr.title]="item.doc.titulo">{{ item.doc.titulo }}</a>
+                  <span class="gal-data">{{ item.dataBR }}</span>
+                </div>
+                <span class="doc-item-acoes">
+                  <button type="button" [attr.aria-label]="'Compartilhar ' + item.doc.titulo" title="Compartilhar" (click)="compartilhar(item.doc)"><app-icone nome="compartilhar" /></button>
+                  <button type="button" [attr.aria-label]="'Baixar ' + item.doc.titulo" title="Baixar" (click)="baixar(item.doc)"><app-icone nome="baixar" /></button>
+                </span>
+              </div>
             </li>
           } @empty {
             <li class="tabela-vazio">{{ cfg().vazioLista }}</li>

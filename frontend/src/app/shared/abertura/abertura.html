@@ -1,0 +1,41 @@
+@if (visivel()) {
+  <div
+    class="abertura" [class.abertura-saindo]="saindo()" [class.abertura-reduzida]="reduzida()"
+    [style.--ritmo]="ritmo" [style.--queda]="queda()" role="status" aria-label="Abrindo o NeuroVita" (click)="encerrar()"
+  >
+    <!-- Cápsulas coloridas (cobrem a tela toda, para entrarem pela borda de cima) -->
+    <svg class="abertura-capsulas" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <clipPath id="abertura-corte-topo"><rect x="-80" y="-220" width="160" height="193" /></clipPath>
+      </defs>
+
+      <g transform="translate(230 232)">
+        <g class="cap-grupo cap-grupo-esq">
+          <path class="cap cap-azul cap-gancho" pathLength="100" d="M0,28 C0,63 24,83 64,82" />
+          <g class="cap-coluna">
+            <path class="cap cap-azul" d="M0,-82 V28" />
+            <path class="cap cap-verde" d="M0,-82 V28" clip-path="url(#abertura-corte-topo)" />
+          </g>
+        </g>
+      </g>
+
+      <g transform="translate(730 232)">
+        <g class="cap-grupo cap-grupo-dir">
+          <path class="cap cap-roxo cap-gancho" pathLength="100" d="M0,28 C0,63 -24,83 -64,82" />
+          <g class="cap-coluna">
+            <path class="cap cap-roxo" d="M0,-82 V28" />
+            <path class="cap cap-coral" d="M0,-82 V28" clip-path="url(#abertura-corte-topo)" />
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <!-- Cérebro e nome (medidas proporcionais à largura da cena) -->
+    <div class="abertura-palco">
+      <img class="abertura-cerebro" src="img/logo.png" alt="" />
+      <span class="abertura-nome">NeuroVita</span>
+    </div>
+
+    <button #pular type="button" class="abertura-pular" (click)="encerrar(); $event.stopPropagation()">Pular</button>
+  </div>
+}

@@ -40,6 +40,7 @@ export class GestaoPacientes {
         p,
         idade: idadeDe(p.nascimento),
         nascimento: formatarData(p.nascimento),
+        ultima: p.ultimaConsulta ? formatarData(p.ultimaConsulta) : '—',
         profissional: this.clinica.profissional(p.profissionalId)?.nome ?? '—',
         ativo: p.status !== 'inativo',
       }));

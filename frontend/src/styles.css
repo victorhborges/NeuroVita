@@ -1002,7 +1002,7 @@ app-avatar {
 .ag-busca { margin-left: auto; width: 14rem; }
 .ag-rolagem { max-height: 44rem; overflow: auto; border: 1px solid var(--painel-borda); border-radius: 0.5rem; }
 .ag-grade {
-  display: grid; grid-template-columns: 3.6rem repeat(6, minmax(6.5rem, 1fr)); grid-template-rows: 2.9rem repeat(21, 2.3rem); min-width: 46rem; position: relative;
+  display: grid; grid-template-columns: 3.6rem repeat(6, minmax(6.5rem, 1fr)); grid-template-rows: 3rem repeat(11, minmax(5.25rem, auto)); min-width: 46rem; position: relative;
   background: #fff;
 }
 .ag-canto, .ag-dia {
@@ -1011,15 +1011,16 @@ app-avatar {
 }
 .ag-canto { grid-column: 1; border-left: 0; }
 .ag-dia-hoje { background: #e9f0fb; }
-.ag-hora { grid-column: 1; display: flex; align-items: flex-start; justify-content: center; padding-top: 0.2rem; border-top: 1px solid var(--painel-borda); font-size: 0.65rem; color: #4b5563; }
-.ag-celula { border-top: 1px solid var(--painel-borda); border-left: 1px solid var(--painel-borda); }
+.ag-hora { grid-column: 1; display: flex; align-items: center; justify-content: center; border-top: 1px solid var(--painel-borda); background: #fafafa; font-size: 0.75rem; font-weight: 700; color: var(--painel-texto); }
+.ag-celula { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 4px; border-top: 1px solid var(--painel-borda); border-left: 1px solid var(--painel-borda); }
 .ag-celula-hoje { background: #f6f9fd; }
 .ag-evento {
-  z-index: 2; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.05rem; margin: 1px 2px; padding: 0.2rem 0.4rem; overflow: hidden;
-  border-radius: 0.3rem; text-align: left; font-size: 0.65rem; line-height: 1.15; color: #0b1220; transition: opacity 0.15s;
+  flex: 1 1 0; min-width: 0; min-height: 2rem; display: flex; flex-direction: column; justify-content: center; gap: 0.05rem; margin: 0; padding: 0.15rem 0.5rem; overflow: hidden;
+  border-radius: 0.35rem; text-align: left; font-size: 0.68rem; line-height: 1.2; color: #0b1220; transition: opacity 0.15s;
 }
+.ag-evento strong, .ag-evento span, .ag-evento small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-evento strong { font-weight: 700; }
-.ag-evento small { font-size: 0.6rem; }
+.ag-evento small { font-size: 0.62rem; }
 .ag-evento:hover { filter: brightness(0.95); }
 .ag-evento-apagado { opacity: 0.2; }
 .ag-evento-ativo { outline: 2px solid var(--navy); outline-offset: 0; }
@@ -1102,6 +1103,8 @@ app-avatar {
 .chip-st-pendente { border-color: #f0b24b; background: #fff6e5; color: #9a6200; }
 .chip-st-remarcado { border-color: #7283a8; background: #e9edf6; color: #2c3a5e; }
 .chip-st-cancelado { border-color: #e04b4b; background: #fdecec; color: #b42323; }
+.chip-st-icone { min-width: 7.6rem; gap: 0.45rem; padding: 0.3rem 0.8rem; border-width: 1.5px; font-size: 0.75rem; }
+.chip-st-icone app-icone { font-size: 1rem; }
 
 /* ---------- Tabelas da secretária ---------- */
 .tabela-linha-ges { display: grid; grid-template-columns: 2fr 1.3fr 1.3fr 1.4fr 0.9fr 0.9fr; align-items: center; gap: 0.75rem; padding: 0.65rem 1.1rem; }
@@ -1145,6 +1148,8 @@ app-avatar {
 .radios { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.9rem; }
 .radios legend { width: 100%; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 500; }
 .radios-status { margin-top: 0.25rem; }
+.status-caixa { display: inline-flex; align-items: center; padding: 0.55rem 0.75rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: var(--card); }
+.status-caixa .radio + .radio { margin-left: 0.75rem; padding-left: 0.75rem; border-left: 1px solid var(--painel-borda); }
 .radio { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .radio input { position: absolute; opacity: 0; width: 1.4rem; height: 1.4rem; margin: 0; cursor: pointer; }
 .radio-bolinha { width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #d4d6da; }
@@ -1269,7 +1274,8 @@ app-avatar {
 @media (max-width: 800px) {
   .tabela-linha-ges, .tabela-linha-prof { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
   .tabela-linha-ges > :nth-child(2), .tabela-linha-ges > :nth-child(3), .tabela-linha-ges > :nth-child(4),
-  .tabela-linha-prof > :nth-child(2), .tabela-linha-prof > :nth-child(3), .tabela-linha-prof > :nth-child(4) { display: none; }
+  .tabela-linha-prof > :nth-child(2), .tabela-linha-prof > :nth-child(3), .tabela-linha-prof > :nth-child(4),
+  .tabela-linha-ges-sec > :nth-child(2), .tabela-linha-ges-sec > :nth-child(3) { display: none; }
   .form-pac-duas { grid-template-columns: minmax(0, 1fr); }
   .prof-cards { grid-template-columns: minmax(0, 1fr); }
   .cons-horarios { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1280,6 +1286,8 @@ app-avatar {
    ========================================================== */
 .tabela-linha-leitura { grid-template-columns: 2fr 1.3fr 1.3fr 1.4fr 0.9fr; }
 .tabela-linha-prof-adm { grid-template-columns: 2.2fr 1.4fr 1.4fr 1.3fr 1fr 0.9fr; }
+/* Pacientes da secretária: Paciente, Última consulta, Telefone, Status, Ações. */
+.tabela-linha-ges-sec { grid-template-columns: 2.2fr 1.3fr 1.3fr 1.1fr 0.9fr; }
 .pac-texto-forte { color: var(--painel-texto); font-weight: 500; }
 .pac-texto-quebra { overflow-wrap: anywhere; }
 .form-pac-coluna { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
@@ -1317,3 +1325,443 @@ input:focus-visible + .caixa { outline: 2px solid #c7d2fe; outline-offset: 2px; 
   .tabela-linha-leitura > :nth-child(2), .tabela-linha-leitura > :nth-child(3), .tabela-linha-leitura > :nth-child(4) { display: none; }
   .senha-linha { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ==========================================================
+   Configurações
+   ========================================================== */
+.agenda-tabela { margin-top: 1.25rem; }
+.agenda-tabela-topo { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.1rem 0.6rem; font-size: 1.5rem; }
+.agenda-tabela-titulo { font-size: 1.35rem; line-height: 1.75rem; font-weight: 600; }
+.agenda-tabela-rolagem { overflow-x: auto; }
+.agenda-tabela-limite { max-height: 32rem; overflow-y: auto; }
+.agenda-tabela-grade { width: 100%; min-width: 46rem; border-collapse: collapse; }
+.agenda-tabela-grade th { padding: 0.8rem 1rem; border-bottom: 1px solid var(--painel-borda); font-size: 0.75rem; font-weight: 600; text-align: center; }
+.agenda-tabela-grade td { padding: 1.15rem 1rem; text-align: center; font-size: 0.8rem; line-height: 1.25rem; font-weight: 600; }
+.agenda-tabela-grade tbody tr + tr td { border-top: 1px solid var(--painel-borda); }
+.agenda-tabela-grade th:nth-child(2), .agenda-tabela-grade td:nth-child(2) { padding-left: 2rem; text-align: left; }
+.agenda-tabela-hora { display: inline-flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
+.agenda-tabela-hora app-icone { font-size: 1.2rem; }
+.agenda-tabela-paciente { display: inline-flex; align-items: center; gap: 0.9rem; --avatar: 2.4rem; text-align: left; }
+.agenda-tabela-vazio { padding: 2rem 1.1rem; text-align: center; font-size: 0.9rem; color: var(--painel-suave); }
+@media (max-width: 760px) { .agenda-tabela-titulo { font-size: 1.15rem; } }
+
+.cfg-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.cfg-cartao { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.1rem 1.3rem; }
+.cfg-perfil { flex-direction: row; gap: 1.1rem; }
+.cfg-avatar { flex: none; width: 6.5rem; height: 6.5rem; border-radius: 50%; background: #d9d9d9; }
+.cfg-perfil-corpo { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 0.4rem; }
+.cfg-titulo { display: flex; align-items: center; gap: 0.45rem; font-size: 1.05rem; line-height: 1.5rem; font-weight: 700; }
+.cfg-titulo app-icone { font-size: 1.3rem; }
+.cfg-titulo-grande { gap: 0.75rem; font-size: 1.15rem; }
+.cfg-titulo-grande app-icone { font-size: 1.6rem; }
+.cfg-sub { font-size: 0.85rem; line-height: 1.2rem; }
+.cfg-dados { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.3rem 0 0; }
+.cfg-dados dt { font-size: 0.8rem; line-height: 1.1rem; }
+.cfg-dados dd { margin: 0; font-size: 1rem; line-height: 1.4rem; font-weight: 700; overflow-wrap: anywhere; }
+.cfg-input { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid var(--painel-borda); border-radius: 0.4rem; background: #fff; font-size: 0.9rem; font-weight: 500; }
+.cfg-editar { align-self: flex-end; margin-top: 0.4rem; font-size: 0.8rem; }
+
+.cfg-linhas { display: flex; flex-direction: column; gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
+.cfg-linha { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.cfg-rotulo { display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; line-height: 1.3rem; }
+.cfg-rotulo app-icone { flex: none; font-size: 1.3rem; }
+.cfg-rotulo-longo { max-width: 17rem; font-size: 0.85rem; }
+.cfg-campo { position: relative; width: 11rem; flex: none; }
+.cfg-campo .lista-campo { min-height: 2.2rem; padding: 0.35rem 0.7rem; font-size: 0.85rem; color: var(--painel-texto); }
+.cfg-campo .lista-painel { padding: 0.4rem; }
+.cfg-campo .lista-itens { gap: 0.1rem; }
+.cfg-campo .lista-opcao { padding: 0.4rem 0.5rem; border: 0; font-size: 0.85rem; }
+.lista-valor { display: inline-flex; align-items: center; gap: 0.5rem; }
+.lista-imagem { width: 1.2rem; height: 0.9rem; border-radius: 0.15rem; object-fit: cover; }
+
+/* Início da semana: painel com mini calendário */
+.cfg-semana-painel {
+  position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 40; width: 25rem; padding: 1rem 1.1rem;
+  border: 1px solid var(--painel-borda); border-radius: 0.8rem; background: #fff; box-shadow: var(--shadow-lg);
+}
+.cfg-semana-titulo { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; font-size: 1.05rem; line-height: 1.5rem; font-weight: 700; }
+.cfg-semana-titulo app-icone { font-size: 1.4rem; }
+.cfg-semana-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem; gap: 0.8rem; align-items: start; }
+.cfg-mini-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 700; }
+.cfg-mini-seta { display: inline-flex; padding: 0.15rem; border-radius: 0.3rem; }
+.cfg-mini-seta:hover { background: var(--painel-cinza); }
+.cfg-mini-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.1rem; text-align: center; font-size: 0.72rem; }
+.cfg-mini-cab { font-size: 0.6rem; font-weight: 600; }
+.cfg-mini-dia { display: inline-flex; width: 1.5rem; height: 1.5rem; align-items: center; justify-content: center; justify-self: center; border-radius: 50%; }
+.cfg-mini-dia-sel { background: var(--navy); color: #fff; font-weight: 700; }
+.cfg-semana-lista { display: flex; flex-direction: column; gap: 0.3rem; }
+.cfg-semana-lista .lista-opcao { padding: 0.3rem 0.5rem; font-size: 0.78rem; }
+.cfg-semana-botoes { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.9rem; }
+.cfg-semana-botoes button { min-width: 6.5rem; }
+
+/* Interruptor: trilho escuro como no Figma; a bolinha vai para a direita quando está ligado */
+.interruptor { position: relative; flex: none; width: 3.1rem; height: 1.75rem; border-radius: 999px; background: var(--navy); cursor: pointer; }
+.interruptor-bola { position: absolute; top: 0.2rem; left: 0.2rem; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+.interruptor[aria-checked="true"] .interruptor-bola { transform: translateX(1.35rem); }
+.interruptor:focus-visible { outline: 2px solid var(--banner-roxo-nuvem); outline-offset: 2px; }
+
+.cfg-pilula { padding: 0.3rem 1rem; border-radius: 999px; font-size: 0.85rem; }
+.cfg-avatar { display: flex; align-items: center; justify-content: center; color: var(--painel-suave); }
+.cfg-avatar app-icone { font-size: 3rem; }
+.cfg-senha { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; }
+.cfg-pendente { display: flex; flex-direction: column; gap: 0.25rem; padding-top: 0.85rem; border-top: 1px solid var(--painel-borda); font-size: 0.82rem; line-height: 1.35rem; }
+.cfg-pendente span { color: var(--painel-suave); }
+.cfg-nota { margin: 0.35rem 0 0; color: var(--painel-suave); font-size: 0.8rem; line-height: 1.45; }
+.estado-carregamento, .estado-erro { padding: 1.25rem; border-radius: 0.6rem; background: var(--card); color: var(--painel-texto); }
+.estado-erro { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; border: 1px solid #e7b0b0; }
+.fale-cartao > p { font-size: 0.9rem; line-height: 1.5rem; }
+
+.cfg-aparencia-topo { display: flex; align-items: flex-start; gap: 0.75rem; }
+.cfg-aparencia-topo > app-icone { flex: none; font-size: 2.3rem; }
+.cfg-escolha { margin-top: 0.4rem; font-size: 0.85rem; }
+.cfg-temas { display: flex; gap: 0.75rem; }
+.cfg-tema {
+  display: inline-flex; min-width: 7.5rem; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem;
+  border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: #fff; font-size: 0.9rem; color: var(--painel-texto);
+}
+.cfg-tema app-icone { font-size: 1.2rem; }
+.cfg-tema-ativo { border-color: var(--navy); background: var(--navy); color: #fff; }
+
+.cfg-botoes { display: flex; align-self: end; justify-self: end; gap: 1rem; }
+.cfg-botao-grande { min-height: 2.9rem; padding: 0.5rem 1.3rem; border-radius: 0.6rem; font-size: 1rem; font-weight: 600; }
+.cfg-botao-salvar { min-width: 11rem; }
+
+@media (max-width: 900px) {
+  .cfg-grade { grid-template-columns: minmax(0, 1fr); }
+  .cfg-perfil { flex-direction: column; }
+  .cfg-linha { flex-wrap: wrap; }
+  .cfg-semana-painel { width: min(25rem, 86vw); }
+  .cfg-botoes { justify-self: stretch; }
+}
+
+/* ==========================================================
+   Ajuda
+   ========================================================== */
+.ajuda-banner {
+  position: relative; display: flex; min-height: 9.5rem; align-items: center; flex-wrap: wrap; gap: 1rem 1.5rem; padding: 1.5rem 2rem;
+  overflow: hidden; border-radius: 0.9rem; background: var(--banner-roxo);
+}
+.ajuda-banner::before {
+  content: ""; position: absolute; left: -2.5rem; bottom: -4rem; width: 11rem; height: 11rem; border-radius: 50%;
+  background: var(--banner-roxo-nuvem); opacity: 0.55;
+}
+.ajuda-banner::after {
+  content: ""; position: absolute; right: 8rem; top: -4rem; width: 14rem; height: 14rem; border-radius: 50%; background: rgb(255 255 255 / 0.2);
+}
+.ajuda-banner-texto { position: relative; z-index: 1; }
+.ajuda-banner-titulo { font-size: 2.1rem; line-height: 2.6rem; font-weight: 700; }
+.ajuda-banner-sub { margin-top: 0.2rem; font-size: 0.95rem; line-height: 1.4rem; }
+.ajuda-busca {
+  position: relative; z-index: 1; display: flex; width: 15rem; align-items: center; gap: 0.5rem; padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem; background: #fff;
+}
+.ajuda-busca input { width: 100%; min-width: 0; font-size: 0.85rem; color: var(--painel-texto); }
+.ajuda-busca input::placeholder { color: #b6bac2; }
+.ajuda-busca app-icone { font-size: 1rem; color: var(--painel-suave); }
+.ajuda-banner-figura { position: relative; z-index: 1; display: block; align-self: flex-end; margin-left: auto; }
+.ajuda-banner-figura .ajuda-img { height: 9.5rem; width: auto; }
+
+.ajuda-painel { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
+.ajuda-topicos, .ajuda-contato { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.ajuda-topico, .ajuda-contato-cartao { border: 1px solid var(--painel-borda); border-radius: 0.7rem; background: #fff; }
+.ajuda-topico { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.1rem; color: var(--painel-texto); }
+.ajuda-topico:hover { background: #fafafa; }
+.ajuda-topico-icone { flex: none; font-size: 2.2rem; }
+.ajuda-topico-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.ajuda-topico-titulo { font-size: 1.2rem; line-height: 1.6rem; font-weight: 700; }
+.ajuda-topico-desc { font-size: 0.9rem; line-height: 1.3rem; }
+.ajuda-vazio { grid-column: 1 / -1; padding: 1rem; font-size: 0.9rem; color: var(--painel-suave); }
+.ajuda-contato-cartao { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; }
+.ajuda-contato-topo { display: flex; align-items: flex-start; gap: 0.9rem; }
+.ajuda-contato-topo > app-icone { flex: none; font-size: 2.4rem; }
+.ajuda-botao {
+  display: grid; width: 100%; min-height: 3rem; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.8rem; padding: 0.6rem 1rem;
+  border-radius: 0.5rem; font-size: 1.1rem; font-weight: 600;
+}
+.ajuda-botao app-icone { font-size: 1.6rem; }
+.ajuda-botao > :first-child { justify-self: start; }
+.ajuda-botao > :last-child { justify-self: end; }
+.ajuda-botao > span:nth-child(2):last-child { justify-self: center; }
+.ajuda-botao-curto { display: inline-flex; width: auto; align-self: flex-start; }
+
+/* Tópico da ajuda: passos + captura de tela */
+.ajuda-bloco { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.5fr); gap: 1rem; align-items: start; }
+.ajuda-bloco-invertido { grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.9fr); }
+.ajuda-bloco-invertido .ajuda-passos { order: 2; }
+.ajuda-passos { display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1.1rem; }
+.ajuda-lista { display: flex; flex-direction: column; gap: 1.1rem; margin: 0; padding: 0; list-style: none; }
+.ajuda-passo { display: flex; align-items: flex-start; gap: 0.9rem; font-size: 1.05rem; line-height: 1.6rem; }
+.ajuda-numero {
+  display: inline-flex; width: 2.2rem; height: 2.2rem; flex: none; align-items: center; justify-content: center; border-radius: 50%;
+  background: var(--navy); color: #fff; font-weight: 700;
+}
+.ajuda-negrito { font-weight: 700; }
+.ajuda-dica { display: flex; align-items: center; gap: 0.7rem; padding: 0.9rem 1rem; border-radius: 0.6rem; background: var(--banner-roxo); font-size: 0.95rem; line-height: 1.4rem; }
+.ajuda-dica app-icone { flex: none; font-size: 1.5rem; }
+.ajuda-figura { display: flex; align-items: center; justify-content: center; padding: 0.8rem; }
+.ajuda-img { display: block; max-width: 100%; height: auto; border-radius: 0.4rem; }
+.ajuda-img-vazia {
+  display: flex; width: 100%; min-height: 16rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+  border: 2px dashed var(--painel-borda); border-radius: 0.6rem; background: #f6f6fb; font-size: 0.9rem; text-align: center; color: var(--painel-suave);
+}
+.ajuda-img-vazia app-icone { font-size: 2.2rem; }
+
+/* Fale conosco */
+.fale-cartao { display: flex; width: 100%; max-width: 30rem; flex-direction: column; gap: 0.75rem; margin: 0 auto; padding: 1.2rem 2.3rem 1.5rem; }
+.fale-figura { display: block; align-self: center; }
+.fale-figura .ajuda-img { width: auto; height: 11rem; margin: 0 auto; }
+.fale-titulo { font-size: 1.2rem; line-height: 1.6rem; font-weight: 700; }
+.fale-cartao textarea {
+  width: 100%; min-height: 6rem; padding: 0.7rem 0.9rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: #fff;
+  font-size: 0.95rem; resize: vertical;
+}
+.fale-cartao textarea::placeholder { color: #8b919b; }
+.fale-cartao .campo-form-erro textarea { border-color: #e04b4b; }
+.fale-enviar { margin-top: 0.5rem; }
+
+@media (max-width: 900px) {
+  .ajuda-topicos, .ajuda-contato { grid-template-columns: minmax(0, 1fr); }
+  .ajuda-bloco, .ajuda-bloco-invertido { grid-template-columns: minmax(0, 1fr); }
+  .ajuda-bloco-invertido .ajuda-passos { order: 0; }
+  .ajuda-banner-titulo { font-size: 1.6rem; line-height: 2rem; }
+}
+
+/* ==========================================================
+   Abertura animada (antes do login)
+   Tudo é multiplicado por --ritmo (ver RITMO em shared/abertura/abertura.ts).
+   O estado "sem animação" de cada peça é o estado FINAL (logo + nome).
+   ========================================================== */
+.app-conteudo { display: contents; }
+
+.abertura {
+  --s: calc(1s * var(--ritmo, 1));
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow: hidden;
+  background: #fafafa;
+  cursor: pointer;
+  transition: opacity 0.5s ease;
+}
+.abertura-saindo { opacity: 0; pointer-events: none; }
+
+/* ---------- Cápsulas ---------- */
+.abertura-capsulas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cap { fill: none; stroke-width: 96; stroke-linecap: round; stroke-linejoin: round; }
+.cap-azul { stroke: #70a2dc; }
+.cap-verde { stroke: #8fb985; }
+.cap-roxo { stroke: #9b80c4; }
+.cap-coral { stroke: #fc8e74; }
+
+/* 1) a coluna desce pela borda de cima (a ponta de baixo, azul/roxa, entra primeiro) */
+.cap-coluna { animation: abertura-descer calc(var(--s) * 1.1) cubic-bezier(0.2, 0.75, 0.25, 1) backwards; }
+@keyframes abertura-descer { from { transform: translateY(var(--queda, -900px)); } }
+
+/* 2) a ponta de baixo se curva, formando o "gancho" */
+.cap-gancho {
+  stroke-dasharray: 100 200;
+  animation: abertura-curvar calc(var(--s) * 0.8) ease-in-out calc(var(--s) * 1) backwards;
+}
+@keyframes abertura-curvar { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+
+/* 3) os ganchos vão para o meio, atrás do cérebro, e somem */
+.cap-grupo { opacity: 0; }
+.cap-grupo-esq { animation: abertura-grupo-esq calc(var(--s) * 4.2) ease-in-out both; }
+.cap-grupo-dir { animation: abertura-grupo-dir calc(var(--s) * 4.2) ease-in-out both; }
+@keyframes abertura-grupo-esq {
+  0%, 43% { transform: translateX(0) scale(1); opacity: 1; }
+  76% { transform: translateX(105px) scale(0.95); opacity: 1; }
+  100% { transform: translateX(150px) scale(0.85); opacity: 0; }
+}
+@keyframes abertura-grupo-dir {
+  0%, 43% { transform: translateX(0) scale(1); opacity: 1; }
+  76% { transform: translateX(-105px) scale(0.95); opacity: 1; }
+  100% { transform: translateX(-150px) scale(0.85); opacity: 0; }
+}
+
+/* ---------- Cérebro e nome ---------- */
+.abertura-palco {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+  container-type: inline-size;
+}
+.abertura-cerebro {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 53.9cqw;
+  height: auto;
+  /* estado final: cérebro pequeno, à esquerda do nome */
+  transform: translate(-50%, -50%) translateX(-22.8cqw) scale(0.57);
+  animation: abertura-cerebro calc(var(--s) * 5.3) ease-in-out both;
+}
+@keyframes abertura-cerebro {
+  0%, 35% { transform: translate(-50%, -50%) translateX(0) scale(0.02); opacity: 0; }
+  40% { opacity: 1; }
+  64% { transform: translate(-50%, -50%) translateX(0) scale(0.72); opacity: 1; }
+  75%, 83% { transform: translate(-50%, -50%) translateX(0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(-22.8cqw) scale(0.57); opacity: 1; }
+}
+.abertura-nome {
+  position: absolute;
+  top: 50%;
+  left: 38.96cqw;
+  font-size: 8.75cqw;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--navy);
+  white-space: nowrap;
+  transform: translateY(-50%) translateX(0);
+  clip-path: inset(0 0 0 0);
+  filter: blur(0);
+  animation: abertura-revelar calc(var(--s) * 1) ease-out calc(var(--s) * 4.7) backwards;
+}
+@keyframes abertura-revelar {
+  from {
+    transform: translateY(-50%) translateX(-1.5cqw);
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    opacity: 0.2;
+  }
+}
+
+.abertura-pular {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6b7280;
+  animation: abertura-aparecer 0.4s ease calc(var(--s) * 1) backwards;
+}
+.abertura-pular:hover, .abertura-pular:focus-visible { background: #eceef1; color: var(--navy); }
+@keyframes abertura-aparecer { from { opacity: 0; } }
+
+/* "Reduzir movimento": só a logo parada */
+.abertura-reduzida .abertura-capsulas { display: none; }
+.abertura-reduzida .abertura-cerebro, .abertura-reduzida .abertura-nome, .abertura-reduzida .abertura-pular { animation: none; }
+
+/* ==========================================================
+   Galeria de documentos (evoluções, laudos, encaminhamentos e atestados)
+   ========================================================== */
+.botao-contorno {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border: 1.5px solid var(--navy);
+  border-radius: 0.5rem; background: #fff; color: var(--navy); font-size: 0.9rem; font-weight: 500; white-space: nowrap;
+}
+.botao-contorno:hover { background: #eef0f6; }
+.gal-cartao { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding: 1rem 1.25rem 1.5rem; min-height: 28rem; }
+.gal-seletor { position: relative; display: flex; align-items: center; }
+.gal-seletor select {
+  appearance: none; min-width: 16rem; max-width: 100%; padding: 0.55rem 2.2rem 0.55rem 0.9rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem;
+  background: #fff; font-size: 0.85rem; color: #8b919b; cursor: pointer;
+}
+.gal-seletor app-icone { position: absolute; right: 0.7rem; font-size: 1.1rem; pointer-events: none; color: #4b5563; }
+.gal-grupo-titulo { font-size: 1.35rem; line-height: 1.8rem; font-weight: 600; }
+.gal-rotulo { margin: 0.1rem 0 0.6rem; font-size: 0.75rem; color: var(--painel-suave); }
+.gal-grade { display: grid; grid-template-columns: repeat(4, minmax(0, 11.5rem)); gap: 0.9rem 0.75rem; }
+@media (max-width: 1000px) { .gal-grade { grid-template-columns: repeat(3, minmax(0, 11.5rem)); } }
+@media (max-width: 700px) { .gal-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gal-item { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.4rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: #fff; }
+.gal-miniatura {
+  display: flex; align-items: center; justify-content: center; height: 6.5rem; overflow: hidden; border: 1px solid var(--painel-borda); border-radius: 0.35rem;
+  background: #fff;
+}
+.gal-miniatura img { width: 100%; height: 100%; object-fit: contain; }
+.gal-nuvem { font-size: 4rem; }
+.gal-miniatura-texto { align-items: flex-start; justify-content: flex-start; padding: 0.4rem 0.5rem; background: #fcfcfc; }
+.gal-miniatura-texto span { font-size: 0.45rem; line-height: 1.3; color: #5b616b; overflow-wrap: anywhere; }
+.gal-rodape { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.3rem; }
+.gal-dados { display: flex; min-width: 0; flex-direction: column; }
+.gal-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; line-height: 1.2rem; }
+.gal-nome:hover { text-decoration: underline; }
+.gal-data { font-size: 0.7rem; color: var(--painel-suave); }
+.gal-baixar { display: inline-flex; padding: 0.25rem; border-radius: 0.35rem; }
+.gal-baixar:hover { background: var(--painel-cinza); }
+.gal-baixar app-icone { font-size: 1.1rem; }
+
+/* ---------- Botão "Adicionar documentos" com menu (faixa do paciente) ---------- */
+.faixa-adicionar { position: relative; margin-left: 0.5rem; }
+.faixa-menu {
+  position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 40; display: flex; min-width: 13rem; flex-direction: column; padding: 0.35rem;
+  border: 1px solid var(--painel-borda); border-radius: 0.6rem; background: #fff; box-shadow: var(--shadow-lg);
+}
+.faixa-menu button { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 0.4rem; text-align: left; font-size: 0.9rem; }
+.faixa-menu button:hover { background: #f3f4f6; }
+.faixa-menu app-icone { font-size: 1.15rem; }
+
+/* ==========================================================
+   Prontuário (cartões das seções)
+   ========================================================== */
+.pront2-grade { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr); gap: 1rem; align-items: stretch; }
+.pront2-coluna { display: flex; min-width: 0; flex-direction: column; gap: 0.9rem; }
+.pront2-dados { flex: 1; padding: 1rem 1.1rem 1.25rem; }
+.pront2-ultimas { padding: 1rem 1.1rem 1.25rem; }
+.pront2-titulo { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+.pront2-titulo-2 { margin-top: 1.5rem; }
+.pront2-lista { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.6rem 0.5rem; margin: 0.8rem 0 0 0.4rem; font-size: 0.8rem; }
+.pront2-lista dd { overflow-wrap: anywhere; font-weight: 500; }
+.pront2-bloco { margin: 0.8rem 0 0 0.5rem; font-size: 0.8rem; line-height: 1.35rem; }
+.pront2-bloco strong { font-weight: 500; }
+.pront2-secoes { display: grid; min-width: 0; grid-template-rows: repeat(5, minmax(6rem, 1fr)); gap: 0.9rem; }
+.pront2-secoes:has(> :nth-child(6)) { grid-template-rows: none; grid-auto-rows: minmax(6rem, 1fr); }
+.pront2-atalho { display: flex; align-items: center; gap: 1.1rem; padding: 1rem 1.5rem; }
+.pront2-atalho:hover { background: #f7f8fa; }
+.pront2-icone { font-size: 2.6rem; }
+.pront2-texto { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.pront2-texto strong { font-size: 1.05rem; font-weight: 600; }
+.pront2-texto small { font-size: 0.75rem; color: var(--painel-suave); }
+.pront2-seta { font-size: 1.5rem; }
+
+@media (max-width: 1100px) {
+  .pront2-grade { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Pacientes do psicólogo (desenho do Figma) ---------- */
+.pac-cards-2 { grid-template-columns: repeat(2, minmax(0, 15.5rem)); justify-content: start; }
+.tabela-linha-pac-acao { grid-template-columns: 2.2fr 1.3fr 1.1fr minmax(9.8rem, 1.3fr) 0.9fr; }
+@media (max-width: 800px) {
+  .pac-cards-2 { grid-template-columns: minmax(0, 1fr); }
+  .tabela-linha-pac-acao { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  .tabela-linha-pac-acao > :nth-child(2), .tabela-linha-pac-acao > :nth-child(3), .tabela-linha-pac-acao > :nth-child(5) { display: none; }
+}
+
+/* ==========================================================
+   Medicamentos e prescrições do psiquiatra: duas tabelas
+   ========================================================== */
+.med-bloco { display: flex; flex-direction: column; gap: 0.6rem; }
+.med-linha { display: grid; align-items: center; gap: 1rem; padding: 0.8rem 1.1rem; font-size: 0.85rem; }
+.med-linha.tabela-cab { font-size: 0.95rem; }
+.med-uso { grid-template-columns: 1.5fr 1.7fr 1.2fr 2fr 0.7fr; }
+.med-hist { grid-template-columns: 1.4fr 1.6fr 2.2fr 1.2fr 0.7fr; }
+.med-nome { font-weight: 600; }
+.med-data { color: var(--painel-suave); }
+.med-olho { display: inline-flex; padding: 0.25rem; border: 0; background: transparent; border-radius: 0.4rem; color: var(--painel-texto); cursor: pointer; }
+.med-olho:hover { background: var(--painel-cinza); }
+.med-olho app-icone { font-size: 1.4rem; }
+@media (max-width: 800px) {
+  .med-uso, .med-hist { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  .med-uso > :nth-child(2), .med-uso > :nth-child(3), .med-uso > :nth-child(4),
+  .med-hist > :nth-child(2), .med-hist > :nth-child(3), .med-hist > :nth-child(4) { display: none; }
+}
+
+/* Painel "Detalhes do medicamento" */
+.med-detalhe { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem 1.2rem; border-radius: 0.6rem; background: var(--painel-cinza); font-size: 0.85rem; }
+.med-detalhe p { margin: 0; }
+.med-detalhe-nome { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.35rem; line-height: 1.8rem; font-weight: 600; }
+.med-detalhe-nome app-icone { font-size: 1.6rem; }
+.med-detalhe-campos { display: flex; flex-wrap: wrap; gap: 0.4rem 2.2rem; }
+
+/* Formulários do administrador: rótulo escrito acima do campo (como no Figma) */
+.campo-rotulo { font-size: 0.85rem; font-weight: 500; }
+.campo-caixa { position: relative; display: block; }
+.form-pac-duas .radios-status { margin-top: 0; }
+
+/* Rodapé do menu (Configurações e Ajuda) quando a página está aberta */
+.menu-item-rodape.menu-item-ativo,
+.menu-item-rodape.menu-item-ativo:hover { padding-left: 0.75rem; background: #fff; color: var(--navy); text-decoration: none; }

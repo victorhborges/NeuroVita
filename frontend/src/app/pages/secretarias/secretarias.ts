@@ -48,8 +48,8 @@ export class Secretarias {
     this.excluindo.set(null);
     this.aviso.mostrar('Secretária inativada.');
     } catch (erro) {
-      console.error('Falha ao excluir secretária:', erro);
-      this.aviso.mostrar('Não foi possível excluir a secretária.');
+      console.error('Falha ao inativar secretária:', erro);
+      this.aviso.mostrar('Não foi possível inativar a secretária.');
     }
   }
 }

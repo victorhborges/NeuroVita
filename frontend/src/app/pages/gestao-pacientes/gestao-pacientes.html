@@ -9,7 +9,7 @@
     }
   </app-titulo-pagina>
 
-  <section class="pac-cards" aria-label="Resumo dos pacientes">
+  <section class="pac-cards pac-cards-2" aria-label="Resumo dos pacientes">
     @for (card of cards(); track card.rotulo) {
       <div class="cartao pac-card">
         <span class="pac-card-icone"><app-icone [nome]="card.icone" /></span>
@@ -22,23 +22,31 @@
   </section>
 
   <section class="cartao tabela" aria-label="Lista de pacientes">
-    <div class="tabela-cab tabela-linha-ges" [class.tabela-linha-leitura]="!edita()" role="row">
-      <span>Paciente</span><span>Data de nascimento</span><span>Telefone</span><span>Profissional responsável</span><span class="centro">Status</span>
-      @if (edita()) { <span class="centro">Ações</span> }
+    <div class="tabela-cab tabela-linha-ges" [class.tabela-linha-leitura]="!edita()" [class.tabela-linha-ges-sec]="edita()" role="row">
+      @if (edita()) {
+        <span>Paciente</span><span class="centro">Última consulta</span><span class="centro">Telefone</span><span class="centro">Status</span><span class="centro">Ações</span>
+      } @else {
+        <span>Paciente</span><span>Data de nascimento</span><span>Telefone</span><span>Profissional responsável</span><span class="centro">Status</span>
+      }
     </div>
     @for (item of lista(); track item.p.id) {
-      <div class="tabela-linha tabela-linha-ges" [class.tabela-linha-leitura]="!edita()">
+      <div class="tabela-linha tabela-linha-ges" [class.tabela-linha-leitura]="!edita()" [class.tabela-linha-ges-sec]="edita()">
         <div class="pac-nome">
-          <app-avatar [nome]="item.p.nome" [foto]="item.p.foto" />
+          <app-avatar [nome]="item.p.nome" [neutro]="true" />
           <div>
             <p class="linha-nome">{{ item.p.nome }}</p>
             <p class="linha-tipo">ID: {{ item.p.codigo }} - {{ item.idade }} anos</p>
           </div>
         </div>
-        <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
-        <span class="pac-texto">{{ item.p.telefone }}</span>
-        <span class="pac-texto">{{ item.profissional }}</span>
-        <span class="centro"><span class="status" [class.status-acompanhamento]="item.ativo" [class.status-inativo]="!item.ativo">{{ item.ativo ? 'Ativo' : 'Inativo' }}</span></span>
+        @if (edita()) {
+          <span class="pac-data centro"><app-icone nome="calendario" /> {{ item.ultima }}</span>
+          <span class="pac-texto centro">{{ item.p.telefone || '—' }}</span>
+        } @else {
+          <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
+          <span class="pac-texto">{{ item.p.telefone || '—' }}</span>
+          <span class="pac-texto">{{ item.profissional }}</span>
+        }
+        <span class="centro"><span class="status" [class.status-acompanhamento]="item.ativo" [class.status-aguardando]="!item.ativo && edita()" [class.status-inativo]="!item.ativo && !edita()">{{ item.ativo ? 'Ativo' : 'Inativo' }}</span></span>
         @if (edita()) {
           <span class="acoes-linha centro">
             <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>

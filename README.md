@@ -6,9 +6,9 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status atual (revisão local de 13/11/2026):** os fluxos clínicos existentes de evoluções, prescrições e solicitações de exames usam APIs específicas; autenticação JWT, agenda e cadastros também possuem integração Angular/backend. Serviços Angular para prontuários, administradores e preferências estão disponíveis aguardando as respectivas telas/ações de edição. A integração funcional completa ainda depende de validação da equipe e das telas pendentes.
+> **Status atual (revisão local de 16/11/2026):** os fluxos clínicos existentes de evoluções, prescrições e solicitações de exames usam APIs específicas; autenticação JWT, agenda e cadastros também possuem integração Angular/backend. A atualização da referência FBR incluiu abertura animada, Ajuda, Configurações ligadas à API de preferências e alteração de senha, tabelas da agenda e carregamento sob demanda das rotas. O prontuário e as listas/formulários receberam ajustes visuais mantendo os contratos. Preferências de idioma e início da semana são salvas, mas ainda não mudam a tradução nem a grade da agenda. O canal de contato não está configurado, notificações não possuem serviço de entrega e 2FA aguarda definição funcional.
 >
-> Nesta revisão, a compilação Maven de produção e testes compilou com sucesso; os testes Angular reportaram 23/23 aprovados, embora o processo não tenha encerrado normalmente. Os testes Java direcionados ficaram presos na inicialização do agente Mockito. O build Angular de produção gerou o bundle, mas falhou ao gravar a saída (`EPERM` no diretório de build) e emitiu aviso de orçamento de 62,61 kB acima do limite. Atlas, Docker e Render não foram acessados.
+> Na validação de 16/11/2026, o build de produção Angular terminou com código 0 em uma pasta temporária fora dos diretórios de saída do OneDrive. O bundle inicial ficou em 362,61 kB, abaixo do limite de aviso de 500 kB, após converter as páginas para carregamento sob demanda. Os 23 testes Angular em 6 arquivos terminaram normalmente com código 0. A compilação Maven ocorreu durante `mvnw test`; 9 testes Java direcionados passaram, mas a suíte completa não terminou: o teste de contexto tentou inicializar MongoDB e falhou por indisponibilidade de DNS/loopback, e uma execução sem esse teste ficou parada na inicialização do agente Mockito e foi interrompida. Atlas não foi acessado intencionalmente, nem Docker ou Render.
 
 ---
 
@@ -124,7 +124,7 @@ src/main/resources/static/
 
 A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
 
-O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend.
+O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend. Configurações persiste preferências e usa o endpoint autenticado de alteração de senha. Ajuda usa conteúdo estático. O contato permanece sem envio porque ainda falta definir um canal institucional e sua integração.
 
 O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
@@ -936,18 +936,19 @@ Linux/macOS:
 
 ### Validação
 
-Execuções locais desta revisão em 13/11/2026:
+Execuções locais da revisão atual em 16/11/2026 (resultados anteriores permanecem no histórico do Git):
 
 | Verificação | Resultado |
 |---|---|
 | Maven `-DskipTests test-compile` | BUILD SUCCESS (135 fontes Java e 25 fontes de teste compiladas) |
-| Maven testes de desserialização JSON | 5 testes passaram: responsável e anexo omitidos, `null` explícito e listas vazias são desserializados de forma distinta |
-| Maven testes de serviço direcionados | Não concluídos: processo parou após iniciar `ExameServiceTest` e carregar dinamicamente o agente Mockito; interrompido localmente |
-| Angular `npm test -- --watch=false` | Vitest reportou 6 arquivos e 23 testes aprovados; processo não encerrou normalmente e foi interrompido após o resumo |
-| Angular build de produção | Bundle gerado (562,61 kB), mas gravação do output terminou com `EPERM` ao criar diretório `browser`; portanto build não aprovado |
-| `git diff --check` | Sem erros de whitespace na última execução; repetir após as alterações mais recentes |
+| Maven testes selecionados | 9 testes passaram: desserialização de requests e queries de repositório |
+| Maven suíte completa | Não concluída: contexto Spring falha por DNS/loopback na configuração MongoDB; execução sem o contexto ficou parada ao inicializar Mockito |
+| Angular `npm test -- --watch=false` | 6 arquivos e 23 testes passaram; processo encerrou normalmente com código 0 |
+| Angular build de produção | BUILD SUCCESS em pasta temporária; bundle inicial 362,61 kB, abaixo do limite de aviso. Os diretórios anteriores de saída são pastas de sincronização OneDrive que bloqueavam a recriação com `EPERM` |
+| Maven `test` | Não concluído: `NeurovitaApplicationTests` não carregou contexto por falha de DNS/loopback ao resolver a configuração MongoDB; execução excluindo esse teste ficou parada ao iniciar o agente Mockito e foi interrompida |
+| `git diff --check` | Sem erros de whitespace; avisos apenas de conversão de fim de linha LF/CRLF |
 
-Não houve conexão com MongoDB Atlas nem mudança de configuração do banco. A execução direcionada de testes Java nesta revisão não terminou, portanto nenhum resultado de teste Java é declarado como aprovado.
+Não houve operação ou alteração no MongoDB Atlas. O teste de contexto tentou inicializar a conexão configurada pela aplicação e falhou antes de acessar dados. Os testes Java direcionados de desserialização e consulta de repositório passaram (9 testes); a suíte Java como um todo permanece sem aprovação.
 
 Os testes unitários utilizam mocks em parte das operações e não substituem a validação funcional nem a verificação da persistência no MongoDB Atlas real.
 
@@ -998,9 +999,9 @@ A equipe designada é responsável pela execução dos testes funcionais complet
 | Preferências individuais | Persistência implementada |
 | Notificações automáticas | Não implementadas pelo simples salvamento das preferências |
 | Swagger / OpenAPI | Implementado |
-| Testes Java | Não concluídos nesta revisão; Surefire ficou preso na inicialização dinâmica do agente Mockito |
-| Build Maven | `-DskipTests test-compile` concluído localmente com sucesso |
-| Build Angular | Bundle otimizado gerado, mas gravação terminou com `EPERM`; aviso de orçamento inicial excedido em 62,61 kB |
+| Testes Java | Suíte não concluída: teste de contexto depende de DNS/loopback para iniciar MongoDB; execução sem ele ficou parada no agente Mockito |
+| Build Maven | Compilação de produção e teste concluída durante `mvnw test`; sem erros de compilação |
+| Build Angular | BUILD SUCCESS em pasta temporária; bundle inicial 362,61 kB após carregamento sob demanda |
 | Docker da versão atual | Pendente de validação |
 | Deploy integrado atual | Pendente de validação |
 | Testes com MongoDB Atlas real | Pendentes de validação completa |
@@ -1101,10 +1102,10 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 - [x] Melhorar a validação da grade de horários no backend.
 - [x] Implementar regras de conflitos de consultas por intervalo completo.
 - [x] Corrigir a compatibilidade do teste do serviço de e-mail de boas-vindas.
-- [ ] Executar a suíte Java completa na revisão atual (bloqueada pela inicialização do agente Mockito).
-- [x] Validar a compilação Maven e dos testes na revisão atual (`test-compile`).
+- [ ] Concluir a suíte Java (teste de contexto depende de DNS/loopback para MongoDB; execução sem contexto ficou parada ao inicializar Mockito).
+- [x] Compilar fontes de produção e testes Java na validação de 16/11/2026.
 - [ ] Revisar integralmente as alterações locais antes do commit.
-- [ ] Concluir o build Angular de produção (bundle compilado; emissão de arquivos falhou com `EPERM`).
+- [x] Concluir build Angular de produção em destino temporário, fora das pastas sincronizadas do OneDrive.
 - [ ] Validar a versão atual com Docker.
 - [ ] Validar os fluxos com MongoDB Atlas real.
 - [ ] Revisar integralmente as permissões dos endpoints.

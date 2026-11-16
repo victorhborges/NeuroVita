@@ -165,6 +165,17 @@ export class Auth {
     }
   }
 
+  obterEmail(): string | null {
+    const dados = sessionStorage.getItem(this.chaveUsuario);
+    if (!dados) return null;
+    try {
+      const usuario = JSON.parse(dados) as UsuarioSessao;
+      return usuario.email || null;
+    } catch {
+      return null;
+    }
+  }
+
   sair(): void {
     sessionStorage.removeItem(this.chaveToken);
     sessionStorage.removeItem(this.chaveUsuario);
