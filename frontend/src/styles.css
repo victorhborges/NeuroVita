@@ -78,28 +78,64 @@ input::placeholder { color: color-mix(in oklab, currentColor 50%, transparent); 
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background-color: var(--navy);
-  background-image: url("/img/auth-bg.jpg");
+  padding: 1.5rem;
+  background-color: #f8f8f8;
+  background-image: url("/img/auth-decor.jpg");
   background-size: cover;
   background-position: center;
 }
 .auth-card {
   width: 100%;
-  max-width: 560px;
-  padding: 2rem;
-  border-radius: var(--radius);
+  max-width: min(48vw, 50rem);
+  min-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  padding: 3.5vh clamp(1.5rem, 5vw, 5.25rem);
+  border-radius: 0.875rem;
   background: var(--card);
-  box-shadow: var(--shadow-2xl);
+  box-shadow: 0 1px 5px rgb(15 23 42 / 0.06);
 }
-@media (min-width: 640px) {
-  .auth-card { padding-left: 3.5rem; padding-right: 3.5rem; }
+.auth-main:has(.esqueci-titulo),
+.auth-main:has(.codigo-titulo),
+.auth-main:has(.redefinir-titulo),
+.auth-main:has(.primeiro-acesso-titulo) {
+  background-image: url("/img/auth-recuperacao-decor.jpg");
 }
-.auth-logo { width: 90px; height: 90px; margin: 0 auto; }
+.auth-card:has(.esqueci-titulo),
+.auth-card:has(.codigo-titulo),
+.auth-card:has(.redefinir-titulo),
+.auth-card:has(.primeiro-acesso-titulo) {
+  max-width: min(55vw, 58rem);
+  padding-inline: clamp(2rem, 6.8vw, 8rem);
+}
+.auth-card:has(.esqueci-titulo) .auth-logo,
+.auth-card:has(.codigo-titulo) .auth-logo,
+.auth-card:has(.redefinir-titulo) .auth-logo,
+.auth-card:has(.primeiro-acesso-titulo) .auth-logo { width: clamp(6rem, 13vh, 9.5rem); }
+.auth-main:has(.esqueci-titulo) .auth-texto,
+.auth-main:has(.codigo-titulo) .auth-texto,
+.auth-main:has(.redefinir-titulo) .auth-texto,
+.auth-main:has(.primeiro-acesso-titulo) .auth-texto {
+  font-size: clamp(1.125rem, 2.15vw, 2rem);
+  line-height: 1.55;
+}
+.auth-main:has(.esqueci-titulo) .field,
+.auth-main:has(.codigo-titulo) .field,
+.auth-main:has(.redefinir-titulo) .field,
+.auth-main:has(.primeiro-acesso-titulo) .field { height: clamp(4.25rem, 9.5vh, 6.5rem); }
+.auth-main:has(.esqueci-titulo) .btn-action,
+.auth-main:has(.codigo-titulo) .btn-action,
+.auth-main:has(.redefinir-titulo) .btn-action,
+.auth-main:has(.primeiro-acesso-titulo) .btn-action {
+  height: clamp(4.5rem, 10vh, 7rem);
+  font-size: clamp(1.25rem, 2vw, 2rem);
+}
+.auth-logo { width: clamp(6rem, 13vh, 9.5rem); height: auto; margin: 0 auto; }
+.auth-card:has(.back-link) .back-link { margin-top: auto; padding-block: 2rem 0.75rem; }
 
 .auth-titulo {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.2;
   font-weight: 500;
   color: var(--foreground);
 }
@@ -129,6 +165,8 @@ input::placeholder { color: color-mix(in oklab, currentColor 50%, transparent); 
   line-height: 1.75rem;
   background: transparent;
 }
+.auth-main .field { height: clamp(4.25rem, 9.5vh, 6.5rem); }
+.auth-main .field-input { font-size: clamp(1.125rem, 1.8vw, 1.75rem); line-height: 1.3; }
 
 /* Campo de senha (componente app-campo-senha) */
 app-campo-senha { display: block; }
@@ -176,13 +214,13 @@ app-campo-senha { display: block; }
 /* ==========================================================
    Login
    ========================================================== */
-.login-titulo { margin-top: 1rem; }
+.login-titulo { margin-top: clamp(1rem, 4vh, 3rem); }
 .login-form {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin-top: 1rem;
+  margin-top: clamp(1.5rem, 6vh, 4.5rem);
 }
 .alert-sucesso {
   position: absolute;
@@ -204,15 +242,50 @@ app-campo-senha { display: block; }
 .forgot-link { font-size: 1.125rem; line-height: 1.75rem; }
 
 .btn-entrar {
-  height: 72px;
+  height: clamp(4.5rem, 9.5vh, 6.5rem);
   width: 100%;
   border-radius: var(--radius-md);
   background: var(--brand);
   color: var(--brand-foreground);
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  line-height: 1.2;
   font-weight: 600;
   box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 800px) {
+  .auth-main { padding: 1rem; background-size: auto 100%; }
+  .auth-card { max-width: min(88vw, 38rem); min-height: min(92vh, 58rem); padding: 2rem clamp(1.5rem, 8vw, 3rem); }
+  .auth-card:has(.esqueci-titulo),
+  .auth-card:has(.codigo-titulo),
+  .auth-card:has(.redefinir-titulo) { max-width: min(88vw, 38rem); padding-inline: clamp(1.5rem, 8vw, 3rem); }
+  .auth-logo { width: clamp(5rem, 12vh, 7rem); }
+  .auth-titulo { font-size: clamp(1.75rem, 5vw, 2.25rem); }
+  .login-titulo { margin-top: 1.5rem; }
+  .login-form { margin-top: 2rem; }
+  .auth-main .field { height: 4.5rem; }
+  .btn-entrar { height: 4.5rem; font-size: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .auth-main { padding: 0.75rem; background-image: none; }
+  .auth-card { max-width: none; min-height: calc(100vh - 1.5rem); padding: 2rem 1.25rem; }
+  .auth-card:has(.esqueci-titulo),
+  .auth-card:has(.codigo-titulo),
+  .auth-card:has(.redefinir-titulo) { max-width: none; padding-inline: 1.25rem; }
+}
+
+@media (max-height: 650px) and (min-width: 481px) {
+  .auth-main { align-items: flex-start; padding-block: 1rem; }
+  .auth-card { min-height: auto; padding-block: 1.25rem; }
+  .auth-card:has(.esqueci-titulo),
+  .auth-card:has(.codigo-titulo),
+  .auth-card:has(.redefinir-titulo) { min-height: auto; padding-block: 1.25rem; }
+  .auth-logo { width: 4.75rem; }
+  .login-titulo { margin-top: 0.5rem; }
+  .login-form { margin-top: 0.75rem; gap: 0.85rem; }
+  .auth-main .field { height: 3.5rem; }
+  .btn-entrar { height: 3.5rem; }
 }
 
 /* ==========================================================
@@ -365,6 +438,15 @@ app-campo-senha { display: block; }
   background: var(--card);
   color: var(--painel-texto);
 }
+.painel:has(app-paciente-form),
+.painel:has(app-profissional-form),
+.painel:has(app-secretaria-form) { display: block; }
+.painel:has(app-paciente-form) app-menu-lateral,
+.painel:has(app-profissional-form) app-menu-lateral,
+.painel:has(app-secretaria-form) app-menu-lateral { display: none; }
+.painel:has(app-paciente-form) .painel-conteudo,
+.painel:has(app-profissional-form) .painel-conteudo,
+.painel:has(app-secretaria-form) .painel-conteudo { padding: 1.5rem 10.6vw 2rem; }
 .painel-conteudo { min-width: 0; padding: 1.5rem 2rem 2rem; }
 .painel-colunas {
   display: grid;
@@ -1890,7 +1972,7 @@ html[data-tema="escuro"] .chip-st-pendente { background-color: #44351e; color: #
 html[data-tema="escuro"] .status-inativo,
 html[data-tema="escuro"] .chip-st-cancelado { background-color: #374151; color: #e5e7eb; border-color: #64748b; }
 html[data-tema="escuro"] .edicao-cancelar { background-color: #452b32; color: #fecaca; border-color: #884653; }
-html[data-tema="escuro"] .auth-main { background-color: #0b1220; }
+html[data-tema="escuro"] .auth-main { background-color: #0b1220; background-image: none; }
 html[data-tema="escuro"] ::placeholder { color: #cbd5e1; opacity: 0.8; }
 html[data-tema="escuro"] option { background: #1f2937; color: #f3f4f6; }
 

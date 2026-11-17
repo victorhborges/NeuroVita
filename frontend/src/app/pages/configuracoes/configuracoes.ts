@@ -71,7 +71,7 @@ export class Configuracoes {
   protected readonly nomeInicioSemana = computed(() => DIAS.find((d) => d.valor === this.preferencias().inicioSemana)?.nome ?? 'Segunda-feira');
   protected readonly idiomas: OpcaoLista[] = [
     { valor: 'pt', rotulo: '🇧🇷 Português' },
-    { valor: 'en', rotulo: '🇺🇸 English (em breve)' },
+    { valor: 'en', rotulo: '🇺🇸 English (em breve)', desabilitada: true },
   ];
   protected readonly formatosData: OpcaoLista[] = [
     { valor: 'dd/mm/aaaa', rotulo: 'DD/MM/AAAA' },

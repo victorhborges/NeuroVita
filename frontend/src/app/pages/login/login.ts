@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../shared/auth';
@@ -12,7 +12,7 @@ import { PreferenciasGlobaisService } from '../../shared/clinica/preferencias-gl
   imports: [AuthCard, CampoSenha, RouterLink],
   templateUrl: './login.html',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(Auth);
   private readonly preferencias = inject(PreferenciasGlobaisService);
   private readonly router = inject(Router);
@@ -29,6 +29,17 @@ export class Login {
   protected readonly senha = signal('');
   protected readonly erro = signal('');
   protected readonly carregando = signal(false);
+
+  ngOnInit(): void {
+    const rota = this.auth.rotaInicialAutenticada();
+    if (!rota) return;
+
+    this.carregando.set(true);
+    this.preferencias.carregar().subscribe({
+      next: () => this.router.navigateByUrl(rota),
+      error: () => this.router.navigateByUrl(rota),
+    });
+  }
 
   protected aoDigitarEmail(evento: Event): void {
     this.email.set((evento.target as HTMLInputElement).value);

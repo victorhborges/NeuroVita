@@ -142,6 +142,16 @@ export class Auth {
     return sessionStorage.getItem(this.chaveToken);
   }
 
+  /** Destino da sessão restaurada, incluindo a troca de senha obrigatória. */
+  rotaInicialAutenticada(): string | null {
+    const token = this.obterToken();
+    const perfil = this.obterPerfil();
+    if (!token || !perfil) return null;
+    return this.ehPrimeiroAcesso(token)
+      ? '/primeiro-acesso'
+      : CONFIG_PERFIS[perfil].rota;
+  }
+
   obterPerfil(): Perfil | null {
     const dados = sessionStorage.getItem(this.chaveUsuario);
 

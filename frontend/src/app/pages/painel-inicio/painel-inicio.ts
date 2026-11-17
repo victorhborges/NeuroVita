@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AgendaDoDiaTabela, LinhaAgendaClinica } from '../../shared/agenda-do-dia-tabela/agenda-do-dia-tabela';
@@ -21,7 +21,7 @@ import { ROTULO_STATUS } from '../../shared/clinica/status';
   imports: [AgendaDoDiaTabela, Banner, Cabecalho, CardsResumo, Icone, RouterLink],
   templateUrl: './painel-inicio.html',
 })
-export class PainelInicio {
+export class PainelInicio implements OnInit {
   readonly perfil = input.required<Perfil>();
 
   private readonly auth = inject(Auth);
@@ -58,7 +58,7 @@ export class PainelInicio {
     this.carregarDados();
   }
 
-  constructor() {
+  ngOnInit(): void {
     this.carregarDados();
   }
 
