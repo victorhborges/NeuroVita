@@ -107,7 +107,7 @@ class ConsultaServiceTest {
 
     @Test
     void bloqueiaSalaJaOcupadaNoHorarioDaConsulta() {
-        prepararAgendamentoValido("prof-1");
+        prepararAgendamentoValido("prof-1", false);
         ConsultaRequest request = request("PRESENCIAL");
         request.setLocal("Sala 02");
         Consulta existente = new Consulta();
@@ -192,6 +192,10 @@ class ConsultaServiceTest {
     }
 
     private void prepararAgendamentoValido(String profissionalId) {
+        prepararAgendamentoValido(profissionalId, true);
+    }
+
+    private void prepararAgendamentoValido(String profissionalId, boolean prepararSalvamento) {
         pacienteAtivo();
         when(profissionalRepository.existsById(profissionalId)).thenReturn(true);
         Profissional profissional = new Profissional();
@@ -211,8 +215,10 @@ class ConsultaServiceTest {
                 .thenReturn(Optional.of(disponibilidade));
         when(consultaRepository.findByProfissionalId(profissionalId)).thenReturn(List.of());
         when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of());
-        when(consultaRepository.save(any(Consulta.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        if (prepararSalvamento) {
+            when(consultaRepository.save(any(Consulta.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+        }
     }
 
     @Test

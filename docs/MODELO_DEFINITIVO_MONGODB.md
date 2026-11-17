@@ -2,6 +2,8 @@
 
 **Decisão de arquitetura:** neste trabalho, o backend Java da branch `develop` é a fonte da verdade. A equipe do banco deve adequar as coleções ao código existente; não se deve mudar classes Java, DTOs ou contratos REST para acomodar um desenho diferente do banco.
 
+**Compatibilidade do formulário FBR de paciente:** a referência atual apresenta endereço separado em CEP, cidade, logradouro/endereço, número, complemento e bairro. O contrato de aplicação preserva os campos existentes `cep` e `cidade` e acrescenta `numero`, `complemento` e `bairro`, todos opcionais em documentos legados. A equipe do banco deve permitir esses três campos string opcionais na coleção existente `pacientes`; não é necessária coleção nova, migração nem backfill. O cadastro pela API exige CEP válido, número e bairro; atualização parcial mantém os campos omitidos e texto vazio explícito limpa campos opcionais (CEP continua sujeito à validação do formato). Registrar em [discrepancias banco.md](../discrepancias%20banco.md).
+
 Este documento orienta a preparação de ambientes vazios e a conferência do Atlas. O esquema campo a campo e os exemplos BSON estão em [CONTRATO_DADOS_MONGODB.md](CONTRATO_DADOS_MONGODB.md). Não foram consultados nem alterados dados Atlas nesta tarefa.
 
 ### Conciliação com a orientação encaminhada à equipe do banco

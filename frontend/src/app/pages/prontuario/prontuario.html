@@ -13,7 +13,7 @@
             <dt>CPF:</dt><dd>{{ p.cpf || '—' }}</dd>
             <dt>Telefone:</dt><dd>{{ p.telefone || '—' }}</dd>
             <dt>E-mail:</dt><dd>{{ p.email || '—' }}</dd>
-            <dt>Endereço:</dt><dd>{{ p.endereco || '—' }}</dd>
+            <dt>Endereço:</dt><dd>{{ endereco() }}</dd>
           </dl>
           <h2 class="pront2-titulo pront2-titulo-2"><app-icone nome="usuario" /> Responsáveis</h2>
           @if (p.responsaveis.length) {

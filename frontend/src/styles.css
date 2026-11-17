@@ -1205,9 +1205,13 @@ app-avatar {
 
 /* ---------- Cadastro de paciente ---------- */
 .form-pac { padding: 1.25rem 1.5rem 1.5rem; }
-.form-pac-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; }
+.form-pac-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "personal responsavel" "plano responsavel"; gap: 1rem 2rem; }
+.form-pac-grade > .form-pac-bloco:nth-child(1) { grid-area: personal; }
+.form-pac-grade > .form-pac-bloco:nth-child(2) { grid-area: plano; }
+.form-pac-grade > .form-pac-bloco:nth-child(3) { grid-area: responsavel; }
 .form-pac-bloco { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
-.form-pac-largo { grid-column: 1 / -1; }
+.form-pac-duas > .campo-duplo { grid-column: 1 / -1; }
+.form-pac-largo { min-width: 0; }
 .form-pac-titulo { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
 .form-pac-aviso { font-size: 0.7rem; font-weight: 400; color: var(--painel-suave); }
 .form-pac-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 2rem; }
@@ -1323,7 +1327,7 @@ app-avatar {
 .ag-status-cancelado { background: #e04b4b; color: #fff; }
 .ag-status-botao.ag-status-confirmado:hover, .ag-status-botao.ag-status-pendente:hover,
 .ag-status-botao.ag-status-remarcado:hover, .ag-status-botao.ag-status-cancelado:hover { filter: brightness(0.93); }
-.dialogo-edicao { width: min(21rem, 100%); padding: 1rem 1.1rem 1.1rem; background: #fff; }
+.dialogo-edicao { width: min(29rem, 100%); padding: 1rem 1.1rem 1.1rem; background: #fff; }
 .edicao-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
 .edicao-titulo { font-size: 1.15rem; font-weight: 700; }
 .edicao-fechar { display: inline-flex; padding: 0.2rem; border-radius: 50%; color: #4b5563; }
@@ -1332,6 +1336,8 @@ app-avatar {
 .edicao-paciente { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.75rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; }
 .edicao-paciente app-avatar { --avatar: 2.8rem; }
 .edicao-sub { font-size: 0.85rem; color: #4a5a85; }
+.edicao-alerta { margin: 0.5rem 0; color: var(--destructive); font-size: 0.8rem; line-height: 1.35; }
+.edicao-alerta button { margin-top: 0.3rem; color: var(--link); font-weight: 600; text-decoration: underline; }
 .edicao-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin: 0.75rem 0; }
 .edicao-campo { display: flex; min-width: 0; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; font-weight: 600; }
 .edicao-entrada {
@@ -1351,9 +1357,18 @@ app-avatar {
 .edicao-remarcar { border-color: #a9b8f5; background: #e4e9ff; color: #3b4fb8; }
 .edicao-cancelar { border-color: #f1a9a9; background: #fbdada; color: #c43232; }
 .edicao-botao:hover { filter: brightness(0.96); }
+.edicao-botao:disabled { cursor: not-allowed; opacity: 0.55; filter: none; }
+.remarcacao-resumo { margin-top: 0.75rem; font-size: 0.88rem; line-height: 1.35rem; }
+.remarcacao-resumo > p { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 0.7rem; border-radius: 0.5rem; background: var(--painel-cinza); }
+.remarcacao-colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.65rem; }
+.remarcacao-colunas section { min-width: 0; padding: 0.65rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; overflow-wrap: anywhere; }
+.remarcacao-colunas h3 { margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; }
+.remarcacao-colunas p { margin-top: 0.2rem; color: var(--muted-foreground); }
+@media (max-width: 480px) { .remarcacao-colunas { grid-template-columns: minmax(0, 1fr); } }
 
 @media (max-width: 1100px) {
-  .cons-grade, .form-pac-grade { grid-template-columns: minmax(0, 1fr); }
+  .cons-grade { grid-template-columns: minmax(0, 1fr); }
+  .form-pac-grade { grid-template-columns: minmax(0, 1fr); grid-template-areas: "personal" "plano" "responsavel"; }
 }
 @media (max-width: 800px) {
   .tabela-linha-ges, .tabela-linha-prof { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
@@ -1973,6 +1988,9 @@ html[data-tema="escuro"] .status-inativo,
 html[data-tema="escuro"] .chip-st-cancelado { background-color: #374151; color: #e5e7eb; border-color: #64748b; }
 html[data-tema="escuro"] .edicao-cancelar { background-color: #452b32; color: #fecaca; border-color: #884653; }
 html[data-tema="escuro"] .auth-main { background-color: #0b1220; background-image: none; }
+html[data-tema="escuro"] .remarcacao-resumo > p { background-color: #334155; color: #f3f4f6; }
+html[data-tema="escuro"] .remarcacao-colunas section { border-color: #475569; }
+html[data-tema="escuro"] .remarcacao-colunas p { color: #cbd5e1; }
 html[data-tema="escuro"] ::placeholder { color: #cbd5e1; opacity: 0.8; }
 html[data-tema="escuro"] option { background: #1f2937; color: #f3f4f6; }
 

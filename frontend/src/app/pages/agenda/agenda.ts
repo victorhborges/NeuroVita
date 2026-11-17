@@ -7,6 +7,7 @@ import {
   inject,
   input,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 
@@ -192,6 +193,59 @@ export function possuiAlteracaoAgenda(
     atual.local !== edicao.local;
 }
 
+export interface ConsultaAgendaConflito {
+  id: string;
+  data: string;
+  inicio: string;
+  duracao: number;
+  pacienteId: string;
+  profissionalId: string;
+  local: string;
+  status: StatusConsulta;
+}
+
+export interface HorarioAgendaCandidato {
+  consultaId: string;
+  data: string;
+  inicio: string;
+  duracao: number;
+  pacienteId: string;
+  profissionalId: string;
+  local: string;
+}
+
+/** Replica apenas os conflitos conhecidos pelo contrato atual; o backend continua sendo a validação final. */
+export function possuiConflitoAgenda(
+  consultas: ConsultaAgendaConflito[],
+  candidato: HorarioAgendaCandidato,
+): boolean {
+  const inicio = minutosDe(candidato.inicio);
+  const fim = inicio + candidato.duracao;
+  const salaFisica = /^sala\s+\d{1,2}$/i.test(candidato.local.trim());
+
+  return consultas.some((existente) => {
+    if (
+      existente.id === candidato.consultaId ||
+      existente.status === 'cancelado' ||
+      existente.data !== candidato.data ||
+      !existente.duracao ||
+      existente.duracao <= 0
+    ) {
+      return false;
+    }
+
+    const inicioExistente = minutosDe(existente.inicio);
+    const fimExistente = inicioExistente + existente.duracao;
+    const sobrepoe = inicio < fimExistente && inicioExistente < fim;
+
+    if (!sobrepoe) return false;
+
+    return existente.profissionalId === candidato.profissionalId ||
+      existente.pacienteId === candidato.pacienteId ||
+      (salaFisica && existente.local.localeCompare(candidato.local, undefined, { sensitivity: 'accent' }) === 0);
+  });
+}
+
 @Component({
   selector: 'app-agenda',
   imports: [Avatar, Dialogo, Icone, TituloPagina],
@@ -235,7 +289,11 @@ export class Agenda {
   protected readonly profissionais = signal<ProfissionalApi[]>([]);
   protected readonly disponibilidades = signal<DisponibilidadeApi[]>([]);
   protected readonly carregandoDisponibilidades = signal(false);
+  protected readonly falhaDisponibilidades = signal(false);
+  private readonly tentativaDisponibilidade = signal(0);
   protected readonly carregando = signal(true);
+  protected readonly consultasCarregadas = signal(false);
+  protected readonly falhaConsulta = signal(false);
 
   protected readonly semana = signal(0);
   protected readonly busca = signal('');
@@ -244,6 +302,10 @@ export class Agenda {
 
   protected readonly editando = signal(false);
   protected readonly cancelando = signal(false);
+  protected readonly confirmando = signal(false);
+  protected readonly confirmandoRemarcacao = signal(false);
+  protected readonly executandoAcao = signal(false);
+  protected readonly remarcacaoPendente = signal<ConsultaRequestApi | null>(null);
   protected readonly editData = signal('');
   protected readonly editHora = signal('');
   protected readonly editProf = signal('');
@@ -263,7 +325,10 @@ export class Agenda {
   protected readonly dataHoje = formatarData(this.hojeBase);
 
   constructor() {
-    this.carregarDados();
+    effect(() => {
+      this.perfil();
+      untracked(() => this.carregarDados());
+    });
 
     effect(() => {
       const id = this.consulta();
@@ -281,12 +346,14 @@ export class Agenda {
     effect((onCleanup) => {
       const estaEditando = this.editando();
       const profissionalId = this.editProf();
+      this.tentativaDisponibilidade();
 
       if (!estaEditando || !profissionalId) {
         return;
       }
 
       this.disponibilidades.set([]);
+      this.falhaDisponibilidades.set(false);
       this.carregandoDisponibilidades.set(true);
 
       const inscricao = this.profissionaisApi
@@ -302,6 +369,7 @@ export class Agenda {
           },
           error: () => {
             this.disponibilidades.set([]);
+            this.falhaDisponibilidades.set(true);
             this.carregandoDisponibilidades.set(false);
 
             this.aviso.mostrar(
@@ -316,12 +384,20 @@ export class Agenda {
 
   private carregarDados(): void {
     this.carregando.set(true);
+    this.consultasCarregadas.set(false);
+    this.falhaConsulta.set(false);
+    this.consultas.set([]);
+    this.pacientes.set([]);
+    this.profissionais.set([]);
+    this.selecionadoId.set('');
 
     this.consultasApi.listarTodas().subscribe({
       next: (lista) => {
         const convertidas = lista.map(converterConsulta);
 
         this.consultas.set(convertidas);
+        this.consultasCarregadas.set(true);
+        this.falhaConsulta.set(false);
 
         const idDaRota = this.consulta();
         const selecionada = convertidas.find(
@@ -343,6 +419,8 @@ export class Agenda {
       },
       error: (erro) => {
         this.carregando.set(false);
+        this.consultasCarregadas.set(false);
+        this.falhaConsulta.set(true);
 
         this.aviso.mostrar(
           erro.error?.message ||
@@ -395,16 +473,22 @@ export class Agenda {
   }
 
   private recarregarConsultas(): void {
+    this.consultasCarregadas.set(false);
     this.consultasApi.listarTodas().subscribe({
       next: (lista) => {
         const convertidas = lista.map(converterConsulta);
 
         this.consultas.set(convertidas);
+        this.consultasCarregadas.set(true);
+        this.falhaConsulta.set(false);
       },
-      error: () =>
+      error: () => {
+        this.consultasCarregadas.set(false);
+        this.falhaConsulta.set(true);
         this.aviso.mostrar(
           'A alteração foi enviada, mas não foi possível atualizar a agenda.',
-        ),
+        );
+      },
     });
   }
 
@@ -640,40 +724,27 @@ export class Agenda {
         return;
       }
 
-      this.consultasApi.confirmar(consulta.id).subscribe({
-        next: () => {
-          this.menuStatus.set(false);
-          this.aviso.mostrar('Consulta confirmada.');
-          this.recarregarConsultas();
-        },
-        error: (erro) => {
-          this.menuStatus.set(false);
-          this.aviso.mostrar(
-            erro.error?.message ||
-            'Não foi possível confirmar a consulta.',
-          );
-        },
-      });
+      if (consulta.status === 'confirmado') {
+        this.menuStatus.set(false);
+        this.aviso.mostrar('Esta consulta já está confirmada.');
+        return;
+      }
+
+      this.menuStatus.set(false);
+      this.confirmando.set(true);
 
       return;
     }
 
     if (status === 'cancelado') {
-      this.consultasApi.cancelar(consulta.id).subscribe({
-        next: () => {
-          this.menuStatus.set(false);
-          this.aviso.mostrar('Consulta cancelada.');
-          this.recarregarConsultas();
-        },
-        error: (erro) => {
-          this.menuStatus.set(false);
-          this.aviso.mostrar(
-            erro.error?.message ||
-            'Não foi possível cancelar a consulta.',
-          );
-        },
-      });
+      if (consulta.status === 'cancelado') {
+        this.menuStatus.set(false);
+        this.aviso.mostrar('Esta consulta já está cancelada.');
+        return;
+      }
 
+      this.menuStatus.set(false);
+      this.cancelando.set(true);
       return;
     }
 
@@ -712,6 +783,23 @@ export class Agenda {
     this.editProf.set(valor);
   }
 
+  protected alterarSalaEdicao(valor: string): void {
+    this.editSala.set(valor);
+    const horarios = this.opcoesHorario();
+    if (horarios.length && !horarios.includes(this.editHora())) {
+      this.editHora.set(horarios[0]);
+    }
+  }
+
+  protected alterarHorarioEdicao(valor: string): void {
+    if (this.opcoesHorario().includes(valor)) this.editHora.set(valor);
+  }
+
+  protected tentarNovamenteCarregarAgenda(): void {
+    this.recarregarConsultas();
+    this.tentativaDisponibilidade.update((tentativa) => tentativa + 1);
+  }
+
   protected readonly opcoesProfissionais = computed(() =>
     this.profissionais()
       .filter(
@@ -730,7 +818,13 @@ export class Agenda {
     const data = this.editData();
     const profissionalId = this.editProf();
 
-    if (!atual || !data || !profissionalId) return [];
+    if (
+      !atual ||
+      !data ||
+      !profissionalId ||
+      !this.consultasCarregadas() ||
+      this.falhaDisponibilidades()
+    ) return [];
 
     const dia = diaDaData(data);
 
@@ -762,14 +856,16 @@ export class Agenda {
     return [...horariosDisponiveis]
       .sort((a, b) => minutosDe(a) - minutosDe(b))
       .filter((horario) => {
-        // Mantém o horário atual visível durante a edição.
-        if (horario === atual.inicio) return true;
+        const horarioAtual = data === atual.data &&
+          profissionalId === atual.profissionalId &&
+          horario === atual.inicio;
 
         // Não oferece datas anteriores a hoje.
-        if (data < this.hojeBase) return false;
+        if (data < this.hojeBase && !horarioAtual) return false;
 
         // Não oferece horários que já passaram hoje.
         if (
+          !horarioAtual &&
           data === this.hojeBase &&
           minutosDe(horario) <= minutosAgora
         ) {
@@ -780,7 +876,7 @@ export class Agenda {
         const fim = inicio + atual.duracao;
 
         // A consulta inteira precisa caber na disponibilidade.
-        return disponibilidadesDoDia.some((disponibilidade) => {
+        const cabeNaDisponibilidade = horarioAtual || disponibilidadesDoDia.some((disponibilidade) => {
           if (
             !disponibilidade.horaInicio ||
             !disponibilidade.horaFim
@@ -801,7 +897,80 @@ export class Agenda {
             fim <= fimDisponivel
           );
         });
+
+        if (!cabeNaDisponibilidade) return false;
+
+        return !possuiConflitoAgenda(this.consultas(), {
+          consultaId: atual.id,
+          data,
+          inicio: horario,
+          duracao: atual.duracao,
+          pacienteId: atual.pacienteId,
+          profissionalId,
+          local: this.editSala(),
+        });
       });
+  });
+
+  protected readonly opcoesSala = computed(() => {
+    const atual = this.escolhido()?.a;
+    const data = this.editData();
+    const profissionalId = this.editProf();
+    if (!atual || !data || !profissionalId || !this.consultasCarregadas() || this.falhaDisponibilidades()) return [];
+
+    const dia = diaDaData(data);
+    const disponibilidadesDoDia = this.disponibilidades().filter((disponibilidade) =>
+      Boolean(disponibilidade.ativo) &&
+      normalizarDiaDisponibilidade(disponibilidade.diaSemana) === dia,
+    );
+    const horarios = new Set(horariosDaDisponibilidade(disponibilidadesDoDia, atual.duracao));
+    if (data === atual.data && profissionalId === atual.profissionalId) {
+      horarios.add(atual.inicio);
+    }
+
+    const horarioPessoaLivre = [...horarios].filter((inicio) =>
+      !possuiConflitoAgenda(this.consultas(), {
+        consultaId: atual.id,
+        data,
+        inicio,
+        duracao: atual.duracao,
+        pacienteId: atual.pacienteId,
+        profissionalId,
+        local: '',
+      }),
+    );
+    const conflitaSala = (inicio: string, sala: string) => possuiConflitoAgenda(this.consultas(), {
+      consultaId: atual.id,
+      data,
+      inicio,
+      duracao: atual.duracao,
+      pacienteId: atual.pacienteId,
+      profissionalId,
+      local: sala,
+    });
+    const salasCandidatas = atual.local && !this.salas.includes(atual.local)
+      ? [...this.salas, atual.local]
+      : this.salas;
+    const horarioSelecionadoPodeUsarSala = this.editHora() &&
+      horarioPessoaLivre.includes(this.editHora()) &&
+      salasCandidatas.some((sala) => !conflitaSala(this.editHora(), sala));
+    const horariosParaValidarSala = horarioSelecionadoPodeUsarSala
+      ? [this.editHora()]
+      : horarioPessoaLivre;
+
+    const semConflito = (sala: string) => horariosParaValidarSala.some((inicio) =>
+      !conflitaSala(inicio, sala),
+    );
+
+    const salasConhecidas = this.salas.filter(semConflito);
+    const salaLegadaPreservavel = atual.local &&
+      !this.salas.includes(atual.local) &&
+      this.editSala() === atual.local &&
+      semConflito(atual.local)
+      ? [atual.local]
+      : [];
+
+    return [...salasConhecidas, ...salaLegadaPreservavel];
   });
 
   private montarRequest(): ConsultaRequestApi | undefined {
@@ -820,9 +989,36 @@ export class Agenda {
       return undefined;
     }
 
+    if (!this.opcoesHorario().includes(this.editHora())) {
+      this.aviso.mostrar('Selecione um horário disponível para a data e o profissional escolhidos.');
+      return undefined;
+    }
+
     const salaSelecionada = this.editSala().trim();
-    if (!salaSelecionada || !salaConsultaPermitida(salaSelecionada, atual.local)) {
+    if (
+      !salaSelecionada ||
+      !salaConsultaPermitida(salaSelecionada, atual.local) ||
+      !this.opcoesSala().includes(salaSelecionada)
+    ) {
       this.aviso.mostrar('Selecione uma sala disponível.');
+      return undefined;
+    }
+
+    if (!this.consultasCarregadas() || this.falhaDisponibilidades()) {
+      this.aviso.mostrar('A agenda não foi carregada. Tente novamente antes de salvar.');
+      return undefined;
+    }
+
+    if (possuiConflitoAgenda(this.consultas(), {
+      consultaId: atual.id,
+      data: this.editData(),
+      inicio: this.editHora(),
+      duracao: atual.duracao,
+      pacienteId: atual.pacienteId,
+      profissionalId: this.editProf(),
+      local: salaSelecionada,
+    })) {
+      this.aviso.mostrar('Esse horário, profissional, paciente ou sala conflita com outra consulta. Selecione outra opção.');
       return undefined;
     }
 
@@ -870,10 +1066,14 @@ export class Agenda {
   ): void {
     const atual = this.escolhido()?.a;
 
-    if (!atual) return;
+    if (!atual || this.executandoAcao()) return;
 
+    this.executandoAcao.set(true);
     this.consultasApi.atualizar(atual.id, request).subscribe({
       next: (resposta) => {
+        this.executandoAcao.set(false);
+        this.confirmandoRemarcacao.set(false);
+        this.remarcacaoPendente.set(null);
         this.editando.set(false);
 
         this.semana.set(
@@ -888,6 +1088,7 @@ export class Agenda {
         this.recarregarConsultas();
       },
       error: (erro) => {
+        this.executandoAcao.set(false);
         this.aviso.mostrar(
           erro.error?.message ||
           'Não foi possível atualizar a consulta. Verifique a disponibilidade e os conflitos de horário.',
@@ -911,13 +1112,31 @@ export class Agenda {
       return;
     }
 
+    if (atual.status === 'confirmado') {
+      this.aviso.mostrar('Esta consulta já está confirmada.');
+      return;
+    }
+
+    this.confirmando.set(true);
+  }
+
+  protected executarConfirmacao(): void {
+    const atual = this.escolhido()?.a;
+
+    if (!atual || this.executandoAcao()) return;
+
+    this.executandoAcao.set(true);
     this.consultasApi.confirmar(atual.id).subscribe({
       next: () => {
+        this.executandoAcao.set(false);
+        this.confirmando.set(false);
         this.editando.set(false);
+        this.menuStatus.set(false);
         this.aviso.mostrar('Consulta confirmada.');
         this.recarregarConsultas();
       },
       error: (erro) => {
+        this.executandoAcao.set(false);
         this.aviso.mostrar(
           erro.error?.message ||
           'Não foi possível confirmar a consulta.',
@@ -927,6 +1146,7 @@ export class Agenda {
   }
 
   protected remarcarConsulta(): void {
+    if (this.executandoAcao()) return;
     const atual = this.escolhido()?.a;
     const request = this.montarRequest();
 
@@ -945,15 +1165,32 @@ export class Agenda {
       return;
     }
 
+    this.remarcacaoPendente.set(request);
+    this.confirmandoRemarcacao.set(true);
+  }
+
+  protected executarRemarcacao(): void {
+    const request = this.remarcacaoPendente();
+    const atual = this.escolhido()?.a;
+    if (!request || !atual || this.executandoAcao()) return;
+
+    const mudouSomenteSala = request.local !== atual.local &&
+      request.dataHora.slice(0, 10) === atual.data &&
+      request.dataHora.slice(11, 16) === atual.inicio &&
+      request.profissionalId === atual.profissionalId;
+
     this.atualizarConsulta(
       request,
-      sala !== atual.local &&
-      this.editData() === atual.data &&
-      this.editHora() === atual.inicio &&
-      this.editProf() === atual.profissionalId
-        ? 'Sala da consulta atualizada.'
-        : 'Consulta remarcada.',
+      mudouSomenteSala ? 'Sala da consulta atualizada.' : 'Consulta remarcada.',
     );
+  }
+
+  protected nomeProfissional(id: string): string {
+    return this.profissionais().find((profissional) => profissional.id === id)?.nome ?? '—';
+  }
+
+  protected dataDaRemarcacao(dataHora: string): string {
+    return `${formatarData(dataHora.slice(0, 10))} às ${dataHora.slice(11, 16)}`;
   }
 
   protected confirmarCancelamento(): void {
@@ -961,14 +1198,26 @@ export class Agenda {
 
     if (!atual) return;
 
+    if (atual.status === 'cancelado') {
+      this.cancelando.set(false);
+      this.aviso.mostrar('Esta consulta já está cancelada.');
+      return;
+    }
+
+    if (this.executandoAcao()) return;
+
+    this.executandoAcao.set(true);
     this.consultasApi.cancelar(atual.id).subscribe({
       next: () => {
+        this.executandoAcao.set(false);
         this.cancelando.set(false);
         this.editando.set(false);
+        this.menuStatus.set(false);
         this.aviso.mostrar('Consulta cancelada.');
         this.recarregarConsultas();
       },
       error: (erro) => {
+        this.executandoAcao.set(false);
         this.aviso.mostrar(
           erro.error?.message ||
           'Não foi possível cancelar a consulta.',

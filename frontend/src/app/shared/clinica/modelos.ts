@@ -44,6 +44,11 @@ export interface Paciente {
   email: string;
   cpf: string;
   endereco: string;
+  cep?: string;
+  cidade?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
   status: StatusPaciente;
   /** Texto mostrado no prontuário (ex.: "Em andamento"). */
   situacao: string;
@@ -66,6 +71,11 @@ export interface DadosPaciente {
   cpf: string;
   telefone: string;
   endereco?: string;
+  cep?: string;
+  cidade?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
   responsavel: Responsavel;
   responsaveis?: Responsavel[];
   plano: PlanoSaude;

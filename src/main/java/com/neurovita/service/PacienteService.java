@@ -78,6 +78,7 @@ public class PacienteService {
 
         List<VinculoResponsavelRequest> responsaveis =
                 validarResponsaveis(request);
+        validarEnderecoObrigatorio(request);
 
         Paciente paciente = new Paciente();
         preencherPaciente(paciente, request, true);
@@ -272,15 +273,28 @@ public class PacienteService {
         if (request.getCpf() != null) paciente.setCpf(request.getCpf());
         if (request.getTelefone() != null) paciente.setTelefone(request.getTelefone());
         if (request.getEndereco() != null) paciente.setEndereco(request.getEndereco());
-        if (request.getCep() != null && !request.getCep().isBlank()) {
-                paciente.setCep(request.getCep());
-        }
-        if (request.getCidade() != null && !request.getCidade().isBlank()) {
-                paciente.setCidade(request.getCidade());
-        }
+        if (request.getCep() != null) paciente.setCep(valorOpcional(request.getCep()));
+        if (request.getCidade() != null) paciente.setCidade(valorOpcional(request.getCidade()));
+        if (request.getNumero() != null) paciente.setNumero(valorOpcional(request.getNumero()));
+        if (request.getComplemento() != null) paciente.setComplemento(valorOpcional(request.getComplemento()));
+        if (request.getBairro() != null) paciente.setBairro(valorOpcional(request.getBairro()));
         if (request.getAtivo() != null) paciente.setAtivo(request.getAtivo());
         else if (novoCadastro && paciente.getAtivo() == null) paciente.setAtivo(true);
 
+    }
+
+    private String valorOpcional(String valor) {
+        return valor.isBlank() ? null : valor.trim();
+    }
+
+    private void validarEnderecoObrigatorio(PacienteRequest request) {
+        if (request.getCep() == null || request.getCep().replaceAll("\\D", "").length() != 8
+                || request.getNumero() == null || request.getNumero().isBlank()
+                || request.getBairro() == null || request.getBairro().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe CEP, número e bairro para cadastrar o paciente.");
+        }
     }
 
     private void validarPlanoSaude(PacienteRequest request) {

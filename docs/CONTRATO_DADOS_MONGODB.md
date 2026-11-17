@@ -120,14 +120,14 @@ Cadastro de paciente. Nome e nascimento são obrigatórios; e-mail obrigatório 
 |---|---|---|
 | `_id` | ObjectId ou String / `String` | Identificador. |
 | `nome`, `dataNascimento` | String, Date / `String`, `LocalDate` | Obrigatórios na criação. |
-| `email`, `cpf`, `telefone`, `endereco`, `cep`, `cidade` | String | E-mail requerido para a conta; demais podem ser nulos conforme DTO/regra. |
+| `email`, `cpf`, `telefone`, `endereco`, `cep`, `cidade`, `numero`, `complemento`, `bairro` | String | E-mail requerido para a conta; demais podem ser nulos conforme DTO/regra. CEP, número e bairro são exigidos no cadastro do formulário FBR; atualizações parciais podem omiti-los para preservar valores legados. Valor vazio explícito limpa os campos textuais opcionais, sujeito à validação de formato do CEP na API. |
 | `ativo` | Boolean / `Boolean` | Default Java `true`; ausência antiga é interpretada como ativo no serviço/modelo. |
 | `possuiPlanoSaude` | Boolean / `Boolean` | Optional/nullable no schema; regra de plano condicionada ao valor. |
 | `planoSaude`, `numeroCarteirinha` | String | Plano requerido quando possui plano; número opcional. |
 | `validadePlano` | Date / `LocalDate` | Opcional. |
 
 ```json
-{ "_id":{"$oid":"671000000000000000000004"}, "nome":"Paciente exemplo", "dataNascimento":{"$date":"2012-03-15T00:00:00Z"}, "email":"paciente@example.invalid", "cpf":null, "telefone":null, "endereco":null, "cep":null, "cidade":null, "ativo":true, "possuiPlanoSaude":false, "planoSaude":null, "numeroCarteirinha":null, "validadePlano":null }
+{ "_id":{"$oid":"671000000000000000000004"}, "nome":"Paciente exemplo", "dataNascimento":{"$date":"2012-03-15T00:00:00Z"}, "email":"paciente@example.invalid", "cpf":null, "telefone":null, "endereco":null, "cep":null, "cidade":null, "numero":null, "complemento":null, "bairro":null, "ativo":true, "possuiPlanoSaude":false, "planoSaude":null, "numeroCarteirinha":null, "validadePlano":null }
 ```
 
 ### 3.4 `responsaveis` — `Responsavel`

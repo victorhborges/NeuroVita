@@ -10,6 +10,11 @@ export interface PacienteApi {
     cpf: string;
     telefone: string;
     endereco?: string;
+    cep?: string;
+    cidade?: string;
+    numero?: string;
+    complemento?: string;
+    bairro?: string;
     ativo?: boolean;
     responsaveis: {
         responsavelId: string;

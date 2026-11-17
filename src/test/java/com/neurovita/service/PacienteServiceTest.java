@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -196,6 +197,9 @@ class PacienteServiceTest {
         Paciente paciente = paciente("pac-1");
         paciente.setCep("70000000");
         paciente.setCidade("Brasília");
+        paciente.setNumero("12");
+        paciente.setComplemento("Bloco A");
+        paciente.setBairro("Asa Sul");
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
@@ -209,6 +213,36 @@ class PacienteServiceTest {
 
         assertEquals("70000000", response.getCep());
         assertEquals("Brasília", response.getCidade());
+        assertEquals("12", response.getNumero());
+        assertEquals("Bloco A", response.getComplemento());
+        assertEquals("Asa Sul", response.getBairro());
+    }
+
+    @Test
+    void enderecoEstruturadoAtualizaValoresEnviadosEPreservaCamposOmitidos() {
+        Paciente paciente = paciente("pac-1");
+        paciente.setCep("70000000");
+        paciente.setCidade("Brasília");
+        paciente.setNumero("12");
+        paciente.setComplemento("Bloco A");
+        paciente.setBairro("Asa Sul");
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Teste");
+        request.setDataNascimento(LocalDate.of(1990, 1, 1));
+        request.setNumero("15");
+        request.setComplemento("");
+
+        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+
+        var response = pacienteService.atualizar("pac-1", request);
+
+        assertEquals("70000000", response.getCep());
+        assertEquals("Brasília", response.getCidade());
+        assertEquals("15", response.getNumero());
+        assertEquals("Asa Sul", response.getBairro());
+        assertNull(response.getComplemento());
     }
 
     @Test
@@ -326,6 +360,10 @@ class PacienteServiceTest {
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Menor");
         request.setDataNascimento(LocalDate.now().minusYears(10));
+        request.setCep("70000000");
+        request.setNumero("12");
+        request.setBairro("Asa Sul");
+        request.setResponsaveis(new java.util.ArrayList<>());
         for (String id : List.of("resp-1", "resp-2")) {
             Responsavel responsavel = new Responsavel();
             responsavel.setId(id);
@@ -333,9 +371,6 @@ class PacienteServiceTest {
             VinculoResponsavelRequest vinculo = new VinculoResponsavelRequest();
             vinculo.setResponsavelId(id);
             vinculo.setGrauParentesco("Responsável");
-            if (request.getResponsaveis().isEmpty()) {
-                request.setResponsaveis(new java.util.ArrayList<>());
-            }
             request.getResponsaveis().add(vinculo);
         }
         when(pacienteRepository.save(any(Paciente.class))).thenAnswer(invocation -> {
@@ -351,5 +386,42 @@ class PacienteServiceTest {
 
         verify(vinculoRepository, org.mockito.Mockito.times(2))
                 .save(any(VinculoResponsavel.class));
+    }
+
+    @Test
+    void novoPacientePrecisaDeEnderecoExigidoPeloFormularioFbr() {
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Adulto");
+        request.setDataNascimento(LocalDate.now().minusYears(30));
+        request.setCep("70000000");
+        request.setNumero("12");
+        request.setBairro("Asa Sul");
+
+        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(invocation -> {
+            Paciente paciente = invocation.getArgument(0);
+            paciente.setId("pac-1");
+            return paciente;
+        });
+        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+
+        var cadastro = pacienteService.salvar(request);
+
+        assertEquals("70000000", cadastro.getPaciente().getCep());
+        assertEquals("12", cadastro.getPaciente().getNumero());
+        assertEquals("Asa Sul", cadastro.getPaciente().getBairro());
+    }
+
+    @Test
+    void impedeCriarPacienteSemCepNumeroOuBairro() {
+        PacienteRequest request = new PacienteRequest();
+        request.setNome("Paciente Adulto");
+        request.setDataNascimento(LocalDate.now().minusYears(30));
+
+        var erro = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> pacienteService.salvar(request));
+
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, erro.getStatusCode());
+        verify(pacienteRepository, never()).save(any(Paciente.class));
     }
 }

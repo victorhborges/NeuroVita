@@ -27,6 +27,14 @@ export class Prontuario {
 
   protected readonly paciente = computed(() => this.clinica.paciente(this.id()));
   protected readonly nascimento = computed(() => formatarData(this.paciente()?.nascimento));
+  protected readonly endereco = computed(() => {
+    const paciente = this.paciente();
+    if (!paciente) return '—';
+    const partes = [paciente.endereco, paciente.numero, paciente.complemento, paciente.bairro, paciente.cidade, paciente.cep]
+      .map((parte) => parte?.trim())
+      .filter((parte): parte is string => !!parte);
+    return partes.join(', ') || '—';
+  });
   protected readonly secoes = computed(() => secoesDoPerfil(this.perfil()).map((id) => SECOES[id]));
   protected readonly consultas = computed(() =>
     (this.paciente()?.consultas ?? []).map((c) => {
