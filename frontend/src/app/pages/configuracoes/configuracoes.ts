@@ -58,6 +58,11 @@ export class Configuracoes {
   protected readonly senhaConfirmacao = signal('');
   protected readonly erroSenha = signal('');
   protected readonly salvandoSenha = signal(false);
+  protected readonly editandoPerfil = signal(false);
+  protected readonly nomePerfil = signal('');
+  protected readonly emailPerfil = signal('');
+  protected readonly salvandoPerfil = signal(false);
+  protected readonly erroPerfil = signal('');
 
   protected readonly nome = computed(() => this.auth.obterNome() ?? '—');
   protected readonly email = computed(() => this.auth.obterEmail() ?? '—');
@@ -65,8 +70,8 @@ export class Configuracoes {
   protected readonly dias = DIAS;
   protected readonly nomeInicioSemana = computed(() => DIAS.find((d) => d.valor === this.preferencias().inicioSemana)?.nome ?? 'Segunda-feira');
   protected readonly idiomas: OpcaoLista[] = [
-    { valor: 'pt', rotulo: 'Português' },
-    { valor: 'en', rotulo: 'Inglês (indisponível)' , desabilitada: true },
+    { valor: 'pt', rotulo: '🇧🇷 Português' },
+    { valor: 'en', rotulo: '🇺🇸 English (em breve)' },
   ];
   protected readonly formatosData: OpcaoLista[] = [
     { valor: 'dd/mm/aaaa', rotulo: 'DD/MM/AAAA' },
@@ -158,6 +163,36 @@ export class Configuracoes {
           this.aviso.mostrar('Senha alterada. Entre novamente com a nova senha.');
         },
         error: (erro) => this.erroSenha.set(erro?.error?.message ?? 'Não foi possível alterar a senha. Confira a senha atual.'),
+      });
+  }
+
+  protected abrirEdicaoPerfil(): void {
+    this.nomePerfil.set(this.nome() === '—' ? '' : this.nome());
+    this.emailPerfil.set(this.email() === '—' ? '' : this.email());
+    this.erroPerfil.set('');
+    this.editandoPerfil.set(true);
+  }
+
+  protected salvarPerfil(evento: Event): void {
+    evento.preventDefault();
+    if (this.salvandoPerfil()) return;
+    const nome = this.nomePerfil().trim();
+    const email = this.emailPerfil().trim();
+    if (!nome || !email) {
+      this.erroPerfil.set('Informe nome e e-mail.');
+      return;
+    }
+    this.salvandoPerfil.set(true);
+    this.erroPerfil.set('');
+    this.auth.atualizarPerfil(nome, email)
+      .pipe(finalize(() => this.salvandoPerfil.set(false)))
+      .subscribe({
+        next: () => {
+          this.editandoPerfil.set(false);
+          this.aviso.mostrar('Perfil atualizado.');
+        },
+        error: (erro) => this.erroPerfil.set(erro?.error?.mensagem ?? erro?.error?.message
+          ?? 'Não foi possível atualizar o perfil. Confira os dados e tente novamente.'),
       });
   }
 

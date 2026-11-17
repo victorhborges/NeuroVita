@@ -106,6 +106,27 @@ class ConsultaServiceTest {
     }
 
     @Test
+    void bloqueiaSalaJaOcupadaNoHorarioDaConsulta() {
+        prepararAgendamentoValido("prof-1");
+        ConsultaRequest request = request("PRESENCIAL");
+        request.setLocal("Sala 02");
+        Consulta existente = new Consulta();
+        existente.setId("consulta-existente");
+        existente.setLocal("sala 02");
+        existente.setDataHora(request.getDataHora().plusMinutes(15));
+        existente.setDuracao(30);
+        existente.setStatus(StatusConsulta.CONFIRMADA);
+        when(consultaRepository.findByLocalIgnoreCase("Sala 02")).thenReturn(List.of(existente));
+
+        ResponseStatusException erro = assertThrows(ResponseStatusException.class,
+                () -> consultaService.salvar(request));
+
+        assertEquals(HttpStatus.CONFLICT, erro.getStatusCode());
+        verify(consultaRepository, never()).save(any(Consulta.class));
+        verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
+    }
+
+    @Test
     void remarcarParaOutroProfissionalCriaNovoVinculoEPreservaAnterior() {
         Consulta existente = consultaExistente();
         when(consultaRepository.findById("consulta-1")).thenReturn(Optional.of(existente));

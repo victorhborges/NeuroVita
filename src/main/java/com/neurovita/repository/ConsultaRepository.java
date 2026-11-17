@@ -15,6 +15,8 @@ public interface ConsultaRepository extends MongoRepository<Consulta, String> {
 
     List<Consulta> findByProfissionalId(String profissionalId);
 
+    List<Consulta> findByLocalIgnoreCase(String local);
+
     // A consulta explícita mantém os dois operadores no mesmo documento dataHora.
     @Query("{\"dataHora\": {\"$gte\": ?0, \"$lt\": ?1}}")
     List<Consulta> findByDataHoraGreaterThanEqualAndDataHoraLessThan(

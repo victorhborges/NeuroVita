@@ -34,3 +34,8 @@ build/
 
 ### Variáveis de ambiente ###
 .env
+
+
+
+
+tmp/

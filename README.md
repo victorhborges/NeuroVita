@@ -6,9 +6,9 @@ O NeuroVita é um sistema de gestão de atendimentos psicológicos, composto por
 
 O frontend é compilado e servido pela própria aplicação Spring Boot, que disponibiliza também a API REST.
 
-> **Status atual (revisão local de 16/11/2026):** os fluxos clínicos existentes de evoluções, prescrições e solicitações de exames usam APIs específicas; autenticação JWT, agenda e cadastros também possuem integração Angular/backend. A atualização da referência FBR incluiu abertura animada, Ajuda, Configurações ligadas à API de preferências e alteração de senha, tabelas da agenda e carregamento sob demanda das rotas. O prontuário e as listas/formulários receberam ajustes visuais mantendo os contratos. Preferências de idioma e início da semana são salvas, mas ainda não mudam a tradução nem a grade da agenda. O canal de contato não está configurado, notificações não possuem serviço de entrega e 2FA aguarda definição funcional.
+> **Status atual (revisão local de 17/11/2026):** os fluxos clínicos existentes de evoluções, prescrições e solicitações de exames usam APIs específicas; autenticação JWT, agenda e cadastros também possuem integração Angular/backend. A atualização da referência FBR inclui abertura animada, Ajuda, Configurações ligadas à API de preferências e alteração de senha, tabelas da agenda e carregamento sob demanda das rotas. O prontuário e as listas/formulários mantêm os contratos atuais. Preferências de idioma continuam persistidas, mas a tradução da interface fica para implementação futura; o início da semana é persistido, sem alterar a grade de segunda a sábado. O formulário Fale Conosco envia mensagem pelo backend somente quando SMTP e `NEUROVITA_CONTACT_TO` estiverem configurados. Notificações ainda não possuem serviço de entrega e 2FA aguarda definição funcional.
 >
-> Na validação de 16/11/2026, o build de produção Angular terminou com código 0 em uma pasta temporária fora dos diretórios de saída do OneDrive. O bundle inicial ficou em 362,61 kB, abaixo do limite de aviso de 500 kB, após converter as páginas para carregamento sob demanda. Os 23 testes Angular em 6 arquivos terminaram normalmente com código 0. A compilação Maven ocorreu durante `mvnw test`; 9 testes Java direcionados passaram, mas a suíte completa não terminou: o teste de contexto tentou inicializar MongoDB e falhou por indisponibilidade de DNS/loopback, e uma execução sem esse teste ficou parada na inicialização do agente Mockito e foi interrompida. Atlas não foi acessado intencionalmente, nem Docker ou Render.
+> Na validação local de 17/11/2026, o build de produção Angular terminou com código 0 quando direcionado a uma pasta temporária fora do OneDrive (bundle inicial: 377,13 kB, abaixo do aviso configurado). O build no diretório `frontend/dist` gerou os bundles, mas terminou com `EPERM` ao limpar `frontend/dist/neurovita/browser/img`, onde existem arquivos de imagem com atributo de reparse point no OneDrive; esses arquivos não foram removidos. Os 32 testes Angular em 9 arquivos terminaram com código 0. Maven compilou 140 fontes Java e compilou 27 fontes de teste; os testes Java direcionados não terminaram: a JVM de testes travou na inicialização do agente Mockito, com erro de pipe de attach (`could not open ... pipe ... to send result`), e o processo foi interrompido. Portanto, os testes Java não estão aprovados. MongoDB Atlas, Render e Docker não foram acessados.
 
 ---
 
@@ -124,7 +124,7 @@ src/main/resources/static/
 
 A autenticação utiliza JWT. O token é armazenado em `sessionStorage` e enviado nas requisições protegidas por um interceptor HTTP.
 
-O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend. Configurações persiste preferências e usa o endpoint autenticado de alteração de senha. Ajuda usa conteúdo estático. O contato permanece sem envio porque ainda falta definir um canal institucional e sua integração.
+O frontend utiliza serviços de integração para acessar pacientes, profissionais, responsáveis, consultas, diagnósticos, secretarias, preferências, evoluções, prescrições, exames e vínculos profissionais-pacientes. Há também um serviço Angular para tratamentos; ainda não existe um formulário ou tela de tratamento no frontend. Configurações persiste preferências e usa o endpoint autenticado de alteração de senha. Ajuda usa conteúdo estático. Fale Conosco envia mensagens para o destinatário informado pela equipe de infraestrutura na variável `NEUROVITA_CONTACT_TO`; sem esse valor ou sem SMTP habilitado, o endpoint retorna indisponibilidade e a tela informa que não foi possível enviar. As mensagens não são persistidas no banco nem associadas ao prontuário.
 
 O tratamento de erros deve preservar os dados anteriormente carregados quando uma atualização da API falhar, evitando que uma falha de comunicação seja interpretada como uma resposta vazia.
 
@@ -590,6 +590,30 @@ O `PUT` aceita atualizações parciais: campos omitidos ou nulos preservam os va
 
 O salvamento das preferências de notificação não envia e-mails ou notificações por si só. A integração de envio permanece dependente de configuração externa.
 
+### Perfil próprio e Fale Conosco
+
+O perfil autenticado pode atualizar nome e e-mail. A resposta inclui um novo JWT, pois a identidade do token é o e-mail da conta:
+
+```http
+PUT /api/auth/perfil
+Content-Type: application/json
+
+{ "nome": "Nome atualizado", "email": "usuario@exemplo.com" }
+```
+
+O endpoint altera somente o cadastro associado à sessão e mantém o e-mail de login e o nome sincronizados entre `usuarios` e o modelo de perfil existente. É permitido para administrador, secretaria e profissional.
+
+O formulário de contato utiliza o SMTP configurado no projeto, sem gravar mensagens em coleções clínicas:
+
+```http
+POST /api/contato
+Content-Type: application/json
+
+{ "nome": "Nome", "email": "retorno@exemplo.com", "mensagem": "Mensagem" }
+```
+
+O endpoint exige autenticação JWT e retorna `202 Accepted` somente quando a mensagem foi aceita pelo SMTP. É necessário configurar `SMTP_ENABLED=true`, os parâmetros SMTP e `NEUROVITA_CONTACT_TO` com o endereço institucional escolhido pela equipe. Sem essas configurações, a API retorna indisponibilidade e a interface não informa sucesso.
+
 ### Seções disponíveis
 
 Exemplos de valores de seção:
@@ -803,6 +827,7 @@ SMTP_PASSWORD
 SMTP_FROM
 SMTP_AUTH
 SMTP_STARTTLS
+NEUROVITA_CONTACT_TO
 ```
 
 O SMTP permanece desabilitado por padrão.

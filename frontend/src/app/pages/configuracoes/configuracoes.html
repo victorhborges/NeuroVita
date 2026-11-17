@@ -20,6 +20,7 @@
             <div><dt>Perfil</dt><dd>{{ cargo() }}</dd></div>
             <div><dt>E-mail</dt><dd>{{ email() }}</dd></div>
           </dl>
+          <button type="button" class="botao-contorno cfg-editar-perfil" (click)="abrirEdicaoPerfil()"><app-icone nome="editar" /> Editar perfil</button>
         </div>
       </section>
 
@@ -111,3 +112,20 @@
 
 <app-dialogo [aberto]="confirmarSalvar()" titulo="Confirmar alterações?" textoConfirmar="Sim" (cancelar)="cancelarSalvar()" (confirmar)="salvar()" />
 <app-dialogo [aberto]="confirmarRestaurar()" titulo="Restaurar preferências padrão?" textoConfirmar="Restaurar" (cancelar)="confirmarRestaurar.set(false)" (confirmar)="restaurar()" />
+
+@if (editandoPerfil()) {
+  <div class="dialogo-fundo" (mousedown)="$event.target === $event.currentTarget && editandoPerfil.set(false)">
+    <section class="dialogo cfg-dialogo-perfil" role="dialog" aria-modal="true" aria-labelledby="cfg-editar-titulo">
+      <h2 id="cfg-editar-titulo" class="edicao-titulo">Editar perfil</h2>
+      <form class="cfg-form-perfil" (submit)="salvarPerfil($event)">
+        <label class="campo-form"><span class="campo-rotulo">Nome completo *</span><input name="nome" autocomplete="name" maxlength="120" required [value]="nomePerfil()" (input)="nomePerfil.set($any($event.target).value)" /></label>
+        <label class="campo-form"><span class="campo-rotulo">E-mail *</span><input name="email" type="email" autocomplete="email" maxlength="254" required [value]="emailPerfil()" (input)="emailPerfil.set($any($event.target).value)" /></label>
+        @if (erroPerfil()) { <p class="campo-msg" role="alert">{{ erroPerfil() }}</p> }
+        <div class="cfg-form-perfil-acoes">
+          <button type="button" class="botao-claro" (click)="editandoPerfil.set(false)">Cancelar</button>
+          <button type="submit" class="botao-escuro" [disabled]="salvandoPerfil()">{{ salvandoPerfil() ? 'Salvando…' : 'Salvar' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

@@ -1362,6 +1362,11 @@ input:focus-visible + .caixa { outline: 2px solid #c7d2fe; outline-offset: 2px; 
 .cfg-dados dd { margin: 0; font-size: 1rem; line-height: 1.4rem; font-weight: 700; overflow-wrap: anywhere; }
 .cfg-input { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid var(--painel-borda); border-radius: 0.4rem; background: #fff; font-size: 0.9rem; font-weight: 500; }
 .cfg-editar { align-self: flex-end; margin-top: 0.4rem; font-size: 0.8rem; }
+.cfg-editar-perfil { align-self: flex-end; margin-top: 0.3rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+.cfg-editar-perfil app-icone { font-size: 0.95rem; }
+.cfg-dialogo-perfil { width: min(31rem, calc(100vw - 2rem)); padding: 1.3rem 1.5rem; }
+.cfg-form-perfil { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 1rem; }
+.cfg-form-perfil-acoes { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.3rem; }
 
 .cfg-linhas { display: flex; flex-direction: column; gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
 .cfg-linha { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -1509,17 +1514,22 @@ input:focus-visible + .caixa { outline: 2px solid #c7d2fe; outline-offset: 2px; 
 .ajuda-img-vazia app-icone { font-size: 2.2rem; }
 
 /* Fale conosco */
-.fale-cartao { display: flex; width: 100%; max-width: 30rem; flex-direction: column; gap: 0.75rem; margin: 0 auto; padding: 1.2rem 2.3rem 1.5rem; }
+.fale-cartao { display: flex; width: 100%; max-width: 35rem; flex-direction: column; gap: 0.75rem; margin: 0 auto; padding: 1.2rem 2.3rem 1.5rem; }
 .fale-figura { display: block; align-self: center; }
 .fale-figura .ajuda-img { width: auto; height: 11rem; margin: 0 auto; }
 .fale-titulo { font-size: 1.2rem; line-height: 1.6rem; font-weight: 700; }
 .fale-cartao textarea {
-  width: 100%; min-height: 6rem; padding: 0.7rem 0.9rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: #fff;
+  width: 100%; min-height: 6rem; padding: 0.7rem 0.9rem; border: 1px solid var(--painel-borda); border-radius: 0.5rem; background: var(--card); color: var(--foreground);
   font-size: 0.95rem; resize: vertical;
 }
 .fale-cartao textarea::placeholder { color: #8b919b; }
 .fale-cartao .campo-form-erro textarea { border-color: #e04b4b; }
-.fale-enviar { margin-top: 0.5rem; }
+.fale-form { display: flex; flex-direction: column; gap: 0.7rem; }
+.fale-form .campo-form input { background: var(--card); color: var(--foreground); }
+.fale-enviar { display: flex; align-items: center; justify-content: center; gap: 0.8rem; margin-top: 0.5rem; }
+.fale-enviar app-icone { font-size: 1.25rem; }
+.fale-enviar:disabled { cursor: wait; opacity: 0.7; }
+.fale-nota { padding: 0.65rem 0.75rem; border-radius: 0.5rem; background: var(--muted); color: var(--muted-foreground); font-size: 0.8rem; }
 
 @media (max-width: 900px) {
   .ajuda-topicos, .ajuda-contato { grid-template-columns: minmax(0, 1fr); }

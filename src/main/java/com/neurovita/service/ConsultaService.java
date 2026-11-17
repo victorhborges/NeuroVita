@@ -414,6 +414,24 @@ public class ConsultaService {
                         "O paciente já possui uma consulta nesse horário.");
             }
         }
+
+        if (ehSalaFisica(request.getLocal())) {
+            List<Consulta> consultasSala = consultaRepository.findByLocalIgnoreCase(request.getLocal().trim());
+            for (Consulta existente : consultasSala) {
+                if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
+                    continue;
+                }
+                if (possuiSobreposicao(existente, inicio, fim)) {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "A sala selecionada já possui uma consulta nesse horário.");
+                }
+            }
+        }
+    }
+
+    private boolean ehSalaFisica(String local) {
+        return local != null && local.trim().matches("(?i)^sala\\s+\\d{1,2}$");
     }
 
     private void validarDisponibilidade(

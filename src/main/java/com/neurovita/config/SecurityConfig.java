@@ -121,6 +121,13 @@ public class SecurityConfig {
                                 "PROFISSIONAL",
                                 "PACIENTE")
 
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/perfil")
+                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+
+                        // Mensagem de contato: somente usuários autenticados dos perfis do sistema.
+                        .requestMatchers(HttpMethod.POST, "/api/contato")
+                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL", "PACIENTE")
+
                         // Administração do sistema
                         .requestMatchers("/api/administradores/**")
                         .hasRole("ADMINISTRADOR")

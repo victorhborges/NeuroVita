@@ -121,6 +121,23 @@ export class Auth {
     }).pipe(tap(() => this.sair()));
   }
 
+  atualizarPerfil(nome: string, email: string): Observable<void> {
+    return this.http.put<LoginResponse>('/api/auth/perfil', { nome, email }).pipe(
+      tap((resposta) => {
+        const perfil = this.obterPerfil();
+        if (!perfil) return;
+        sessionStorage.setItem(this.chaveToken, resposta.token);
+        sessionStorage.setItem(this.chaveUsuario, JSON.stringify({
+          nome: resposta.nome,
+          email: resposta.email,
+          perfil,
+        } satisfies UsuarioSessao));
+        this.eventoSessao.next(true);
+      }),
+      map(() => void 0),
+    );
+  }
+
   obterToken(): string | null {
     return sessionStorage.getItem(this.chaveToken);
   }
