@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../../shared/auth';
 import { AuthCard } from '../../shared/auth-card/auth-card';
 import { CampoSenha } from '../../shared/campo-senha/campo-senha';
+import { PreferenciasGlobaisService } from '../../shared/clinica/preferencias-globais.service';
 
 @Component({
   selector: 'app-login',
@@ -13,6 +14,7 @@ import { CampoSenha } from '../../shared/campo-senha/campo-senha';
 })
 export class Login {
   private readonly auth = inject(Auth);
+  private readonly preferencias = inject(PreferenciasGlobaisService);
   private readonly router = inject(Router);
 
   readonly sucesso = input<string>();
@@ -66,11 +68,15 @@ export class Login {
           return;
         }
 
-        this.router.navigateByUrl(
-          resultado.primeiroAcesso
-            ? '/primeiro-acesso'
-            : resultado.rota,
-        );
+        // Carrega as preferências da sessão antes de montar o painel para evitar
+        // uma renderização inicial com tema/formato diferentes dos salvos.
+        this.preferencias.carregar().subscribe(() => {
+          this.router.navigateByUrl(
+            resultado.primeiroAcesso
+              ? '/primeiro-acesso'
+              : resultado.rota,
+          );
+        });
       },
 
       error: (erro: HttpErrorResponse) => {

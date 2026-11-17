@@ -1256,8 +1256,10 @@ app-avatar {
   display: flex; align-items: center; gap: 0.4rem; min-height: 2.4rem; padding: 0.3rem 0.5rem; border: 1px solid var(--painel-borda); border-radius: 0.4rem;
   background: #fff; font-weight: 400;
 }
-.edicao-entrada app-icone { font-size: 1.1rem; }
-.edicao-entrada input, .edicao-entrada select { width: 100%; min-width: 0; font-size: 0.85rem; background: transparent; }
+.edicao-entrada app-icone { font-size: 1.1rem; pointer-events: none; }
+.edicao-entrada input, .edicao-entrada select { position: relative; z-index: 1; display: block; width: 100%; min-width: 0; min-height: 1.8rem; font-size: 0.85rem; background: transparent; cursor: pointer; }
+.edicao-entrada input { cursor: text; }
+.edicao-entrada select { appearance: auto; }
 .edicao-botao {
   display: flex; width: 100%; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.5rem; padding: 0.6rem; border: 1px solid;
   border-radius: 0.4rem; font-size: 0.9rem; font-weight: 500;
@@ -1765,3 +1767,139 @@ input:focus-visible + .caixa { outline: 2px solid #c7d2fe; outline-offset: 2px; 
 /* Rodapé do menu (Configurações e Ajuda) quando a página está aberta */
 .menu-item-rodape.menu-item-ativo,
 .menu-item-rodape.menu-item-ativo:hover { padding-left: 0.75rem; background: #fff; color: var(--navy); text-decoration: none; }
+
+/* Sobreposições finais para os componentes que ainda usam cores fixas do tema claro. */
+html[data-tema="escuro"] {
+  color-scheme: dark;
+  --background: #111827;
+  --foreground: #f3f4f6;
+  --card: #1f2937;
+  --muted: #374151;
+  --muted-foreground: #cbd5e1;
+  --border: #475569;
+  --navy: #111827;
+  --painel-borda: #475569;
+  --painel-texto: #f3f4f6;
+  --painel-suave: #cbd5e1;
+  --painel-cinza: #374151;
+}
+html[data-tema="escuro"] .painel-conteudo:has(.pg),
+html[data-tema="escuro"] .ag-rolagem,
+html[data-tema="escuro"] .dialogo,
+html[data-tema="escuro"] .dialogo-edicao,
+html[data-tema="escuro"] .pg-busca,
+html[data-tema="escuro"] .faixa-seletor select,
+html[data-tema="escuro"] .lista-campo,
+html[data-tema="escuro"] .cons-leitura,
+html[data-tema="escuro"] .cons-seta,
+html[data-tema="escuro"] .ag-canto,
+html[data-tema="escuro"] .ag-dia,
+html[data-tema="escuro"] .ag-hora,
+html[data-tema="escuro"] .hist-cab,
+html[data-tema="escuro"] .doc-lateral-item,
+html[data-tema="escuro"] .doc-item,
+html[data-tema="escuro"] .doc-grade-lista,
+html[data-tema="escuro"] .editor,
+html[data-tema="escuro"] .editor-select,
+html[data-tema="escuro"] .campo-mini,
+html[data-tema="escuro"] .campo-form input,
+html[data-tema="escuro"] .campo-form select,
+html[data-tema="escuro"] .campo-form textarea,
+html[data-tema="escuro"] .faixa-campos input,
+html[data-tema="escuro"] .faixas-lista li,
+html[data-tema="escuro"] .cfg-input,
+html[data-tema="escuro"] .ajuda-topico,
+html[data-tema="escuro"] .ajuda-contato-cartao,
+html[data-tema="escuro"] .ajuda-busca,
+html[data-tema="escuro"] .gal-item,
+html[data-tema="escuro"] .faixa-menu,
+html[data-tema="escuro"] .novo-menu,
+html[data-tema="escuro"] .lista-painel {
+  background-color: #1f2937;
+  color: #f3f4f6;
+  border-color: #475569;
+}
+html[data-tema="escuro"] input,
+html[data-tema="escuro"] select,
+html[data-tema="escuro"] textarea {
+  background-color: #1f2937;
+  color: #f3f4f6;
+  border-color: #475569;
+}
+html[data-tema="escuro"] .cons-entrada,
+html[data-tema="escuro"] .cfg-linha,
+html[data-tema="escuro"] .tabela-cab,
+html[data-tema="escuro"] .tabela-linha,
+html[data-tema="escuro"] .ag-celula,
+html[data-tema="escuro"] .faixa-dado,
+html[data-tema="escuro"] .doc-dados ul {
+  border-color: #475569;
+}
+html[data-tema="escuro"] .doc-info,
+html[data-tema="escuro"] .faixa-editando,
+html[data-tema="escuro"] .doc-lateral-ativo,
+html[data-tema="escuro"] .ag-dia-hoje {
+  background-color: #26364c;
+  color: #e2e8f0;
+}
+html[data-tema="escuro"] .dialogo-texto,
+html[data-tema="escuro"] .edicao-fechar,
+html[data-tema="escuro"] .editor-select,
+html[data-tema="escuro"] .lista-campo,
+html[data-tema="escuro"] .cons-entrada,
+html[data-tema="escuro"] .faixa-seletor app-icone {
+  color: #e2e8f0;
+}
+html[data-tema="escuro"] .menu { background-color: var(--navy); }
+html[data-tema="escuro"] .menu-item-rodape.menu-item-ativo,
+html[data-tema="escuro"] .menu-item-rodape.menu-item-ativo:hover,
+html[data-tema="escuro"] .menu-item-ativo:hover {
+  background-color: #334155;
+  color: #f8fafc;
+}
+html[data-tema="escuro"] .status-aguardando,
+html[data-tema="escuro"] .status-inativo,
+html[data-tema="escuro"] .chip-st-pendente,
+html[data-tema="escuro"] .chip-st-remarcado,
+html[data-tema="escuro"] .lista-campo:hover,
+html[data-tema="escuro"] .cartao-rodape:hover {
+  background-color: #334155;
+  color: #e2e8f0;
+  border-color: #64748b;
+}
+html[data-tema="escuro"] .status-acompanhamento,
+html[data-tema="escuro"] .chip-st-confirmado,
+html[data-tema="escuro"] .edicao-remarcar,
+html[data-tema="escuro"] .edicao-cancelar {
+  background-color: #263b35;
+  color: #bbf7d0;
+  border-color: #4b8066;
+}
+html[data-tema="escuro"] .status-aguardando,
+html[data-tema="escuro"] .chip-st-pendente { background-color: #44351e; color: #fde68a; border-color: #9a7231; }
+html[data-tema="escuro"] .status-inativo,
+html[data-tema="escuro"] .chip-st-cancelado { background-color: #374151; color: #e5e7eb; border-color: #64748b; }
+html[data-tema="escuro"] .edicao-cancelar { background-color: #452b32; color: #fecaca; border-color: #884653; }
+html[data-tema="escuro"] .auth-main { background-color: #0b1220; }
+html[data-tema="escuro"] ::placeholder { color: #cbd5e1; opacity: 0.8; }
+html[data-tema="escuro"] option { background: #1f2937; color: #f3f4f6; }
+
+.preferencias-aviso {
+  position: fixed;
+  z-index: 250;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  max-width: min(38rem, calc(100vw - 2rem));
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.85rem;
+}
+.preferencias-aviso button { color: var(--link); text-decoration: underline; }
+html[data-tema="escuro"] .preferencias-aviso { background: #1f2937; color: #f3f4f6; border-color: #64748b; }

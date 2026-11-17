@@ -140,27 +140,30 @@
 
       <div class="edicao-grade">
         <label class="edicao-campo">Data
-          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="editData.set($any($event.target).value)" /></span>
+          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="alterarDataEdicao($any($event.target).value)" /></span>
         </label>
         <label class="edicao-campo">Horário
           <span class="edicao-entrada"><app-icone nome="relogio" />
-            <select (change)="editHora.set($any($event.target).value)">
-              @for (h of opcoesHorario(); track h) { <option [value]="h" [selected]="h === editHora()">{{ h }}</option> }
+            <select class="edicao-controle" [value]="editHora()" aria-label="Horário da consulta" (change)="editHora.set($any($event.target).value)">
+              @if (carregandoDisponibilidades()) { <option value="" disabled>Carregando horários…</option> }
+              @else if (!opcoesHorario().length) { <option value="" disabled>Sem horários disponíveis</option> }
+              @for (h of opcoesHorario(); track h) { <option [value]="h">{{ h }}</option> }
             </select>
           </span>
         </label>
         <label class="edicao-campo">Profissional
           <span class="edicao-entrada"><app-icone nome="usuario" />
-            <select (change)="editProf.set($any($event.target).value)">
-              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor" [selected]="p.valor === editProf()">{{ p.rotulo }}</option> }
+            <select class="edicao-controle" [value]="editProf()" aria-label="Profissional da consulta" (change)="alterarProfissionalEdicao($any($event.target).value)">
+              @if (!opcoesProfissionais().length) { <option value="" disabled>Nenhum profissional disponível</option> }
+              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor">{{ p.rotulo }}</option> }
             </select>
           </span>
         </label>
         <label class="edicao-campo">Sala
           <span class="edicao-entrada"><app-icone nome="local" />
-            <select (change)="editSala.set($any($event.target).value)">
-              @for (sala of salas; track sala) { <option [value]="sala" [selected]="sala === editSala()">{{ sala }}</option> }
-              @if (!salas.includes(editSala())) { <option [value]="editSala()" selected>{{ editSala() }}</option> }
+            <select class="edicao-controle" [value]="editSala()" aria-label="Sala da consulta" (change)="editSala.set($any($event.target).value)">
+              @for (sala of salas; track sala) { <option [value]="sala">{{ sala }}</option> }
+              @if (!salas.includes(editSala())) { <option [value]="editSala()">{{ editSala() }}</option> }
             </select>
           </span>
         </label>

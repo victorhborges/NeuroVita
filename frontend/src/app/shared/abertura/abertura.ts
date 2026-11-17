@@ -1,4 +1,4 @@
-import { Component, ElementRef, Injectable, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injectable, NgZone, afterNextRender, inject, signal, viewChild } from '@angular/core';
 
 /**
  * Velocidade da animação de abertura. 1 = velocidade do protótipo; menor = mais rápida.
@@ -11,9 +11,7 @@ const DURACAO_BASE_MS = 7000;
 const SAIDA_MS = 500;
 /** Duração quando a pessoa pediu "reduzir movimento" no sistema. */
 const DURACAO_REDUZIDA_MS = 1400;
-/** Guarda, na sessão do navegador, que a abertura já tocou. */
 const CHAVE = 'neurovita:abertura';
-
 /** Diz se a abertura está na tela (o resto da página fica inativo enquanto isso). */
 @Injectable({ providedIn: 'root' })
 export class AberturaEstado {
@@ -22,7 +20,7 @@ export class AberturaEstado {
 
 /**
  * Tela de abertura animada, antes do login.
- * - Toca uma vez por sessão (feche a aba para ver de novo, ou abra o site com `?abertura`).
+ * - Toca automaticamente uma vez por sessão; `?abertura` permite pré-visualizar novamente.
  * - Dá para pular com um clique, Enter, Espaço ou Esc.
  * - Com "reduzir movimento" ligado no sistema, mostra só a logo parada.
  */
@@ -33,6 +31,8 @@ export class AberturaEstado {
 })
 export class Abertura {
   private readonly estado = inject(AberturaEstado);
+  private readonly zona = inject(NgZone);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly botao = viewChild<ElementRef<HTMLButtonElement>>('pular');
 
   protected readonly visivel = signal(false);
@@ -53,8 +53,12 @@ export class Abertura {
     this.visivel.set(true);
     this.estado.ativa.set(true);
 
-    this.agendar(() => this.encerrar(), reduzida ? DURACAO_REDUZIDA_MS : DURACAO_BASE_MS * RITMO);
+    this.agendar(
+      () => this.zona.run(() => this.encerrar()),
+      reduzida ? DURACAO_REDUZIDA_MS : DURACAO_BASE_MS * RITMO,
+    );
     afterNextRender(() => this.botao()?.nativeElement.focus());
+    this.destroyRef.onDestroy(() => this.temporizadores.forEach(clearTimeout));
   }
 
   protected encerrar(): void {
@@ -80,10 +84,12 @@ export class Abertura {
   private deveTocar(): boolean {
     const forcar = new URLSearchParams(location.search).has('abertura');
     try {
+      // Reproduz automaticamente na primeira abertura desta sessão. O parâmetro
+      // continua disponível para pré-visualizar a animação novamente.
       if (!forcar && sessionStorage.getItem(CHAVE)) return false;
       sessionStorage.setItem(CHAVE, '1');
     } catch {
-      // Sem acesso ao armazenamento: toca normalmente.
+      // Sem acesso ao armazenamento, a abertura ainda toca e termina pelo temporizador.
     }
     return true;
   }

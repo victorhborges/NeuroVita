@@ -170,6 +170,28 @@ function diaDaData(data: string): string {
   return DIAS_SEMANA[deISO(data).getDay()];
 }
 
+export interface EdicaoConsultaComparavel {
+  data: string;
+  inicio: string;
+  profissionalId: string;
+  local: string;
+}
+
+/** Sala conhecida ou sala legada que está sendo mantida sem alteração. */
+export function salaConsultaPermitida(sala: string, salaAtual: string): boolean {
+  return SALAS.includes(sala) || sala === salaAtual;
+}
+
+export function possuiAlteracaoAgenda(
+  atual: EdicaoConsultaComparavel,
+  edicao: EdicaoConsultaComparavel,
+): boolean {
+  return atual.data !== edicao.data ||
+    atual.inicio !== edicao.inicio ||
+    atual.profissionalId !== edicao.profissionalId ||
+    atual.local !== edicao.local;
+}
+
 @Component({
   selector: 'app-agenda',
   imports: [Avatar, Dialogo, Icone, TituloPagina],
@@ -264,6 +286,7 @@ export class Agenda {
         return;
       }
 
+      this.disponibilidades.set([]);
       this.carregandoDisponibilidades.set(true);
 
       const inscricao = this.profissionaisApi
@@ -272,6 +295,10 @@ export class Agenda {
           next: (lista) => {
             this.disponibilidades.set(lista);
             this.carregandoDisponibilidades.set(false);
+            const horarios = this.opcoesHorario();
+            if (horarios.length && !horarios.includes(this.editHora())) {
+              this.editHora.set(horarios[0]);
+            }
           },
           error: () => {
             this.disponibilidades.set([]);
@@ -669,6 +696,22 @@ export class Agenda {
     this.editando.set(true);
   }
 
+  protected alterarDataEdicao(valor: string): void {
+    this.editData.set(valor);
+    const horarios = this.opcoesHorario();
+    if (horarios.length && !horarios.includes(this.editHora())) {
+      this.editHora.set(horarios[0]);
+    }
+  }
+
+  protected alterarProfissionalEdicao(valor: string): void {
+    if (valor === this.editProf()) return;
+    // O horário é recalculado a partir da disponibilidade do novo profissional.
+    this.editHora.set('');
+    this.disponibilidades.set([]);
+    this.editProf.set(valor);
+  }
+
   protected readonly opcoesProfissionais = computed(() =>
     this.profissionais()
       .filter(
@@ -708,10 +751,13 @@ export class Agenda {
     const minutosAgora =
       agora.getHours() * 60 + agora.getMinutes();
 
-    const horariosDisponiveis = new Set([
-      ...horariosDaDisponibilidade(disponibilidadesDoDia, atual.duracao),
-      atual.inicio,
-    ]);
+    const horariosDisponiveis = new Set(
+      horariosDaDisponibilidade(disponibilidadesDoDia, atual.duracao),
+    );
+    if (data === atual.data && profissionalId === atual.profissionalId) {
+      // Mantém o horário atual disponível para salvar sem alteração de agenda.
+      horariosDisponiveis.add(atual.inicio);
+    }
 
     return [...horariosDisponiveis]
       .sort((a, b) => minutosDe(a) - minutosDe(b))
@@ -774,6 +820,12 @@ export class Agenda {
       return undefined;
     }
 
+    const salaSelecionada = this.editSala().trim();
+    if (!salaSelecionada || !salaConsultaPermitida(salaSelecionada, atual.local)) {
+      this.aviso.mostrar('Selecione uma sala disponível.');
+      return undefined;
+    }
+
     const profissional = this.profissionais().find(
       (item) => item.id === this.editProf(),
     );
@@ -806,7 +858,7 @@ export class Agenda {
         this.editHora(),
       ),
       tipoAtendimento: atual.tipo,
-      local: this.editSala().trim() || atual.local,
+      local: salaSelecionada,
       modalidade: atual.atendimento,
       duracao: atual.duracao,
     };
@@ -880,21 +932,27 @@ export class Agenda {
 
     if (!atual || !request) return;
 
-    const mudou =
-      this.editData() !== atual.data ||
-      this.editHora() !== atual.inicio ||
-      this.editProf() !== atual.profissionalId;
+    const sala = this.editSala().trim();
+    const mudou = possuiAlteracaoAgenda(
+      { data: atual.data, inicio: atual.inicio, profissionalId: atual.profissionalId, local: atual.local },
+      { data: this.editData(), inicio: this.editHora(), profissionalId: this.editProf(), local: sala },
+    );
 
     if (!mudou) {
       this.aviso.mostrar(
-        'Altere a data, o horário ou o profissional para remarcar.',
+        'Altere a data, o horário, o profissional ou a sala para remarcar.',
       );
       return;
     }
 
     this.atualizarConsulta(
       request,
-      'Consulta remarcada.',
+      sala !== atual.local &&
+      this.editData() === atual.data &&
+      this.editHora() === atual.inicio &&
+      this.editProf() === atual.profissionalId
+        ? 'Sala da consulta atualizada.'
+        : 'Consulta remarcada.',
     );
   }
 

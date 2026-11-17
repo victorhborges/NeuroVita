@@ -4,7 +4,8 @@ import { finalize } from 'rxjs';
 
 import { Auth } from '../../shared/auth';
 import { Aviso } from '../../shared/aviso/aviso';
-import { PreferenciasApiService, PreferenciasUsuarioApi, PreferenciasUsuarioPatchApi } from '../../shared/clinica/preferencias-api.service';
+import { PreferenciasUsuarioApi, PreferenciasUsuarioPatchApi } from '../../shared/clinica/preferencias-api.service';
+import { PreferenciasGlobaisService } from '../../shared/clinica/preferencias-globais.service';
 import { Dialogo } from '../../shared/dialogo/dialogo';
 import { Icone } from '../../shared/icone/icone';
 import { ListaSuspensa, OpcaoLista } from '../../shared/lista-suspensa/lista-suspensa';
@@ -38,9 +39,10 @@ const DIAS = [
   templateUrl: './configuracoes.html',
 })
 export class Configuracoes {
-  private readonly api = inject(PreferenciasApiService);
+  private readonly preferenciasGlobais = inject(PreferenciasGlobaisService);
   private readonly auth = inject(Auth);
   private readonly aviso = inject(Aviso);
+  private preferenciaPersistida: PreferenciasTela = { ...PADRAO };
 
   readonly perfil = input<Perfil>('admin');
   protected readonly preferencias = signal<PreferenciasTela>({ ...PADRAO });
@@ -63,7 +65,8 @@ export class Configuracoes {
   protected readonly dias = DIAS;
   protected readonly nomeInicioSemana = computed(() => DIAS.find((d) => d.valor === this.preferencias().inicioSemana)?.nome ?? 'Segunda-feira');
   protected readonly idiomas: OpcaoLista[] = [
-    { valor: 'pt', rotulo: 'Português' }, { valor: 'en', rotulo: 'Inglês' },
+    { valor: 'pt', rotulo: 'Português' },
+    { valor: 'en', rotulo: 'Inglês (indisponível)' , desabilitada: true },
   ];
   protected readonly formatosData: OpcaoLista[] = [
     { valor: 'dd/mm/aaaa', rotulo: 'DD/MM/AAAA' },
@@ -76,17 +79,23 @@ export class Configuracoes {
     this.carregar();
   }
 
-  protected carregar(): void {
+  protected carregar(forcar = false): void {
     this.carregando.set(true);
     this.erroCarga.set('');
-    this.api.buscar().pipe(finalize(() => this.carregando.set(false))).subscribe({
-      next: (dto) => this.aplicarResposta(dto),
+    this.preferenciasGlobais.carregar(forcar).pipe(finalize(() => this.carregando.set(false))).subscribe({
+      next: (dto) => {
+        this.aplicarResposta(dto);
+        if (this.preferenciasGlobais.erroCarregamento()) {
+          this.erroCarga.set('Não foi possível carregar suas preferências. Tente novamente.');
+        }
+      },
       error: () => this.erroCarga.set('Não foi possível carregar suas preferências. Tente novamente.'),
     });
   }
 
   protected definir<K extends keyof PreferenciasTela>(chave: K, valor: PreferenciasTela[K]): void {
     this.preferencias.update((p) => ({ ...p, [chave]: valor }));
+    this.aplicarRascunhoGlobal();
   }
 
   protected definirFormatoData(valor: string): void {
@@ -100,26 +109,32 @@ export class Configuracoes {
   protected salvar(): void {
     if (this.carregando() || this.erroCarga() || this.salvando()) return;
     this.salvando.set(true);
-    this.api.salvar(this.paraPatch(this.preferencias())).pipe(finalize(() => this.salvando.set(false))).subscribe({
+    this.preferenciasGlobais.salvar(this.paraPatch(this.preferencias())).pipe(finalize(() => this.salvando.set(false))).subscribe({
       next: (dto) => {
         this.aplicarResposta(dto);
         this.confirmarSalvar.set(false);
         this.aviso.mostrar('Configurações salvas.');
       },
-      error: () => this.aviso.mostrar('Não foi possível salvar as configurações. Tente novamente.'),
+      error: () => {
+        this.reverterRascunho();
+        this.aviso.mostrar('Não foi possível salvar as configurações. Tente novamente.');
+      },
     });
   }
 
   protected restaurar(): void {
     if (this.carregando() || this.erroCarga() || this.salvando()) return;
     this.salvando.set(true);
-    this.api.salvar(this.paraPatch(PADRAO)).pipe(finalize(() => this.salvando.set(false))).subscribe({
+    this.preferenciasGlobais.salvar(this.paraPatch(PADRAO)).pipe(finalize(() => this.salvando.set(false))).subscribe({
       next: (dto) => {
         this.aplicarResposta(dto);
         this.confirmarRestaurar.set(false);
         this.aviso.mostrar('Preferências restauradas para o padrão.');
       },
-      error: () => this.aviso.mostrar('Não foi possível restaurar as preferências.'),
+      error: () => {
+        this.reverterRascunho();
+        this.aviso.mostrar('Não foi possível restaurar as preferências.');
+      },
     });
   }
 
@@ -157,8 +172,23 @@ export class Configuracoes {
       alertaPendentes: dto.alertasConsultasPendentes ?? false,
       notificacaoSistema: dto.notificacoesSistema ?? false,
     });
-    document.documentElement.dataset['tema'] = this.preferencias().tema;
-    document.documentElement.dataset['formatoData'] = dto.formatoData ?? 'DD/MM/AAAA';
+    this.preferenciaPersistida = { ...this.preferencias() };
+    this.preferenciasGlobais.aplicarRascunho(this.paraPatch(this.preferencias()));
+  }
+
+  protected cancelarSalvar(): void {
+    this.confirmarSalvar.set(false);
+    this.reverterRascunho();
+  }
+
+  private reverterRascunho(): void {
+    this.preferencias.set({ ...this.preferenciaPersistida });
+    this.preferenciasGlobais.aplicarRascunho(this.paraPatch(this.preferenciaPersistida));
+  }
+
+  private aplicarRascunhoGlobal(): void {
+    // Tema e formato são aplicados de imediato; a API só é atualizada ao confirmar Salvar.
+    this.preferenciasGlobais.aplicarRascunho(this.paraPatch(this.preferencias()));
   }
 
   private paraPatch(p: PreferenciasTela): PreferenciasUsuarioPatchApi {

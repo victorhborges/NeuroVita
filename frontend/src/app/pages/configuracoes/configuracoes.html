@@ -6,7 +6,7 @@
   } @else if (erroCarga()) {
     <div class="estado-erro" role="alert">
       <p>{{ erroCarga() }}</p>
-      <button type="button" class="botao-contorno" (click)="carregar()">Tentar novamente</button>
+      <button type="button" class="botao-contorno" (click)="carregar(true)">Tentar novamente</button>
     </div>
   } @else {
     <div class="cfg-grade">
@@ -109,5 +109,5 @@
   }
 </div>
 
-<app-dialogo [aberto]="confirmarSalvar()" titulo="Confirmar alterações?" textoConfirmar="Sim" (cancelar)="confirmarSalvar.set(false)" (confirmar)="salvar()" />
+<app-dialogo [aberto]="confirmarSalvar()" titulo="Confirmar alterações?" textoConfirmar="Sim" (cancelar)="cancelarSalvar()" (confirmar)="salvar()" />
 <app-dialogo [aberto]="confirmarRestaurar()" titulo="Restaurar preferências padrão?" textoConfirmar="Restaurar" (cancelar)="confirmarRestaurar.set(false)" (confirmar)="restaurar()" />
