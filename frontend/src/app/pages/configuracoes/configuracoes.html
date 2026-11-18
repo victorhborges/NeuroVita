@@ -77,6 +77,9 @@
           <li class="cfg-linha"><span class="cfg-rotulo">Alterar senha</span>
             <button type="button" class="botao-contorno cfg-pilula" (click)="alterandoSenha.set(!alterandoSenha())">{{ alterandoSenha() ? 'Fechar' : 'Alterar' }}</button>
           </li>
+          <li class="cfg-linha"><span class="cfg-rotulo">Ativar autenticação em duas etapas</span>
+            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="false" aria-label="Ativar autenticação em duas etapas" title="O fluxo de 2FA depende de integração com canal de autenticação (em definição)"><span class="interruptor-bola"></span></button>
+          </li>
         </ul>
         @if (alterandoSenha()) {
           <form class="cfg-senha" (submit)="$event.preventDefault(); alterarSenha()">
@@ -87,10 +90,6 @@
             <button class="botao-escuro" type="submit" [disabled]="salvandoSenha()">{{ salvandoSenha() ? 'Salvando…' : 'Salvar nova senha' }}</button>
           </form>
         }
-        <div class="cfg-pendente" role="note">
-          <strong>Autenticação em duas etapas</strong>
-          <span>O fluxo ainda depende de definição do fator e da recuperação. A opção ficará disponível quando esse fluxo estiver implementado.</span>
-        </div>
       </section>
 
       <section class="cartao cfg-cartao cfg-aparencia" aria-labelledby="cfg-apar">

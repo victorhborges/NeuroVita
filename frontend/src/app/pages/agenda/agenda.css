@@ -21,7 +21,7 @@
 .ag-rolagem { max-height: calc(100vh - 11rem); border-radius: 0.65rem; }
 .ag-grade {
   grid-template-columns: 4rem repeat(6, minmax(6.5rem, 1fr));
-  grid-template-rows: 3.5rem repeat(21, minmax(2.35rem, auto));
+  grid-template-rows: 3.5rem repeat(21, minmax(3rem, auto));
   min-width: 47rem;
 }
 .ag-canto, .ag-dia { font-size: 0.85rem; }
@@ -47,8 +47,38 @@
 }
 
 @media (max-width: 800px) {
-  .ag-barra { align-items: stretch; }
-  .ag-busca { width: 100%; margin-left: 0; }
+  .ag-barra {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .ag-hoje, .ag-setas, .ag-faixa { min-width: 0; padding-inline: 0.55rem; }
+  .ag-faixa { justify-content: center; white-space: nowrap; font-size: 0.8rem; }
+  .ag-busca { grid-column: 1 / -1; width: 100%; margin: 0; }
   .ag-lateral { grid-template-columns: minmax(0, 1fr); }
   .ag-lateral > :last-child { grid-column: auto; }
+  /* A grade mantém rolagem horizontal; reduzir linhas internas evita sobreposição
+     do texto em compromissos dentro de colunas estreitas. Os detalhes completos
+     continuam disponíveis no title e no painel do compromisso selecionado. */
+  .ag-evento {
+    min-height: 0;
+    max-height: 100%;
+    gap: 0.05rem;
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
+    line-height: 1.1;
+  }
+  .ag-evento span:nth-of-type(2),
+  .ag-evento small { display: none; }
+  .ag-evento strong,
+  .ag-evento span:first-of-type { line-height: 1.1; }
+}
+
+@media (max-width: 420px) {
+  .ag-barra { grid-template-columns: auto auto minmax(0, 1fr); }
+  .ag-hoje { font-size: 0.8rem; }
+  .ag-faixa { gap: 0.25rem; padding-inline: 0.35rem; font-size: 0.72rem; }
+  .ag-setas { gap: 0; }
+  .ag-setas button { min-width: 1.65rem; min-height: 1.8rem; }
 }

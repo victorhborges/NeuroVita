@@ -39,3 +39,5 @@ build/
 
 
 tmp/
+# Segredos e credenciais gerados apenas para a revisão local
+.env.local-review
