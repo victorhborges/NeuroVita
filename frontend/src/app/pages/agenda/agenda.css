@@ -1,0 +1,54 @@
+/* Agenda: proporções e hierarquia ajustadas à referência FBR, p. 181. */
+:host { display: block; min-width: 0; }
+
+.ag-grade-geral {
+  grid-template-columns: minmax(0, 3.35fr) minmax(18rem, 1fr);
+  gap: 0.9rem;
+}
+
+.ag-principal { padding: 0.75rem; }
+.ag-barra { gap: 0.5rem; margin-bottom: 0.65rem; }
+.ag-hoje, .ag-faixa, .ag-setas {
+  min-height: 2.75rem;
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+}
+.ag-hoje, .ag-faixa { padding-inline: 0.9rem; }
+.ag-setas { padding: 0.3rem 0.45rem; }
+.ag-setas button { min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; }
+.ag-busca { width: min(20rem, 28vw); }
+
+.ag-rolagem { max-height: calc(100vh - 11rem); border-radius: 0.65rem; }
+.ag-grade {
+  grid-template-columns: 4rem repeat(6, minmax(6.5rem, 1fr));
+  grid-template-rows: 3.5rem repeat(21, minmax(2.35rem, auto));
+  min-width: 47rem;
+}
+.ag-canto, .ag-dia { font-size: 0.85rem; }
+.ag-hora { font-size: 0.85rem; }
+.ag-celula { padding: 3px; }
+.ag-evento { padding: 0.2rem 0.45rem; font-size: 0.75rem; }
+.ag-evento small { font-size: 0.68rem; }
+
+.ag-lateral { gap: 0.7rem; }
+.ag-caixa { padding: 0.95rem 1rem; border-radius: 0.8rem; }
+.ag-caixa-titulo { font-size: 1.05rem; }
+.ag-caixa-sub, .ag-legenda, .ag-info { font-size: 0.9rem; }
+.ag-paciente app-avatar { --avatar: 3.5rem; }
+.ag-contato { font-size: 0.82rem; }
+.ag-info-quando strong { font-size: 0.9rem; }
+.ag-info-quando small { font-size: 0.78rem; }
+
+@media (max-width: 1100px) {
+  .ag-grade-geral { grid-template-columns: minmax(0, 1fr); }
+  .ag-rolagem { max-height: 40rem; }
+  .ag-lateral { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ag-lateral > :last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 800px) {
+  .ag-barra { align-items: stretch; }
+  .ag-busca { width: 100%; margin-left: 0; }
+  .ag-lateral { grid-template-columns: minmax(0, 1fr); }
+  .ag-lateral > :last-child { grid-column: auto; }
+}

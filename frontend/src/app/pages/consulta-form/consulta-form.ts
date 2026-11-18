@@ -76,6 +76,7 @@ interface PacienteFormulario {
   selector: 'app-consulta-form',
   imports: [Avatar, Dialogo, Icone, ListaSuspensa, TituloPagina],
   templateUrl: './consulta-form.html',
+  styleUrl: './consulta-form.css',
 })
 export class ConsultaForm {
   private readonly pacientesApi = inject(PacientesApiService);

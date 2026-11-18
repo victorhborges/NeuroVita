@@ -250,6 +250,7 @@ export function possuiConflitoAgenda(
   selector: 'app-agenda',
   imports: [Avatar, Dialogo, Icone, TituloPagina],
   templateUrl: './agenda.html',
+  styleUrl: './agenda.css',
   host: {
     '(document:click)': 'fecharMenu($event)',
     '(document:keydown.escape)': 'editando.set(false)',
