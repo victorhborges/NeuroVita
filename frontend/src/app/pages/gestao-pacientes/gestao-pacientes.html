@@ -9,7 +9,7 @@
     }
   </app-titulo-pagina>
 
-  <section class="pac-cards pac-cards-2" aria-label="Resumo dos pacientes">
+  <section class="pac-cards pac-cards-2 pac-cards-gestao" aria-label="Resumo dos pacientes">
     @for (card of cards(); track card.rotulo) {
       <div class="cartao pac-card">
         <span class="pac-card-icone"><app-icone [nome]="card.icone" /></span>

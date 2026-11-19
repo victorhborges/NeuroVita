@@ -1,5 +1,5 @@
 <div>
-  <app-cabecalho [config]="config()" />
+  <app-cabecalho [config]="config()" [class.cabecalho-gestao]="config().layout === 'gestao'" />
 
   @if (config().layout === 'gestao') {
     <app-cards-resumo [cards]="cards()" />
