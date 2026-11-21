@@ -4391,7 +4391,7 @@ app-avatar {
 }
 
 /* ==========================================================
-   Telas do administrador: profissionais e secretárias
+  Telas do administrador: profissionais e secretárias
    ========================================================== */
 .tabela-linha-leitura {
   grid-template-columns: 2fr 1.3fr 1.3fr 1.4fr 0.9fr;
@@ -4633,7 +4633,7 @@ input:focus-visible+.caixa {
 }
 
 /* ==========================================================
-   Configurações
+  Configurações
    ========================================================== */
 .agenda-tabela {
   margin-top: 1.125rem;
@@ -5651,9 +5651,9 @@ input:focus-visible+.caixa {
 }
 
 /* ==========================================================
-   Abertura animada (antes do login)
-   Tudo é multiplicado por --ritmo (ver RITMO em shared/abertura/abertura.ts).
-   O estado "sem animação" de cada peça é o estado FINAL (logo + nome).
+  Abertura animada (antes do login)
+  Tudo é multiplicado por --ritmo (ver RITMO em shared/abertura/abertura.ts).
+  O estado "sem animação" de cada peça é o estado FINAL (logo + nome).
    ========================================================== */
 .app-conteudo {
   display: contents;
@@ -6230,8 +6230,8 @@ input:focus-visible+.caixa {
 
 /* ---------- Pacientes do psicólogo (desenho do Figma) ---------- */
 .pac-cards-2 {
-  grid-template-columns: repeat(2, minmax(0, 15.5rem));
-  justify-content: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-content: stretch;
 }
 
 .tabela-linha-pac-acao {
@@ -6240,7 +6240,7 @@ input:focus-visible+.caixa {
 
 @media (max-width: 800px) {
   .pac-cards-2 {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .tabela-linha-pac-acao {
@@ -6254,8 +6254,14 @@ input:focus-visible+.caixa {
   }
 }
 
+@media (max-width: 560px) {
+  .pac-cards-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ==========================================================
-   Medicamentos e prescrições do psiquiatra: duas tabelas
+  Medicamentos e prescrições do psiquiatra: duas tabelas
    ========================================================== */
 .med-bloco {
   display: flex;
@@ -6882,4 +6888,27 @@ html[data-tema="escuro"] .ag-ponto-vago {
 
 html[data-tema="escuro"] .ag-ponto-remarcado {
   background-color: #a5b4fc;
+}
+
+/* Tema escuro: mantém os textos dos banners pretos. */
+html[data-tema="escuro"] .banner,
+html[data-tema="escuro"] .banner .banner-titulo,
+html[data-tema="escuro"] .banner .banner-sub {
+  color: #000000;
+}
+
+/* Tema escuro: destaca o seletor de seções do prontuário. */
+html[data-tema="escuro"] .faixa-seletor select {
+  background-color: #334155;
+  color: #f8fafc;
+  border: 1px solid #64748b;
+}
+
+html[data-tema="escuro"] .faixa-seletor select option {
+  background-color: #1f2937;
+  color: #f8fafc;
+}
+
+html[data-tema="escuro"] .faixa-seletor app-icone {
+  color: #f8fafc;
 }

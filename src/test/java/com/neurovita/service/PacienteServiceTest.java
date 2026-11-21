@@ -1,25 +1,24 @@
 package com.neurovita.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,14 +31,14 @@ import com.neurovita.dto.VinculoResponsavelRequest;
 import com.neurovita.model.Paciente;
 import com.neurovita.model.Responsavel;
 import com.neurovita.model.Usuario;
+import com.neurovita.model.VinculoProfissionalPaciente;
 import com.neurovita.model.VinculoResponsavel;
 import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ResponsavelRepository;
 import com.neurovita.repository.UsuarioRepository;
-import com.neurovita.repository.VinculoResponsavelRepository;
 import com.neurovita.repository.VinculoProfissionalPacienteRepository;
-
+import com.neurovita.repository.VinculoResponsavelRepository;
 
 @ExtendWith(MockitoExtension.class)
 class PacienteServiceTest {
@@ -49,8 +48,11 @@ class PacienteServiceTest {
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private ResponsavelRepository responsavelRepository;
     @Mock private VinculoResponsavelRepository vinculoRepository;
+    @Mock private VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
     @Mock private PasswordEncoder passwordEncoder;
-    @InjectMocks private PacienteService pacienteService;
+
+    @InjectMocks
+    private PacienteService pacienteService;
 
     @BeforeEach
     void autenticarAdministrador() {
@@ -81,6 +83,48 @@ class PacienteServiceTest {
         usuario.setEntidadeId(entidadeId);
         usuario.setAtivo(true);
         return usuario;
+    }
+
+    @Test
+    void profissionalListaSomentePacientesComVinculoAtivo() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "profissional@neurovita.com",
+                        "token",
+                        List.of(new SimpleGrantedAuthority("ROLE_PROFISSIONAL"))));
+
+        Usuario profissional = new Usuario();
+        profissional.setPerfil("PROFISSIONAL");
+        profissional.setEntidadeId("prof-1");
+
+        Paciente pacienteVinculado = paciente("pac-1");
+
+        VinculoProfissionalPaciente vinculo =
+                new VinculoProfissionalPaciente();
+        vinculo.setPacienteId("pac-1");
+        vinculo.setProfissionalId("prof-1");
+
+        when(usuarioRepository.findByEmailIgnoreCase(
+                "profissional@neurovita.com"))
+                .thenReturn(Optional.of(profissional));
+
+        when(vinculoProfissionalRepository
+                .findByProfissionalIdAndEncerradoEmIsNull("prof-1"))
+                .thenReturn(List.of(vinculo));
+
+        when(pacienteRepository.findAllById(any()))
+                .thenReturn(List.of(pacienteVinculado));
+
+        var resultado = pacienteService.listarTodos();
+
+        assertEquals(1, resultado.size());
+        assertEquals("pac-1", resultado.get(0).getId());
+
+        verify(consultaRepository, never())
+                .findByProfissionalId("prof-1");
+
+        verify(vinculoProfissionalRepository)
+                .findByProfissionalIdAndEncerradoEmIsNull("prof-1");
     }
 
     @Test
