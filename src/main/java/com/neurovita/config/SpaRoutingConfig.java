@@ -11,8 +11,7 @@ public class SpaRoutingConfig implements WebMvcConfigurer {
     public void addViewControllers(ViewControllerRegistry registry) {
 
         // Rotas do Angular, excluindo API, documentação e arquivos estáticos.
-        String rotaFrontend =
-                "/{path:^(?!api$|swagger-ui$|v3$|img$)[^\\.]+}";
+        String rotaFrontend = "/{path:^(?!api$|swagger-ui$|v3$|img$)[^\\.]+}";
 
         registry.addViewController(rotaFrontend)
                 .setViewName("forward:/index.html");

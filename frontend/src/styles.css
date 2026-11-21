@@ -3607,6 +3607,9 @@ app-avatar {
 
 .campo-form input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 2.9rem;
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--painel-borda);
@@ -3614,6 +3617,14 @@ app-avatar {
   background: #fff;
   font-size: 0.95rem;
   color: var(--painel-texto);
+}
+
+.campo-form input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .campo-form input::placeholder {

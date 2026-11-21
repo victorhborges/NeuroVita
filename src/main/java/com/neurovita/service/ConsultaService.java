@@ -1,10 +1,14 @@
 package com.neurovita.service;
 
+import java.math.BigInteger;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -31,6 +35,12 @@ import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class ConsultaService {
+
+    private static final Pattern PADRAO_SALA
+            = Pattern.compile("(?i)^sala\\s*(\\d+)$");
+
+    private static final Pattern TEXTO_INICIADO_COM_SALA
+            = Pattern.compile("(?i)^sala\\s*\\d+.*$");
 
     private final ConsultaRepository consultaRepository;
     private final PacienteRepository pacienteRepository;
@@ -66,6 +76,7 @@ public class ConsultaService {
 
         Consulta consultaSalva = consultaRepository.save(consulta);
         garantirVinculoAtivo(consultaSalva);
+
         return new ConsultaResponse(consultaSalva);
     }
 
@@ -74,12 +85,15 @@ public class ConsultaService {
     }
 
     public List<ConsultaResponse> listarTodos(
-            LocalDateTime dataInicio, LocalDateTime dataFim) {
+            LocalDateTime dataInicio,
+            LocalDateTime dataFim) {
+
         if ((dataInicio == null) != (dataFim == null)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Informe dataInicio e dataFim juntos.");
         }
+
         if (dataInicio != null && !dataInicio.isBefore(dataFim)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -87,20 +101,23 @@ public class ConsultaService {
         }
 
         List<Consulta> consultas;
+
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
+
             consultas = dataInicio == null
                     ? consultaRepository.findByProfissionalId(profissionalId)
-                    : buscarPorPeriodoProfissional(profissionalId, dataInicio, dataFim);
+                    : buscarPorPeriodoProfissional(
+                            profissionalId, dataInicio, dataFim);
         } else {
             exigirAdministradorOuSecretaria();
+
             consultas = dataInicio == null
                     ? consultaRepository.findAll()
                     : buscarPorPeriodoGeral(dataInicio, dataFim);
         }
 
-        return consultas
-                .stream()
+        return consultas.stream()
                 .map(ConsultaResponse::new)
                 .toList();
     }
@@ -122,7 +139,8 @@ public class ConsultaService {
                     "Os dados da consulta são obrigatórios.");
         }
 
-        if (!Objects.equals(consulta.getPacienteId(), request.getPacienteId())) {
+        if (!Objects.equals(
+                consulta.getPacienteId(), request.getPacienteId())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "O paciente de uma consulta existente não pode ser alterado.");
@@ -141,12 +159,10 @@ public class ConsultaService {
         LocalDateTime dataHoraAnterior = consulta.getDataHora();
 
         boolean dataHoraAlterada = !Objects.equals(
-                dataHoraAnterior,
-                request.getDataHora());
+                dataHoraAnterior, request.getDataHora());
 
         boolean profissionalAlterado = !Objects.equals(
-                consulta.getProfissionalId(),
-                request.getProfissionalId());
+                consulta.getProfissionalId(), request.getProfissionalId());
 
         if (dataHoraAlterada || profissionalAlterado) {
             consulta.registrarHistorico(
@@ -166,6 +182,7 @@ public class ConsultaService {
 
         Consulta consultaSalva = consultaRepository.save(consulta);
         garantirVinculoAtivo(consultaSalva);
+
         return new ConsultaResponse(consultaSalva);
     }
 
@@ -189,6 +206,7 @@ public class ConsultaService {
             consulta.registrarHistorico(
                     LocalDateTime.now(),
                     obterAutenticacao().getName());
+
             consulta.setStatus(StatusConsulta.CONFIRMADA);
             consulta = consultaRepository.save(consulta);
         }
@@ -204,6 +222,7 @@ public class ConsultaService {
             consulta.registrarHistorico(
                     LocalDateTime.now(),
                     obterAutenticacao().getName());
+
             consulta.setStatus(StatusConsulta.CANCELADA);
             consultaRepository.save(consulta);
         }
@@ -220,8 +239,12 @@ public class ConsultaService {
     }
 
     public List<ConsultaResponse> listarPorPaciente(
-            String pacienteId, LocalDateTime dataInicio, LocalDateTime dataFim) {
+            String pacienteId,
+            LocalDateTime dataInicio,
+            LocalDateTime dataFim) {
+
         validarIntervaloConsulta(dataInicio, dataFim);
+
         if (ehPaciente() && !obterPacienteId().equals(pacienteId)) {
             throw new AccessDeniedException(
                     "Pacientes podem consultar somente as próprias consultas");
@@ -234,15 +257,17 @@ public class ConsultaService {
         if (ehPaciente()) {
             List<Consulta> consultas = dataInicio == null
                     ? consultaRepository.findByPacienteId(pacienteId)
-                    : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
-            return consultas
-                    .stream()
+                    : buscarPorPeriodoPaciente(
+                            pacienteId, dataInicio, dataFim);
+
+            return consultas.stream()
                     .map(ConsultaResponse::new)
                     .toList();
         }
 
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
+
             if (vinculoRepository
                     .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
                             pacienteId, profissionalId)
@@ -252,10 +277,12 @@ public class ConsultaService {
             }
 
             List<Consulta> consultas = dataInicio == null
-                    ? consultaRepository.findByPacienteId(pacienteId)
-                    : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
-            return consultas
-                    .stream()
+                    ? consultaRepository.findByPacienteIdAndProfissionalId(
+                            pacienteId, profissionalId)
+                    : buscarPorPeriodoPacienteEProfissional(
+                            pacienteId, profissionalId, dataInicio, dataFim);
+
+            return consultas.stream()
                     .map(ConsultaResponse::new)
                     .toList();
         }
@@ -265,8 +292,8 @@ public class ConsultaService {
         List<Consulta> consultas = dataInicio == null
                 ? consultaRepository.findByPacienteId(pacienteId)
                 : buscarPorPeriodoPaciente(pacienteId, dataInicio, dataFim);
-        return consultas
-                .stream()
+
+        return consultas.stream()
                 .map(ConsultaResponse::new)
                 .toList();
     }
@@ -276,8 +303,12 @@ public class ConsultaService {
     }
 
     public List<ConsultaResponse> listarPorProfissional(
-            String profissionalId, LocalDateTime dataInicio, LocalDateTime dataFim) {
+            String profissionalId,
+            LocalDateTime dataInicio,
+            LocalDateTime dataFim) {
+
         validarIntervaloConsulta(dataInicio, dataFim);
+
         if (!profissionalRepository.existsById(profissionalId)) {
             throw new ResourceNotFoundException("Profissional não encontrado");
         }
@@ -290,20 +321,24 @@ public class ConsultaService {
 
         List<Consulta> consultas = dataInicio == null
                 ? consultaRepository.findByProfissionalId(profissionalId)
-                : buscarPorPeriodoProfissional(profissionalId, dataInicio, dataFim);
-        return consultas
-                .stream()
+                : buscarPorPeriodoProfissional(
+                        profissionalId, dataInicio, dataFim);
+
+        return consultas.stream()
                 .map(ConsultaResponse::new)
                 .toList();
     }
 
     private void validarIntervaloConsulta(
-            LocalDateTime dataInicio, LocalDateTime dataFim) {
+            LocalDateTime dataInicio,
+            LocalDateTime dataFim) {
+
         if ((dataInicio == null) != (dataFim == null)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Informe dataInicio e dataFim juntos.");
         }
+
         if (dataInicio != null && !dataInicio.isBefore(dataFim)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -312,20 +347,42 @@ public class ConsultaService {
     }
 
     private List<Consulta> buscarPorPeriodoGeral(
-            LocalDateTime inicio, LocalDateTime fim) {
-        return consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
+            LocalDateTime inicio,
+            LocalDateTime fim) {
+
+        return consultaRepository
+                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
     }
 
     private List<Consulta> buscarPorPeriodoPaciente(
-            String pacienteId, LocalDateTime inicio, LocalDateTime fim) {
-        return consultaRepository.findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                pacienteId, inicio, fim);
+            String pacienteId,
+            LocalDateTime inicio,
+            LocalDateTime fim) {
+
+        return consultaRepository
+                .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                        pacienteId, inicio, fim);
+    }
+
+    private List<Consulta> buscarPorPeriodoPacienteEProfissional(
+            String pacienteId,
+            String profissionalId,
+            LocalDateTime inicio,
+            LocalDateTime fim) {
+
+        return consultaRepository
+                .findByPacienteIdAndProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                        pacienteId, profissionalId, inicio, fim);
     }
 
     private List<Consulta> buscarPorPeriodoProfissional(
-            String profissionalId, LocalDateTime inicio, LocalDateTime fim) {
-        return consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                profissionalId, inicio, fim);
+            String profissionalId,
+            LocalDateTime inicio,
+            LocalDateTime fim) {
+
+        return consultaRepository
+                .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                        profissionalId, inicio, fim);
     }
 
     private void validarEntidades(ConsultaRequest request) {
@@ -366,6 +423,8 @@ public class ConsultaService {
                     HttpStatus.BAD_REQUEST,
                     "A duração deve ser maior que zero.");
         }
+
+        validarNomeSala(request.getLocal());
     }
 
     private void validarDisponibilidadeEConflitos(
@@ -382,11 +441,14 @@ public class ConsultaService {
         }
 
         validarDisponibilidade(
-                request.getProfissionalId(), inicio, fim,
+                request.getProfissionalId(),
+                inicio,
+                fim,
                 request.getModalidade());
 
-        List<Consulta> consultasProfissional =
-                consultaRepository.findByProfissionalId(request.getProfissionalId());
+        List<Consulta> consultasProfissional
+                = consultaRepository.findByProfissionalId(
+                        request.getProfissionalId());
 
         for (Consulta existente : consultasProfissional) {
             if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
@@ -400,8 +462,8 @@ public class ConsultaService {
             }
         }
 
-        List<Consulta> consultasPaciente =
-                consultaRepository.findByPacienteId(request.getPacienteId());
+        List<Consulta> consultasPaciente
+                = consultaRepository.findByPacienteId(request.getPacienteId());
 
         for (Consulta existente : consultasPaciente) {
             if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
@@ -415,12 +477,21 @@ public class ConsultaService {
             }
         }
 
-        if (ehSalaFisica(request.getLocal())) {
-            List<Consulta> consultasSala = consultaRepository.findByLocalIgnoreCase(request.getLocal().trim());
+        String numeroSala = obterNumeroSala(request.getLocal());
+
+        if (numeroSala != null) {
+            String regexSala = "(?i)^\\s*sala\\s*0*"
+                    + Pattern.quote(numeroSala)
+                    + "\\s*$";
+
+            List<Consulta> consultasSala
+                    = consultaRepository.findByLocalRegex(regexSala);
+
             for (Consulta existente : consultasSala) {
                 if (ehConsultaIgnorada(existente, consultaIgnoradaId)) {
                     continue;
                 }
+
                 if (possuiSobreposicao(existente, inicio, fim)) {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
@@ -430,8 +501,66 @@ public class ConsultaService {
         }
     }
 
-    private boolean ehSalaFisica(String local) {
-        return local != null && local.trim().matches("(?i)^sala\\s+\\d{1,2}$");
+    private void validarNomeSala(String local) {
+        obterNumeroSala(local);
+    }
+
+    /**
+     * Retorna o número da sala sem zeros à esquerda. BigInteger evita limitar a
+     * numeração a quatro salas ou ao intervalo de um Integer.
+     */
+    private String obterNumeroSala(String local) {
+        if (local == null || local.isBlank()) {
+            return null;
+        }
+
+        String valor = local.trim();
+        Matcher matcher = PADRAO_SALA.matcher(valor);
+
+        if (matcher.matches()) {
+            try {
+                BigInteger numero = new BigInteger(matcher.group(1));
+
+                if (numero.compareTo(BigInteger.ONE) < 0) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "O número da sala deve ser maior que zero.");
+                }
+
+                return numero.toString();
+
+            } catch (NumberFormatException exception) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "O número da sala informado é inválido.");
+            }
+        }
+
+        if (TEXTO_INICIADO_COM_SALA.matcher(valor).matches()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O nome da sala é inválido. Informe Sala seguido de um número maior que zero.");
+        }
+
+        return null;
+    }
+
+    /**
+     * Padroniza salas com pelo menos dois dígitos: Sala 1 -> Sala 01 Sala 5 ->
+     * Sala 05 Sala 12 -> Sala 12 Sala 105 -> Sala 105
+     */
+    private String normalizarLocal(String local) {
+        String numeroSala = obterNumeroSala(local);
+
+        if (numeroSala == null) {
+            return local;
+        }
+
+        String numeroFormatado = numeroSala.length() < 2
+                ? "0" + numeroSala
+                : numeroSala;
+
+        return "Sala " + numeroFormatado;
     }
 
     private void validarDisponibilidade(
@@ -441,8 +570,8 @@ public class ConsultaService {
             String modalidadeInformada) {
 
         Profissional profissional = profissionalRepository.findById(profissionalId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Profissional não encontrado"));
+                .orElseThrow(()
+                        -> new ResourceNotFoundException("Profissional não encontrado"));
 
         if (Boolean.FALSE.equals(profissional.getAtivo())) {
             throw new ResponseStatusException(
@@ -453,11 +582,15 @@ public class ConsultaService {
         String modalidade = modalidadeInformada == null
                 ? ""
                 : modalidadeInformada.trim().toUpperCase(Locale.ROOT);
+
         boolean modalidadePermitida = switch (modalidade) {
-            case "ONLINE" -> Boolean.TRUE.equals(profissional.getAtendeOnline());
-            case "PRESENCIAL" -> profissional.getAtendePresencial() == null
-                    || Boolean.TRUE.equals(profissional.getAtendePresencial());
-            default -> false;
+            case "ONLINE" ->
+                Boolean.TRUE.equals(profissional.getAtendeOnline());
+            case "PRESENCIAL" ->
+                profissional.getAtendePresencial() == null
+                || Boolean.TRUE.equals(profissional.getAtendePresencial());
+            default ->
+                false;
         };
 
         if (!modalidadePermitida) {
@@ -477,12 +610,13 @@ public class ConsultaService {
 
         boolean horarioDisponivel = profissional.getDisponibilidadeIds().stream()
                 .map(disponibilidadeRepository::findById)
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
-                .anyMatch(disponibilidade ->
-                        disponibilidadeEstaDentroDoHorario(
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .anyMatch(disponibilidade
+                        -> disponibilidadeEstaDentroDoHorario(
                                 disponibilidade, diaConsulta, inicio, fim)
-                                && pertenceAGradeDeAgendamento(disponibilidade, inicio));
+                        && pertenceAGradeDeAgendamento(
+                                disponibilidade, inicio));
 
         if (!horarioDisponivel) {
             throw new ResponseStatusException(
@@ -517,24 +651,38 @@ public class ConsultaService {
     }
 
     boolean pertenceAGradeDeAgendamento(
-            Disponibilidade disponibilidade, LocalDateTime inicio) {
-        if (inicio.toLocalTime().getSecond() != 0 || inicio.toLocalTime().getNano() != 0) {
+            Disponibilidade disponibilidade,
+            LocalDateTime inicio) {
+
+        if (inicio.toLocalTime().getSecond() != 0
+                || inicio.toLocalTime().getNano() != 0) {
             return false;
         }
+
         long minutosDesdeInicio = java.time.Duration.between(
-                disponibilidade.getHoraInicio(), inicio.toLocalTime()).toMinutes();
-        return minutosDesdeInicio >= 0 && minutosDesdeInicio % 60 == 0;
+                disponibilidade.getHoraInicio(),
+                inicio.toLocalTime()).toMinutes();
+
+        return minutosDesdeInicio >= 0
+                && minutosDesdeInicio % 60 == 0;
     }
 
     private String obterDiaSemana(DayOfWeek dia) {
         return switch (dia) {
-            case MONDAY -> "SEGUNDA_FEIRA";
-            case TUESDAY -> "TERCA_FEIRA";
-            case WEDNESDAY -> "QUARTA_FEIRA";
-            case THURSDAY -> "QUINTA_FEIRA";
-            case FRIDAY -> "SEXTA_FEIRA";
-            case SATURDAY -> "SABADO";
-            case SUNDAY -> "DOMINGO";
+            case MONDAY ->
+                "SEGUNDA_FEIRA";
+            case TUESDAY ->
+                "TERCA_FEIRA";
+            case WEDNESDAY ->
+                "QUARTA_FEIRA";
+            case THURSDAY ->
+                "QUINTA_FEIRA";
+            case FRIDAY ->
+                "SEXTA_FEIRA";
+            case SATURDAY ->
+                "SABADO";
+            case SUNDAY ->
+                "DOMINGO";
         };
     }
 
@@ -554,8 +702,8 @@ public class ConsultaService {
         }
 
         LocalDateTime inicioExistente = existente.getDataHora();
-        LocalDateTime fimExistente =
-                inicioExistente.plusMinutes(existente.getDuracao());
+        LocalDateTime fimExistente
+                = inicioExistente.plusMinutes(existente.getDuracao());
 
         return inicioExistente.isBefore(novoFim)
                 && fimExistente.isAfter(novoInicio);
@@ -577,7 +725,7 @@ public class ConsultaService {
         consulta.setProfissionalId(request.getProfissionalId());
         consulta.setDataHora(request.getDataHora());
         consulta.setTipoAtendimento(request.getTipoAtendimento());
-        consulta.setLocal(request.getLocal());
+        consulta.setLocal(normalizarLocal(request.getLocal()));
         consulta.setModalidade(request.getModalidade());
         consulta.setDuracao(request.getDuracao());
     }
@@ -585,23 +733,27 @@ public class ConsultaService {
     private void garantirVinculoAtivo(Consulta consulta) {
         if (vinculoRepository
                 .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
-                        consulta.getPacienteId(), consulta.getProfissionalId())
+                        consulta.getPacienteId(),
+                        consulta.getProfissionalId())
                 .isPresent()) {
             return;
         }
 
-        VinculoProfissionalPaciente vinculo = new VinculoProfissionalPaciente();
+        VinculoProfissionalPaciente vinculo
+                = new VinculoProfissionalPaciente();
+
         vinculo.setPacienteId(consulta.getPacienteId());
         vinculo.setProfissionalId(consulta.getProfissionalId());
         vinculo.setIniciadoEm(LocalDateTime.now());
         vinculo.setIniciadoPor(obterAutenticacao().getName());
+
         vinculoRepository.save(vinculo);
     }
 
     private Consulta buscarConsulta(String id) {
         return consultaRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Consulta não encontrada"));
+                .orElseThrow(()
+                        -> new ResourceNotFoundException("Consulta não encontrada"));
     }
 
     private void validarAcessoConsulta(Consulta consulta) {
@@ -632,21 +784,21 @@ public class ConsultaService {
 
     private boolean ehProfissional() {
         return obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
+                .anyMatch(a
+                        -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
     }
 
     private boolean ehPaciente() {
         return obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_PACIENTE"));
+                .anyMatch(a
+                        -> a.getAuthority().equals("ROLE_PACIENTE"));
     }
 
     private void exigirAdministradorOuSecretaria() {
         boolean autorizado = obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_ADMINISTRADOR")
-                                || a.getAuthority().equals("ROLE_SECRETARIA"));
+                .anyMatch(a
+                        -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        || a.getAuthority().equals("ROLE_SECRETARIA"));
 
         if (!autorizado) {
             throw new AccessDeniedException(
@@ -659,8 +811,8 @@ public class ConsultaService {
 
         Usuario usuario = usuarioRepository
                 .findByEmailIgnoreCase(autenticacao.getName())
-                .orElseThrow(() ->
-                        new AccessDeniedException("Usuário não encontrado"));
+                .orElseThrow(()
+                        -> new AccessDeniedException("Usuário não encontrado"));
 
         if (usuario.getEntidadeId() == null
                 || usuario.getEntidadeId().isBlank()) {
@@ -674,19 +826,21 @@ public class ConsultaService {
     private String obterPacienteId() {
         Usuario usuario = usuarioRepository
                 .findByEmailIgnoreCase(obterAutenticacao().getName())
-                .orElseThrow(() ->
-                        new AccessDeniedException("Usuário não encontrado"));
+                .orElseThrow(()
+                        -> new AccessDeniedException("Usuário não encontrado"));
+
         if (usuario.getEntidadeId() == null
                 || usuario.getEntidadeId().isBlank()) {
             throw new AccessDeniedException(
                     "Usuário sem vínculo com um paciente");
         }
+
         return usuario.getEntidadeId();
     }
 
     private Authentication obterAutenticacao() {
-        Authentication autenticacao =
-                SecurityContextHolder.getContext().getAuthentication();
+        Authentication autenticacao
+                = SecurityContextHolder.getContext().getAuthentication();
 
         if (autenticacao == null || !autenticacao.isAuthenticated()) {
             throw new AccessDeniedException("Usuário não autenticado");

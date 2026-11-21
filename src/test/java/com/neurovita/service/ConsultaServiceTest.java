@@ -1,17 +1,5 @@
 package com.neurovita.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,19 +9,31 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.ConsultaRequest;
@@ -54,13 +54,21 @@ import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 @ExtendWith(MockitoExtension.class)
 class ConsultaServiceTest {
 
-    @Mock private ConsultaRepository consultaRepository;
-    @Mock private PacienteRepository pacienteRepository;
-    @Mock private ProfissionalRepository profissionalRepository;
-    @Mock private DisponibilidadeRepository disponibilidadeRepository;
-    @Mock private UsuarioRepository usuarioRepository;
-    @Mock private VinculoProfissionalPacienteRepository vinculoRepository;
-    @InjectMocks private ConsultaService consultaService;
+    @Mock
+    private ConsultaRepository consultaRepository;
+    @Mock
+    private PacienteRepository pacienteRepository;
+    @Mock
+    private ProfissionalRepository profissionalRepository;
+    @Mock
+    private DisponibilidadeRepository disponibilidadeRepository;
+    @Mock
+    private UsuarioRepository usuarioRepository;
+    @Mock
+    private VinculoProfissionalPacienteRepository vinculoRepository;
+
+    @InjectMocks
+    private ConsultaService consultaService;
 
     @Test
     void duracaoPadraoDaRequisicaoEhCinquentaMinutos() {
@@ -70,18 +78,23 @@ class ConsultaServiceTest {
     @Test
     void criarConsultaSemVinculoCriaVinculoComIdentidadeEDataDoServidor() {
         prepararAgendamentoValido("prof-1");
+
         when(vinculoRepository
                 .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
                 .thenReturn(Optional.empty());
+
         LocalDateTime antes = LocalDateTime.now();
 
         consultaService.salvar(request("ONLINE"));
 
         LocalDateTime depois = LocalDateTime.now();
-        ArgumentCaptor<VinculoProfissionalPaciente> captor =
-                ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+
+        ArgumentCaptor<VinculoProfissionalPaciente> captor = ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+
         verify(vinculoRepository).save(captor.capture());
+
         VinculoProfissionalPaciente criado = captor.getValue();
+
         assertEquals("pac-1", criado.getPacienteId());
         assertEquals("prof-1", criado.getProfissionalId());
         assertEquals("admin@neurovita.com", criado.getIniciadoPor());
@@ -93,9 +106,11 @@ class ConsultaServiceTest {
     @Test
     void criarConsultaComVinculoAtivoNaoDuplica() {
         prepararAgendamentoValido("prof-1");
+
         VinculoProfissionalPaciente ativo = new VinculoProfissionalPaciente();
         ativo.setPacienteId("pac-1");
         ativo.setProfissionalId("prof-1");
+
         when(vinculoRepository
                 .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
                 .thenReturn(Optional.of(ativo));
@@ -106,44 +121,116 @@ class ConsultaServiceTest {
     }
 
     @Test
-    void bloqueiaSalaJaOcupadaNoHorarioDaConsulta() {
+    void bloqueiaSalaJaOcupadaNoHorarioDaConsultaMesmoComFormatoAntigo() {
         prepararAgendamentoValido("prof-1", false);
+
         ConsultaRequest request = request("PRESENCIAL");
-        request.setLocal("Sala 02");
+        request.setLocal("Sala 1");
+
         Consulta existente = new Consulta();
         existente.setId("consulta-existente");
-        existente.setLocal("sala 02");
+        existente.setLocal("SALA 001");
         existente.setDataHora(request.getDataHora().plusMinutes(15));
         existente.setDuracao(30);
         existente.setStatus(StatusConsulta.CONFIRMADA);
-        when(consultaRepository.findByLocalIgnoreCase("Sala 02")).thenReturn(List.of(existente));
 
-        ResponseStatusException erro = assertThrows(ResponseStatusException.class,
+        when(consultaRepository.findByLocalRegex(anyString()))
+                .thenReturn(List.of(existente));
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
                 () -> consultaService.salvar(request));
 
         assertEquals(HttpStatus.CONFLICT, erro.getStatusCode());
+
+        verify(consultaRepository).findByLocalRegex(anyString());
         verify(consultaRepository, never()).save(any(Consulta.class));
-        verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
+        verify(vinculoRepository, never())
+                .save(any(VinculoProfissionalPaciente.class));
+    }
+
+    @Test
+    void normalizaSalaComNumeracaoAcimaDeQuatroSemLimiteFixo() {
+        prepararAgendamentoValido("prof-1");
+
+        ConsultaRequest request = request("ONLINE");
+        request.setLocal("  sAlA 00105 ");
+
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                        "pac-1", "prof-1"))
+                .thenReturn(Optional.empty());
+
+        consultaService.salvar(request);
+
+        ArgumentCaptor<Consulta> captor = ArgumentCaptor.forClass(Consulta.class);
+
+        verify(consultaRepository).save(captor.capture());
+
+        assertEquals("Sala 105", captor.getValue().getLocal());
+    }
+
+    @Test
+    void permiteMesmaSalaQuandoHorarioNaoPossuiSobreposicao() {
+        prepararAgendamentoValido("prof-1", false);
+
+        ConsultaRequest request = request("ONLINE");
+        request.setLocal("Sala 5");
+
+        Consulta existente = new Consulta();
+        existente.setId("consulta-existente");
+        existente.setLocal("SALA 0005");
+        existente.setDataHora(request.getDataHora().plusHours(1));
+        existente.setDuracao(30);
+        existente.setStatus(StatusConsulta.CONFIRMADA);
+
+        when(consultaRepository.findByLocalRegex(anyString()))
+                .thenReturn(List.of(existente));
+
+        when(consultaRepository.save(any(Consulta.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(vinculoRepository
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                        "pac-1", "prof-1"))
+                .thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+
+        var response = consultaService.salvar(request);
+
+        assertNotNull(response);
+
+        ArgumentCaptor<Consulta> captor = ArgumentCaptor.forClass(Consulta.class);
+
+        verify(consultaRepository).save(captor.capture());
+
+        assertEquals("Sala 05", captor.getValue().getLocal());
     }
 
     @Test
     void remarcarParaOutroProfissionalCriaNovoVinculoEPreservaAnterior() {
         Consulta existente = consultaExistente();
-        when(consultaRepository.findById("consulta-1")).thenReturn(Optional.of(existente));
+
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(existente));
+
         prepararAgendamentoValido("prof-2");
+
         when(vinculoRepository
                 .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-2"))
                 .thenReturn(Optional.empty());
+
         ConsultaRequest request = request("ONLINE");
         request.setProfissionalId("prof-2");
 
         consultaService.atualizar("consulta-1", request);
 
-        ArgumentCaptor<VinculoProfissionalPaciente> captor =
-                ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+        ArgumentCaptor<VinculoProfissionalPaciente> captor = ArgumentCaptor.forClass(VinculoProfissionalPaciente.class);
+
         verify(vinculoRepository).save(captor.capture());
+
         assertEquals("pac-1", captor.getValue().getPacienteId());
         assertEquals("prof-2", captor.getValue().getProfissionalId());
+
         verify(vinculoRepository, never()).deleteById(any());
     }
 
@@ -151,7 +238,9 @@ class ConsultaServiceTest {
     void atualizarConsultaAntigaSemVinculoCriaVinculoAtual() {
         when(consultaRepository.findById("consulta-1"))
                 .thenReturn(Optional.of(consultaExistente()));
+
         prepararAgendamentoValido("prof-1");
+
         when(vinculoRepository
                 .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
                 .thenReturn(Optional.empty());
@@ -168,8 +257,9 @@ class ConsultaServiceTest {
 
         consultaService.cancelar("consulta-1");
 
-        verify(vinculoRepository, never()).findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
-                "pac-1", "prof-1");
+        verify(vinculoRepository, never())
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1");
+
         verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
         verify(vinculoRepository, never()).deleteById(any());
     }
@@ -177,32 +267,43 @@ class ConsultaServiceTest {
     @Test
     void falhaNaValidacaoNaoCriaVinculo() {
         pacienteAtivo();
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+
         Profissional inativo = new Profissional();
         inativo.setAtivo(false);
-        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(inativo));
+
+        when(profissionalRepository.findById("prof-1"))
+                .thenReturn(Optional.of(inativo));
 
         assertThrows(ResponseStatusException.class,
                 () -> consultaService.salvar(request("ONLINE")));
 
         verify(consultaRepository, never()).save(any(Consulta.class));
         verify(vinculoRepository, never()).save(any(VinculoProfissionalPaciente.class));
-        verify(vinculoRepository, never()).findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
-                any(), any());
+
+        verify(vinculoRepository, never())
+                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(any(), any());
     }
 
     private void prepararAgendamentoValido(String profissionalId) {
         prepararAgendamentoValido(profissionalId, true);
     }
 
-    private void prepararAgendamentoValido(String profissionalId, boolean prepararSalvamento) {
+    private void prepararAgendamentoValido(
+            String profissionalId,
+            boolean prepararSalvamento) {
+
         pacienteAtivo();
+
         when(profissionalRepository.existsById(profissionalId)).thenReturn(true);
+
         Profissional profissional = new Profissional();
         profissional.setId(profissionalId);
         profissional.setAtivo(true);
         profissional.setAtendeOnline(true);
         profissional.setDisponibilidadeIds(List.of("disp-1"));
+
         when(profissionalRepository.findById(profissionalId))
                 .thenReturn(Optional.of(profissional));
 
@@ -211,10 +312,16 @@ class ConsultaServiceTest {
         disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
         disponibilidade.setHoraInicio(LocalTime.of(9, 0));
         disponibilidade.setHoraFim(LocalTime.of(12, 0));
+
         when(disponibilidadeRepository.findById("disp-1"))
                 .thenReturn(Optional.of(disponibilidade));
-        when(consultaRepository.findByProfissionalId(profissionalId)).thenReturn(List.of());
-        when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+
+        when(consultaRepository.findByProfissionalId(profissionalId))
+                .thenReturn(List.of());
+
+        when(consultaRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of());
+
         if (prepararSalvamento) {
             when(consultaRepository.save(any(Consulta.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
@@ -225,12 +332,15 @@ class ConsultaServiceTest {
     void propagaFalhaDaConsultaMongoPorPeriodoSemBuscarTodaColecao() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 10, 0, 0);
         LocalDateTime fim = inicio.plusDays(7);
+
         RuntimeException falhaMongo = new RuntimeException("falha Mongo simulada");
+
         when(consultaRepository
                 .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
                 .thenThrow(falhaMongo);
 
-        RuntimeException recebida = assertThrows(RuntimeException.class,
+        RuntimeException recebida = assertThrows(
+                RuntimeException.class,
                 () -> consultaService.listarTodos(inicio, fim));
 
         assertSame(falhaMongo, recebida);
@@ -245,33 +355,46 @@ class ConsultaServiceTest {
         disponibilidade.setHoraInicio(LocalTime.of(13, 30));
         disponibilidade.setHoraFim(LocalTime.of(17, 30));
 
-        assertTrue(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+        assertTrue(consultaService.pertenceAGradeDeAgendamento(
+                disponibilidade,
                 LocalDateTime.of(2026, 11, 16, 13, 30)));
-        assertTrue(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+
+        assertTrue(consultaService.pertenceAGradeDeAgendamento(
+                disponibilidade,
                 LocalDateTime.of(2026, 11, 16, 16, 30)));
-        assertFalse(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+
+        assertFalse(consultaService.pertenceAGradeDeAgendamento(
+                disponibilidade,
                 LocalDateTime.of(2026, 11, 16, 14, 15)));
-        assertFalse(consultaService.pertenceAGradeDeAgendamento(disponibilidade,
+
+        assertFalse(consultaService.pertenceAGradeDeAgendamento(
+                disponibilidade,
                 LocalDateTime.of(2026, 11, 16, 14, 30, 1)));
     }
 
     @Test
     void rejeitaRequisicaoDiretaForaDaGradeMesmoDentroDaDisponibilidade() {
         pacienteAtivo();
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+
         Profissional profissional = new Profissional();
         profissional.setId("prof-1");
         profissional.setAtivo(true);
         profissional.setAtendeOnline(true);
         profissional.setDisponibilidadeIds(List.of("disp-1"));
-        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(profissional));
+
+        when(profissionalRepository.findById("prof-1"))
+                .thenReturn(Optional.of(profissional));
 
         Disponibilidade disponibilidade = new Disponibilidade();
         disponibilidade.setAtivo(true);
         disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
         disponibilidade.setHoraInicio(LocalTime.of(13, 30));
         disponibilidade.setHoraFim(LocalTime.of(17, 30));
-        when(disponibilidadeRepository.findById("disp-1")).thenReturn(Optional.of(disponibilidade));
+
+        when(disponibilidadeRepository.findById("disp-1"))
+                .thenReturn(Optional.of(disponibilidade));
 
         ConsultaRequest request = request("ONLINE");
         request.setDataHora(LocalDateTime.of(2026, 11, 16, 14, 15));
@@ -281,6 +404,7 @@ class ConsultaServiceTest {
                 () -> consultaService.salvar(request));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -299,8 +423,13 @@ class ConsultaServiceTest {
     }
 
     private ConsultaRequest request(String modalidade) {
-        LocalDate segunda = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
-        if (!segunda.isAfter(LocalDate.now())) segunda = segunda.plusWeeks(1);
+        LocalDate segunda = LocalDate.now()
+                .with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+
+        if (!segunda.isAfter(LocalDate.now())) {
+            segunda = segunda.plusWeeks(1);
+        }
+
         ConsultaRequest request = new ConsultaRequest();
         request.setPacienteId("pac-1");
         request.setProfissionalId("prof-1");
@@ -309,6 +438,7 @@ class ConsultaServiceTest {
         request.setLocal("Sala 1");
         request.setModalidade(modalidade);
         request.setDuracao(45);
+
         return request;
     }
 
@@ -316,18 +446,25 @@ class ConsultaServiceTest {
         Paciente paciente = new Paciente();
         paciente.setId("pac-1");
         paciente.setAtivo(true);
+
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
     }
 
-    private void profissionalAtivo(Boolean atendeOnline, Boolean atendePresencial) {
+    private void profissionalAtivo(
+            Boolean atendeOnline,
+            Boolean atendePresencial) {
+
         Profissional profissional = new Profissional();
         profissional.setId("prof-1");
         profissional.setAtivo(true);
         profissional.setAtendeOnline(atendeOnline);
         profissional.setAtendePresencial(atendePresencial);
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
-        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findById("prof-1"))
+                .thenReturn(Optional.of(profissional));
     }
 
     private Consulta consultaExistente() {
@@ -338,6 +475,7 @@ class ConsultaServiceTest {
         consulta.setDataHora(LocalDateTime.now().plusDays(5));
         consulta.setDuracao(45);
         consulta.setStatus(StatusConsulta.PENDENTE);
+
         return consulta;
     }
 
@@ -345,14 +483,17 @@ class ConsultaServiceTest {
     void bloqueiaPacienteInativoAoCriarConsulta() {
         Paciente paciente = new Paciente();
         paciente.setAtivo(false);
+
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> consultaService.salvar(request("ONLINE")));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -360,32 +501,40 @@ class ConsultaServiceTest {
     void bloqueiaPacienteInativoAoAlterarConsulta() {
         when(consultaRepository.findById("consulta-1"))
                 .thenReturn(Optional.of(consultaExistente()));
+
         Paciente paciente = new Paciente();
         paciente.setAtivo(false);
+
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> consultaService.atualizar("consulta-1", request("ONLINE")));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
     @Test
     void bloqueiaProfissionalInativoAoCriarConsulta() {
         pacienteAtivo();
+
         Profissional profissional = new Profissional();
         profissional.setAtivo(false);
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
-        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findById("prof-1"))
+                .thenReturn(Optional.of(profissional));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> consultaService.salvar(request("ONLINE")));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -393,17 +542,22 @@ class ConsultaServiceTest {
     void bloqueiaProfissionalInativoAoRemarcarConsulta() {
         when(consultaRepository.findById("consulta-1"))
                 .thenReturn(Optional.of(consultaExistente()));
+
         pacienteAtivo();
+
         Profissional profissional = new Profissional();
         profissional.setAtivo(false);
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
-        when(profissionalRepository.findById("prof-1")).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findById("prof-1"))
+                .thenReturn(Optional.of(profissional));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> consultaService.atualizar("consulta-1", request("ONLINE")));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -417,6 +571,7 @@ class ConsultaServiceTest {
                 () -> consultaService.salvar(request("ONLINE")));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -430,6 +585,7 @@ class ConsultaServiceTest {
                 () -> consultaService.salvar(request("PRESENCIAL")));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+
         verify(consultaRepository, never()).save(any(Consulta.class));
     }
 
@@ -437,12 +593,15 @@ class ConsultaServiceTest {
     void aceitaPresencialQuandoCampoLegadoEstaNulo() {
         pacienteAtivo();
         profissionalAtivo(false, null);
+
         LocalDate segunda = request("PRESENCIAL").getDataHora().toLocalDate();
+
         Disponibilidade disponibilidade = new Disponibilidade();
         disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
         disponibilidade.setHoraInicio(LocalTime.of(9, 0));
         disponibilidade.setHoraFim(LocalTime.of(12, 0));
         disponibilidade.setAtivo(true);
+
         when(profissionalRepository.findById("prof-1"))
                 .thenAnswer(invocation -> {
                     Profissional profissional = new Profissional();
@@ -451,16 +610,24 @@ class ConsultaServiceTest {
                     profissional.setAtendeOnline(false);
                     profissional.setAtendePresencial(null);
                     profissional.setDisponibilidadeIds(List.of("disp-1"));
+
                     return Optional.of(profissional);
                 });
+
         when(disponibilidadeRepository.findById("disp-1"))
                 .thenReturn(Optional.of(disponibilidade));
-        when(consultaRepository.findByProfissionalId("prof-1")).thenReturn(List.of());
-        when(consultaRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+
+        when(consultaRepository.findByProfissionalId("prof-1"))
+                .thenReturn(List.of());
+
+        when(consultaRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of());
+
         when(consultaRepository.save(any(Consulta.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         assertEquals(DayOfWeek.MONDAY, segunda.getDayOfWeek());
+
         consultaService.salvar(request("PRESENCIAL"));
 
         verify(consultaRepository).save(any(Consulta.class));
@@ -470,9 +637,14 @@ class ConsultaServiceTest {
     void remarcacaoPreservaSnapshotDaConsultaAnterior() {
         Consulta existente = consultaExistente();
         LocalDateTime dataHoraAnterior = existente.getDataHora();
-        when(consultaRepository.findById("consulta-1")).thenReturn(Optional.of(existente));
+
+        when(consultaRepository.findById("consulta-1"))
+                .thenReturn(Optional.of(existente));
+
         pacienteAtivo();
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
+
         when(profissionalRepository.findById("prof-1"))
                 .thenAnswer(invocation -> {
                     Profissional profissional = new Profissional();
@@ -480,19 +652,25 @@ class ConsultaServiceTest {
                     profissional.setAtivo(true);
                     profissional.setAtendeOnline(true);
                     profissional.setDisponibilidadeIds(List.of("disp-1"));
+
                     return Optional.of(profissional);
                 });
+
         Disponibilidade disponibilidade = new Disponibilidade();
         disponibilidade.setDiaSemana("SEGUNDA_FEIRA");
         disponibilidade.setHoraInicio(LocalTime.of(9, 0));
         disponibilidade.setHoraFim(LocalTime.of(12, 0));
         disponibilidade.setAtivo(true);
+
         when(disponibilidadeRepository.findById("disp-1"))
                 .thenReturn(Optional.of(disponibilidade));
+
         when(consultaRepository.findByProfissionalId("prof-1"))
                 .thenReturn(List.of(existente));
+
         when(consultaRepository.findByPacienteId("pac-1"))
                 .thenReturn(List.of(existente));
+
         when(consultaRepository.save(any(Consulta.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -521,15 +699,20 @@ class ConsultaServiceTest {
     void listarPorIntervaloUsaLimitesInclusivoEExclusivo() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
+
         Consulta consulta = consultaExistente();
-        when(consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(
-                inicio, fim)).thenReturn(List.of(consulta));
+
+        when(consultaRepository
+                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
+                .thenReturn(List.of(consulta));
 
         var resultado = consultaService.listarTodos(inicio, fim);
 
         assertEquals(1, resultado.size());
+
         verify(consultaRepository)
                 .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
+
         verify(consultaRepository, never()).findAll();
     }
 
@@ -537,12 +720,17 @@ class ConsultaServiceTest {
     void falhaDaConsultaGeralPorPeriodoEhPropagadaSemBuscaAmpla() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
+
         DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
-        when(consultaRepository.findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
+
+        when(consultaRepository
+                .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim))
                 .thenThrow(falha);
 
-        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+        assertSame(falha, assertThrows(
+                DataAccessResourceFailureException.class,
                 () -> consultaService.listarTodos(inicio, fim)));
+
         verify(consultaRepository, never()).findAll();
     }
 
@@ -550,14 +738,20 @@ class ConsultaServiceTest {
     void falhaDaConsultaDePacientePorPeriodoEhPropagadaSemBuscarTodasAsConsultasDoPaciente() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
+
         DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
+
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
-        when(consultaRepository.findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                "pac-1", inicio, fim))
+
+        when(consultaRepository
+                .findByPacienteIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                        "pac-1", inicio, fim))
                 .thenThrow(falha);
 
-        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+        assertSame(falha, assertThrows(
+                DataAccessResourceFailureException.class,
                 () -> consultaService.listarPorPaciente("pac-1", inicio, fim)));
+
         verify(consultaRepository, never()).findByPacienteId("pac-1");
     }
 
@@ -565,28 +759,40 @@ class ConsultaServiceTest {
     void falhaDaConsultaDeProfissionalPorPeriodoEhPropagadaSemBuscarTodasAsConsultasDoProfissional() {
         LocalDateTime inicio = LocalDateTime.of(2026, 11, 1, 0, 0);
         LocalDateTime fim = inicio.plusDays(1);
+
         DataAccessResourceFailureException falha = new DataAccessResourceFailureException("falha simulada");
+
         when(profissionalRepository.existsById("prof-1")).thenReturn(true);
-        when(consultaRepository.findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
-                "prof-1", inicio, fim))
+
+        when(consultaRepository
+                .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
+                        "prof-1", inicio, fim))
                 .thenThrow(falha);
 
-        assertSame(falha, assertThrows(DataAccessResourceFailureException.class,
+        assertSame(falha, assertThrows(
+                DataAccessResourceFailureException.class,
                 () -> consultaService.listarPorProfissional("prof-1", inicio, fim)));
+
         verify(consultaRepository, never()).findByProfissionalId("prof-1");
     }
 
     @Test
     void rejeitaIntervaloDeConsultasIncompletoOuInvertido() {
-        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(
-                ResponseStatusException.class,
-                () -> consultaService.listarTodos(
-                        LocalDateTime.now(), null)).getStatusCode());
-        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(
-                ResponseStatusException.class,
-                () -> consultaService.listarTodos(
-                        LocalDateTime.of(2026, 11, 2, 0, 0),
-                        LocalDateTime.of(2026, 11, 1, 0, 0))).getStatusCode());
+        assertEquals(
+                HttpStatus.BAD_REQUEST,
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> consultaService.listarTodos(LocalDateTime.now(), null))
+                        .getStatusCode());
+
+        assertEquals(
+                HttpStatus.BAD_REQUEST,
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> consultaService.listarTodos(
+                                LocalDateTime.of(2026, 11, 2, 0, 0),
+                                LocalDateTime.of(2026, 11, 1, 0, 0)))
+                        .getStatusCode());
 
         verify(consultaRepository, never()).findAll();
     }
@@ -594,14 +800,17 @@ class ConsultaServiceTest {
     @Test
     void deleteCancelaEPreservaConsultaEHistorico() {
         Consulta consulta = consultaExistente();
+
         when(consultaRepository.findById("consulta-1"))
                 .thenReturn(Optional.of(consulta));
+
         doReturn(consulta).when(consultaRepository).save(consulta);
 
         consultaService.deletar("consulta-1");
 
         assertEquals(StatusConsulta.CANCELADA, consulta.getStatus());
         assertEquals(1, consulta.getHistorico().size());
+
         verify(consultaRepository).save(consulta);
         verify(consultaRepository, never()).deleteById("consulta-1");
     }
@@ -613,11 +822,15 @@ class ConsultaServiceTest {
                         "paciente@neurovita.com",
                         "token",
                         List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+
         Usuario usuario = new Usuario();
         usuario.setEntidadeId("pac-1");
+
         when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
                 .thenReturn(Optional.of(usuario));
+
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);
+
         when(consultaRepository.findByPacienteId("pac-1"))
                 .thenReturn(List.of(consultaExistente()));
 
@@ -631,14 +844,17 @@ class ConsultaServiceTest {
                         "paciente@neurovita.com",
                         "token",
                         List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
+
         Usuario usuario = new Usuario();
         usuario.setEntidadeId("pac-1");
+
         when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
                 .thenReturn(Optional.of(usuario));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> consultaService.listarPorPaciente("pac-2"));
+
         verify(pacienteRepository, never()).existsById("pac-2");
     }
 }
