@@ -5,6 +5,10 @@
 
 ## 1. Escopo e critério de leitura
 
+Este contrato descreve os 19 modelos `@Document` atualmente usados pela aplicação e deve ser lido junto ao plano definitivo de **24 coleções**: essas 19 coleções ativas e cinco coleções planejadas para módulos futuros (`avaliacoes_clinicas`, `arquivos_clinicos`, `auditoria_eventos`, `unidades_atendimento` e `salas`). As cinco podem ser provisionadas vazias pela equipe do banco, conforme a orientação recebida, mas ainda não possuem modelos Java nem APIs; sua criação não habilita funcionalidades. `evolucoes` já está entre as 19 coleções ativas.
+
+Diferenças a refletir em validators, caso existam: `exames.descricaoSolicitacao` é opcional e necessário para persistir separadamente o texto da solicitação; `administradores.cpf` é opcional no contrato Java. A orientação também recomenda `America/Sao_Paulo`, mas o código atual não fixa esse timezone nos conversores dos tipos `Local*`; confirmar uma convenção comum com o backend antes de configurar validações temporais ou regravar documentos. Para as cinco coleções futuras, manter o schema preliminar da orientação separado dos schemas confirmados pelo código e evitar validators rígidos antes do desenvolvimento dos módulos.
+
 O backend declara 19 coleções por meio de `@Document`. Os campos abaixo reproduzem nomes e tipos Java dos modelos. Obrigatoriedade é descrita separando:
 
 - **Persistência:** a maioria dos modelos não declara `@NotNull`/`@NotBlank`; campos de referência podem estar ausentes em documentos legados e a leitura nem sempre falha.
@@ -80,12 +84,12 @@ Os exemplos temporais abaixo ilustram BSON Date na convenção UTC. O código at
 
 ### 3.1 `administradores` — `Administrador`
 
-Perfil administrativo. `nome`, `email` e `cpf` são exigidos no cadastro; e-mail/CPF são verificados por serviço, sem índice único declarado. `perfil` é setado pelo serviço como `ADMINISTRADOR`. `criadoEm` é preenchido com `Instant.now()`. Telefone opcional.
+Perfil administrativo. `nome` e `email` são exigidos no cadastro; CPF é opcional. E-mail/CPF são verificados quando fornecidos, sem índice único declarado. `perfil` é setado pelo serviço como `ADMINISTRADOR`. `criadoEm` é preenchido com `Instant.now()`. Telefone opcional.
 
 | Campo | BSON / Java | Obrigatoriedade e regra |
 |---|---|---|
 | `_id` | ObjectId ou String / `String id` | Gerado pelo Mongo/Spring. |
-| `nome`, `email`, `perfil`, `cpf`, `telefone` | String / `String` | Nome/e-mail/CPF requeridos no cadastro; perfil `ADMINISTRADOR`; telefone opcional. |
+| `nome`, `email`, `perfil`, `cpf`, `telefone` | String / `String` | Nome/e-mail requeridos no cadastro; perfil `ADMINISTRADOR`; CPF e telefone opcionais no serviço Java atual. |
 | `criadoEm` | Date / `Instant` | Preenchido na criação; pode faltar em legado. |
 
 ```json
@@ -116,14 +120,14 @@ Cadastro de paciente. Nome e nascimento são obrigatórios; e-mail obrigatório 
 |---|---|---|
 | `_id` | ObjectId ou String / `String` | Identificador. |
 | `nome`, `dataNascimento` | String, Date / `String`, `LocalDate` | Obrigatórios na criação. |
-| `email`, `cpf`, `telefone`, `endereco`, `cep`, `cidade` | String | E-mail requerido para a conta; demais podem ser nulos conforme DTO/regra. |
+| `email`, `cpf`, `telefone`, `endereco`, `cep`, `cidade`, `numero`, `complemento`, `bairro` | String | E-mail requerido para a conta; demais podem ser nulos conforme DTO/regra. CEP, número e bairro são exigidos no cadastro do formulário FBR; atualizações parciais podem omiti-los para preservar valores legados. Valor vazio explícito limpa os campos textuais opcionais, sujeito à validação de formato do CEP na API. |
 | `ativo` | Boolean / `Boolean` | Default Java `true`; ausência antiga é interpretada como ativo no serviço/modelo. |
 | `possuiPlanoSaude` | Boolean / `Boolean` | Optional/nullable no schema; regra de plano condicionada ao valor. |
 | `planoSaude`, `numeroCarteirinha` | String | Plano requerido quando possui plano; número opcional. |
 | `validadePlano` | Date / `LocalDate` | Opcional. |
 
 ```json
-{ "_id":{"$oid":"671000000000000000000004"}, "nome":"Paciente exemplo", "dataNascimento":{"$date":"2012-03-15T00:00:00Z"}, "email":"paciente@example.invalid", "cpf":null, "telefone":null, "endereco":null, "cep":null, "cidade":null, "ativo":true, "possuiPlanoSaude":false, "planoSaude":null, "numeroCarteirinha":null, "validadePlano":null }
+{ "_id":{"$oid":"671000000000000000000004"}, "nome":"Paciente exemplo", "dataNascimento":{"$date":"2012-03-15T00:00:00Z"}, "email":"paciente@example.invalid", "cpf":null, "telefone":null, "endereco":null, "cep":null, "cidade":null, "numero":null, "complemento":null, "bairro":null, "ativo":true, "possuiPlanoSaude":false, "planoSaude":null, "numeroCarteirinha":null, "validadePlano":null }
 ```
 
 ### 3.4 `responsaveis` — `Responsavel`
@@ -239,6 +243,8 @@ Agenda é derivada desta coleção. Paciente e profissional obrigatórios e vali
 ```json
 { "_id":{"$oid":"671000000000000000000011"}, "pacienteId":"671000000000000000000004", "profissionalId":"671000000000000000000007", "dataHora":{"$date":"2026-11-11T14:00:00Z"}, "tipoAtendimento":"Psicoterapia", "local":"Unidade", "modalidade":"Presencial", "duracao":50, "status":"CONFIRMADA", "historico":[] }
 ```
+
+Para a preparação futura das unidades e salas, o modelo de banco pode aceitar `unidadeId` e `salaId` como String opcionais em `consultas`, relacionados a `unidades_atendimento._id` e `salas._id`. Esses campos **não existem no model/DTO Java atual** e não devem ser enviados esperando persistência até a equipe Java implementar e testar o relacionamento. Manter `local` para compatibilidade com os registros e telas atuais.
 
 ### 3.11 `prontuarios` — `Prontuario`
 
@@ -389,6 +395,22 @@ Registro clínico append-only. A API permite criação e leitura por paciente, s
 ```json
 { "_id":{"$oid":"671000000000000000000099"}, "pacienteId":"671000000000000000000004", "profissionalId":"671000000000000000000007", "consultaId":null, "prontuarioId":"671000000000000000000014", "tipoEvolucao":"SESSAO", "areaAtendimento":"Psicologia", "titulo":"Evolução de atendimento", "dataAtendimento":{"$date":"2026-11-11T13:00:00Z"}, "conteudo":"Conteúdo ilustrativo, sem dados pessoais.", "objetivosTrabalhados":[], "observacoes":null, "conduta":null, "encaminhamentos":[], "status":"FINALIZADA", "criadoEm":{"$date":"2026-11-11T13:00:00Z"}, "atualizadoEm":{"$date":"2026-11-11T13:00:00Z"}, "versao":1, "retificadaPorId":null, "motivoRetificacao":null }
 ```
+
+### 3.20 Estruturas futuras previstas no modelo definitivo
+
+As cinco coleções a seguir integram o plano de banco de 24 coleções e podem ser provisionadas vazias para reduzir mudanças estruturais futuras. Os campos vêm da orientação encaminhada à equipe do banco; são **schemas de planejamento**, não contratos Java ativos. O backend atual não possui models, repositories, services ou endpoints para elas. Usar validators permissivos e revisar os campos com o módulo correspondente antes de impor regras ou índices únicos.
+
+| Coleção | Campos planejados | Relacionamentos e observações |
+|---|---|---|
+| `avaliacoes_clinicas` | `pacienteId`, `profissionalId`, `consultaId`, `tipoAvaliacao`, `especialidade`, `titulo`, `dataInicio`, `dataConclusao`, `objetivo`, `secoes[]` (`identificador`, `titulo`, `descricao`, `conteudo`, `ordem`), `resultado`, `conclusao`, `status`, `criadoEm`, `atualizadoEm` | Referências String para paciente, profissional e consulta. Não cadastrar instrumentos, escalas ou pontuações sem definição clínica. |
+| `arquivos_clinicos` | `pacienteId`, `documentoId`, `exameId`, `evolucaoId`, `avaliacaoId`, `nomeOriginal`, `nomeArmazenado`, `tipoMime`, `extensao`, `tamanhoBytes`, `storageProvider`, `storageKey`, `hashSha256`, `enviadoPor`, `enviadoEm`, `ativo` | Metadados/referência de storage privado. Não migrar os anexos Base64 atuais nem criar URLs públicas como parte do provisionamento. |
+| `auditoria_eventos` | `usuarioId`, `perfil`, `acao`, `recurso`, `recursoId`, `pacienteId`, `descricao`, `camposAlterados[]` (`campo`, `tipoAlteracao`), `dataHora`, `ip`, `requestId` | Planejada para eventos append-only; não guardar credenciais nem conteúdo clínico integral. Retenção e acesso precisam de definição. |
+| `unidades_atendimento` | `nome`, `descricao`, `endereco` (`logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `cep`, `pais`), `telefone`, `email`, `ativo`, `criadoEm`, `atualizadoEm` | Endereço estruturado proposto somente para esta coleção futura; não altera os endereços existentes. |
+| `salas` | `unidadeId`, `nome`, `descricao`, `ativo`, `criadoEm`, `atualizadoEm` | `unidadeId` referencia `unidades_atendimento._id`; associação com consulta exige implementação Java posterior. |
+
+Os índices sugeridos na orientação para estas coleções são preliminares: `unidades_atendimento.nome`, `salas.unidadeId + nome`, `salas.unidadeId`, `avaliacoes_clinicas.pacienteId + criadoEm`, `avaliacoes_clinicas.profissionalId + dataInicio`, `arquivos_clinicos.pacienteId + enviadoEm`, `auditoria_eventos.usuarioId + dataHora` e `auditoria_eventos.pacienteId + dataHora`. Antes de criá-los, a equipe do banco deve confirmar os nomes de campo com o futuro modelo Java; não tornar nenhum deles único por suposição.
+
+O provisionamento dessas cinco coleções não habilita a funcionalidade na aplicação. Campos e índices poderão receber ajustes quando os módulos forem implementados, mantendo a meta de evitar mudanças estruturais grandes.
 
 ## 4. Relacionamentos e integridade
 

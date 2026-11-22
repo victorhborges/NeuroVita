@@ -1,0 +1,45 @@
+@if (conteudo(); as c) {
+  <div class="pg">
+    <app-titulo-pagina [titulo]="c.pagina.titulo" [subtitulo]="c.pagina.subtitulo" [voltarPara]="raiz() + '/ajuda'" />
+
+    <section class="ajuda-banner ajuda-banner-topico" [attr.aria-label]="c.pagina.bannerTitulo">
+      <div class="ajuda-banner-texto">
+        <h2 class="ajuda-banner-titulo">{{ c.pagina.bannerTitulo }}</h2>
+        <p class="ajuda-banner-sub">{{ c.pagina.bannerTexto }}</p>
+      </div>
+    </section>
+
+    @for (b of c.blocos; track $index) {
+      <section class="ajuda-bloco" [class.ajuda-bloco-invertido]="b.invertido">
+        <div class="cartao ajuda-passos">
+          <ol class="ajuda-lista">
+            @for (p of b.passos; track $index) {
+              <li class="ajuda-passo">
+                <span class="ajuda-numero" aria-hidden="true">{{ (b.numeroInicial ?? 1) + $index }}</span>
+                <span class="ajuda-passo-texto">
+                  @for (parte of partes(p); track $index) {<span [class.ajuda-negrito]="parte.negrito">{{ parte.texto }}</span>}
+                </span>
+              </li>
+            }
+          </ol>
+          @if (b.dica; as dica) {
+            <p class="ajuda-dica">
+              <app-icone nome="info" />
+              <span>
+                @for (parte of partes(dica); track $index) {<span [class.ajuda-negrito]="parte.negrito">{{ parte.texto }}</span>}
+              </span>
+            </p>
+          }
+        </div>
+        <div class="cartao ajuda-figura">
+          <app-imagem-ajuda [src]="b.imagem" [alt]="b.descricaoImagem" />
+        </div>
+      </section>
+    }
+  </div>
+} @else {
+  <div class="pg">
+    <app-titulo-pagina titulo="Tópico não encontrado" subtitulo="Esse assunto não existe na central de ajuda." [voltarPara]="raiz() + '/ajuda'" />
+    <a class="botao-escuro ajuda-botao ajuda-botao-curto" [routerLink]="[raiz(), 'ajuda']">Voltar para a Ajuda</a>
+  </div>
+}

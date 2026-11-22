@@ -1,4 +1,3 @@
-
 package com.neurovita.repository;
 
 import java.time.LocalDateTime;
@@ -15,7 +14,17 @@ public interface ConsultaRepository extends MongoRepository<Consulta, String> {
 
     List<Consulta> findByProfissionalId(String profissionalId);
 
-    // A consulta explícita mantém os dois operadores no mesmo documento dataHora.
+    List<Consulta> findByLocalIgnoreCase(String local);
+
+    /**
+     * Busca consultas pelo local utilizando expressão regular.
+     * Permite reconhecer variações de salas antigas, como:
+     * Sala 1, sala 01 e SALA 001.
+     */
+    @Query("{ 'local': { '$regex': ?0, '$options': 'i' } }")
+    List<Consulta> findByLocalRegex(String regex);
+
+    // Consulta dentro de um intervalo de data e hora.
     @Query("{\"dataHora\": {\"$gte\": ?0, \"$lt\": ?1}}")
     List<Consulta> findByDataHoraGreaterThanEqualAndDataHoraLessThan(
             LocalDateTime inicio,

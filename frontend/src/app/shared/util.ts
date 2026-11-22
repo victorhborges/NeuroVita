@@ -17,13 +17,21 @@ export function deISO(iso: string): Date {
 export function formatarData(iso?: string | null): string {
   if (!iso) return '—';
   const [a, m, d] = iso.slice(0, 10).split('-');
+  const formato = typeof document === 'undefined' ? 'DD/MM/AAAA' : document.documentElement.dataset['formatoData'];
+  if (formato === 'MM/DD/AAAA') return `${m}/${d}/${a}`;
+  if (formato === 'AAAA/MM/DD') return `${a}/${m}/${d}`;
   return `${d}/${m}/${a}`;
 }
 
 /** '2026-10-20T10:33:00' -> '20/10/2026 - 10:33' */
 export function formatarDataHora(isoDataHora: string): string {
   const d = new Date(isoDataHora);
-  return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} - ${dois(d.getHours())}:${dois(d.getMinutes())}`;
+  const ano = String(d.getFullYear());
+  const mes = dois(d.getMonth() + 1);
+  const dia = dois(d.getDate());
+  const formato = typeof document === 'undefined' ? 'DD/MM/AAAA' : document.documentElement.dataset['formatoData'];
+  const data = formato === 'MM/DD/AAAA' ? `${mes}/${dia}/${ano}` : formato === 'AAAA/MM/DD' ? `${ano}/${mes}/${dia}` : `${dia}/${mes}/${ano}`;
+  return `${data} - ${dois(d.getHours())}:${dois(d.getMinutes())}`;
 }
 
 export function idadeDe(nascimentoISO: string, referencia = new Date()): number {

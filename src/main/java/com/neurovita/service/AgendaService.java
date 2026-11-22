@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.time.LocalDate;
@@ -19,6 +18,7 @@ import com.neurovita.repository.ConsultaRepository;
 import com.neurovita.repository.PacienteRepository;
 import com.neurovita.repository.ProfissionalRepository;
 import com.neurovita.repository.UsuarioRepository;
+import com.neurovita.repository.VinculoProfissionalPacienteRepository;
 
 @Service
 public class AgendaService {
@@ -27,17 +27,20 @@ public class AgendaService {
     private final UsuarioRepository usuarioRepository;
     private final PacienteRepository pacienteRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final VinculoProfissionalPacienteRepository vinculoRepository;
 
     public AgendaService(
             ConsultaRepository consultaRepository,
             UsuarioRepository usuarioRepository,
             PacienteRepository pacienteRepository,
-            ProfissionalRepository profissionalRepository) {
+            ProfissionalRepository profissionalRepository,
+            VinculoProfissionalPacienteRepository vinculoRepository) {
 
         this.consultaRepository = consultaRepository;
         this.usuarioRepository = usuarioRepository;
         this.pacienteRepository = pacienteRepository;
         this.profissionalRepository = profissionalRepository;
+        this.vinculoRepository = vinculoRepository;
     }
 
     public List<ConsultaResponse> listarAgenda() {
@@ -77,17 +80,17 @@ public class AgendaService {
     public AgendaResumoResponse resumo(LocalDate data) {
         LocalDate dataResumo = data == null ? LocalDate.now() : data;
         List<Consulta> consultas;
+
+        LocalDateTime inicio = dataResumo.atStartOfDay();
+        LocalDateTime fim = dataResumo.plusDays(1).atStartOfDay();
+
         if (ehProfissional()) {
             String profissionalId = obterProfissionalId();
-            LocalDateTime inicio = dataResumo.atStartOfDay();
-            LocalDateTime fim = dataResumo.plusDays(1).atStartOfDay();
             consultas = consultaRepository
                     .findByProfissionalIdAndDataHoraGreaterThanEqualAndDataHoraLessThan(
                             profissionalId, inicio, fim);
         } else {
             exigirAdministradorOuSecretaria();
-            LocalDateTime inicio = dataResumo.atStartOfDay();
-            LocalDateTime fim = dataResumo.plusDays(1).atStartOfDay();
             consultas = consultaRepository
                     .findByDataHoraGreaterThanEqualAndDataHoraLessThan(inicio, fim);
         }
@@ -96,12 +99,14 @@ public class AgendaService {
         long pendentes = contar(consultas, StatusConsulta.PENDENTE);
         long canceladas = contar(consultas, StatusConsulta.CANCELADA);
         long remarcadas = contar(consultas, StatusConsulta.REMARCADA);
+
         LocalDateTime agora = LocalDateTime.now();
+
         Consulta proxima = consultas.stream()
                 .filter(consulta -> status(consulta) != StatusConsulta.CANCELADA)
                 .filter(consulta -> consulta.getDataHora() != null
                         && !consulta.getDataHora().isBefore(agora))
-                .min(java.util.Comparator.comparing(consulta -> consulta.getDataHora()))
+                .min(java.util.Comparator.comparing(Consulta::getDataHora))
                 .orElse(null);
 
         return new AgendaResumoResponse(
@@ -117,7 +122,7 @@ public class AgendaService {
             String profissionalId, LocalDate data) {
 
         if (!profissionalRepository.existsById(profissionalId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Profissional não encontrado ou sem acesso");
         }
 
@@ -161,9 +166,21 @@ public class AgendaService {
         }
 
         if (ehProfissional()) {
+            String profissionalId = obterProfissionalId();
+
+            boolean possuiVinculoAtivo = vinculoRepository
+                    .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                            pacienteId, profissionalId)
+                    .isPresent();
+
+            if (!possuiVinculoAtivo) {
+                throw new AccessDeniedException(
+                        "Acesso permitido somente a pacientes com vínculo profissional ativo");
+            }
+
             return consultaRepository
                     .findByPacienteIdAndProfissionalId(
-                            pacienteId, obterProfissionalId())
+                            pacienteId, profissionalId)
                     .stream()
                     .map(ConsultaResponse::new)
                     .toList();

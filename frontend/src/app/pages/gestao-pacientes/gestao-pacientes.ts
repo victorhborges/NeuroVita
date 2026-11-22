@@ -16,6 +16,8 @@ import { formatarData, idadeDe, normalizar } from '../../shared/util';
   selector: 'app-gestao-pacientes',
   imports: [Avatar, Dialogo, Icone, RouterLink, TituloPagina],
   templateUrl: './gestao-pacientes.html',
+  styleUrl: './gestao-pacientes.css',
+  host: { '[class.gestao-pacientes-secretaria]': "perfil() === 'secretaria'" },
 })
 export class GestaoPacientes {
   private readonly clinica = inject(Clinica);
@@ -40,6 +42,7 @@ export class GestaoPacientes {
         p,
         idade: idadeDe(p.nascimento),
         nascimento: formatarData(p.nascimento),
+        ultima: p.ultimaConsulta ? formatarData(p.ultimaConsulta) : '—',
         profissional: this.clinica.profissional(p.profissionalId)?.nome ?? '—',
         ativo: p.status !== 'inativo',
       }));

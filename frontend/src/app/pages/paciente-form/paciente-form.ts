@@ -13,6 +13,7 @@ import {
 
 interface Formulario {
   nome: string; nascimento: string; email: string; cpf: string; telefone: string;
+  endereco: string; cep: string; cidade: string; numero: string; complemento: string; bairro: string;
   rNome: string; rNascimento: string; rEmail: string; rParentesco: string; rTelefone: string; rCpf: string;
   rId?: string;
   responsaveisExtras: { id?: string; nome: string; nascimento: string; email: string; parentesco: string; telefone: string; cpf: string }[];
@@ -26,8 +27,15 @@ export function erroPlanoSaude(possuiPlano: boolean, nome: string): string | nul
   return possuiPlano && !nome.trim() ? 'Informe o plano de saúde.' : null;
 }
 
+export function erroEnderecoPaciente(cep: string, numero: string, bairro: string): string | null {
+  if (cep.replace(/\D/g, '').length !== 8) return 'Informe um CEP válido.';
+  if (!numero.trim()) return 'Informe o número do endereço.';
+  if (!bairro.trim()) return 'Informe o bairro.';
+  return null;
+}
+
 const VAZIO: Formulario = {
-  nome: '', nascimento: '', email: '', cpf: '', telefone: '',
+  nome: '', nascimento: '', email: '', cpf: '', telefone: '', endereco: '', cep: '', cidade: '', numero: '', complemento: '', bairro: '',
   rNome: '', rNascimento: '', rEmail: '', rParentesco: '', rTelefone: '', rCpf: '',
   responsaveisExtras: [],
   possuiPlano: false, plano: '', carteirinha: '', validade: '', ativo: true,
@@ -76,6 +84,11 @@ export class PacienteForm {
     else if (!cpfValido(f.cpf)) e.cpf = 'CPF inválido.';
     if (!f.telefone.trim()) e.telefone = 'Informe o telefone.';
     else if (!telefoneValido(f.telefone)) e.telefone = 'Telefone inválido.';
+    if (erroEnderecoPaciente(f.cep, f.numero, f.bairro)) {
+      if (f.cep.replace(/\D/g, '').length !== 8) e.cep = 'Informe um CEP válido.';
+      if (!f.numero.trim()) e.numero = 'Informe o número do endereço.';
+      if (!f.bairro.trim()) e.bairro = 'Informe o bairro.';
+    }
 
     const possuiResponsavel = !!f.rNome.trim() || f.responsaveisExtras.some((r) => r.nome.trim());
     if (this.menorDeIdade() && !possuiResponsavel) e.rNome = 'Paciente menor de idade: informe pelo menos um responsável.';
@@ -111,6 +124,7 @@ export class PacienteForm {
       const principal = todosResponsaveis[0] ?? p.responsavel;
       this.f.set({
         nome: p.nome, nascimento: p.nascimento, email: p.email === '—' ? '' : p.email, cpf: p.cpf, telefone: p.telefone === '—' ? '' : p.telefone,
+        endereco: p.endereco ?? '', cep: p.cep ?? '', cidade: p.cidade ?? '', numero: p.numero ?? '', complemento: p.complemento ?? '', bairro: p.bairro ?? '',
         rId: principal.id, rNome: principal.nome === '—' ? '' : principal.nome, rNascimento: principal.nascimento ?? '',
         rEmail: principal.email ?? '', rParentesco: principal.relacao === '—' ? '' : principal.relacao,
         rTelefone: principal.telefone === '—' ? '' : principal.telefone, rCpf: principal.cpf ?? '',
@@ -132,6 +146,10 @@ export class PacienteForm {
     let valor = (evento.target as HTMLInputElement).value;
     if (campo === 'cpf' || campo === 'rCpf') valor = formatarCpf(valor);
     if (campo === 'telefone' || campo === 'rTelefone') valor = formatarTelefone(valor);
+    if (campo === 'cep') {
+      const digitos = valor.replace(/\D/g, '').slice(0, 8);
+      valor = digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos;
+    }
     this.f.update((atual) => ({ ...atual, [campo]: valor }));
     // O campo mostra a máscara mesmo se o navegador tentar guardar o texto digitado.
     (evento.target as HTMLInputElement).value = valor;
@@ -181,6 +199,7 @@ export class PacienteForm {
     const paciente = await this.clinica.salvarPaciente(
       {
         nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
+        endereco: f.endereco.trim(), cep: f.cep, cidade: f.cidade.trim(), numero: f.numero.trim(), complemento: f.complemento.trim(), bairro: f.bairro.trim(),
         responsavel: { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },
         responsaveis: [
           { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },

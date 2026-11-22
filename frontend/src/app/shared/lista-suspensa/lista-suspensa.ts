@@ -6,6 +6,7 @@ import { normalizar } from '../util';
 export interface OpcaoLista {
   valor: string;
   rotulo: string;
+  desabilitada?: boolean;
 }
 
 /**
@@ -34,7 +35,7 @@ export interface OpcaoLista {
           }
           <div class="lista-itens">
             @for (o of filtradas(); track o.valor) {
-              <button type="button" role="option" class="lista-opcao" [attr.aria-selected]="o.valor === valor()" (click)="escolher(o)">{{ o.rotulo }}</button>
+              <button type="button" role="option" class="lista-opcao" [disabled]="o.desabilitada" [attr.aria-disabled]="o.desabilitada || null" [attr.aria-selected]="o.valor === valor()" (click)="escolher(o)">{{ o.rotulo }}</button>
             } @empty {
               <p class="lista-vazia">Nada encontrado.</p>
             }
@@ -64,6 +65,7 @@ export class ListaSuspensa {
   });
 
   protected escolher(opcao: OpcaoLista): void {
+    if (opcao.desabilitada) return;
     this.valor.set(opcao.valor);
     this.aberta.set(false);
     this.busca.set('');

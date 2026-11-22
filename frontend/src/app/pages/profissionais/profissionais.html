@@ -37,7 +37,7 @@
     @for (item of lista(); track item.p.id) {
       <div class="tabela-linha tabela-linha-prof" [class.tabela-linha-prof-adm]="gerencia()">
         <div class="pac-nome">
-          <app-avatar [nome]="item.p.nome" />
+          <app-avatar [nome]="item.p.nome" [neutro]="true" />
           <div>
             <p class="linha-nome">{{ item.p.nome }}</p>
             <p class="linha-tipo">ID: {{ item.p.codigo }} - {{ item.idade }} anos</p>
@@ -46,7 +46,7 @@
         <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
         <span class="pac-texto">{{ item.p.telefone }}</span>
         <span class="pac-texto pac-texto-forte">{{ item.p.registro }}</span>
-        <span class="centro"><span class="status" [class.status-acompanhamento]="item.p.ativo" [class.status-inativo]="!item.p.ativo">{{ item.p.ativo ? 'Ativo' : 'Inativo' }}</span></span>
+        <span class="centro"><span class="status" [class.status-acompanhamento]="item.p.ativo" [class.status-aguardando]="!item.p.ativo && !gerencia()" [class.status-inativo]="!item.p.ativo && gerencia()">{{ item.p.ativo ? 'Ativo' : 'Inativo' }}</span></span>
         @if (gerencia()) {
           <span class="acoes-linha centro">
             <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>

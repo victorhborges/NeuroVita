@@ -25,25 +25,25 @@
           @for (d of dias(); track d.iso) {
             <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2">{{ d.nome }}<br />{{ d.texto }}</div>
           }
-          @for (h of horarios(); track h; let i = $index) {
-            <div class="ag-hora" [style.grid-row]="i + 2">{{ h }}</div>
-            @for (c of colunas; track c) {
-              <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2"></div>
+          @for (linha of grade(); track $index; let i = $index) {
+            <div class="ag-hora" [style.grid-row]="i + 2">{{ horas()[i] }}</div>
+            @for (celula of linha; track $index; let c = $index) {
+              <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2" role="gridcell">
+                @for (e of celula; track e.id) {
+                  <button
+                    type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
+                    [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
+                    [attr.title]="e.nome + ' · ' + e.inicio + ' às ' + e.fim + ' · ' + e.atendimento + ' · ' + e.profNome"
+                    (click)="selecionar(e.id)"
+                  >
+                    <strong>{{ e.nome }}</strong>
+                    <span>{{ e.inicio }} - {{ e.fim }}</span>
+                    <span>{{ e.tipo }} · {{ e.atendimento }}</span>
+                    <small>{{ e.profNome }}</small>
+                  </button>
+                }
+              </div>
             }
-          }
-          @for (e of eventos(); track e.id) {
-            <button
-              type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
-              [style.grid-column]="e.dia + 2" [style.grid-row]="e.linha + ' / span ' + e.trechos"
-              [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
-              (click)="selecionar(e.id)"
-            >
-              <strong>{{ e.nome }}</strong>
-              <span>{{ e.tipo }}</span>
-              @if (e.trechos > 1) {
-                <small>{{ e.profNome }}</small>
-              }
-            </button>
           }
         </div>
       </div>
@@ -140,37 +140,85 @@
 
       <div class="edicao-grade">
         <label class="edicao-campo">Data
-          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="editData.set($any($event.target).value)" /></span>
+          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="alterarDataEdicao($any($event.target).value)" /></span>
         </label>
         <label class="edicao-campo">Horário
           <span class="edicao-entrada"><app-icone nome="relogio" />
-            <select (change)="editHora.set($any($event.target).value)">
-              @for (h of opcoesHorario(); track h) { <option [value]="h" [selected]="h === editHora()">{{ h }}</option> }
+            <select class="edicao-controle" [value]="editHora()" aria-label="Horário da consulta" [disabled]="carregandoDisponibilidades() || falhaDisponibilidades() || !consultasCarregadas()" (change)="alterarHorarioEdicao($any($event.target).value)">
+              @if (carregandoDisponibilidades()) { <option value="" disabled>Carregando horários…</option> }
+              @else if (falhaDisponibilidades()) { <option value="" disabled>Disponibilidade indisponível</option> }
+              @else if (falhaConsulta()) { <option value="" disabled>Agenda indisponível</option> }
+              @else if (!opcoesHorario().length) { <option value="" disabled>Sem horários disponíveis</option> }
+              @for (h of opcoesHorario(); track h) { <option [value]="h">{{ h }}</option> }
             </select>
           </span>
         </label>
         <label class="edicao-campo">Profissional
           <span class="edicao-entrada"><app-icone nome="usuario" />
-            <select (change)="editProf.set($any($event.target).value)">
-              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor" [selected]="p.valor === editProf()">{{ p.rotulo }}</option> }
+            <select class="edicao-controle" [value]="editProf()" aria-label="Profissional da consulta" (change)="alterarProfissionalEdicao($any($event.target).value)">
+              @if (!opcoesProfissionais().length) { <option value="" disabled>Nenhum profissional disponível</option> }
+              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor">{{ p.rotulo }}</option> }
             </select>
           </span>
         </label>
         <label class="edicao-campo">Sala
           <span class="edicao-entrada"><app-icone nome="local" />
-            <select (change)="editSala.set($any($event.target).value)">
-              @for (sala of salas; track sala) { <option [value]="sala" [selected]="sala === editSala()">{{ sala }}</option> }
-              @if (!salas.includes(editSala())) { <option [value]="editSala()" selected>{{ editSala() }}</option> }
+            <select class="edicao-controle" [value]="editSala()" aria-label="Sala da consulta" [disabled]="!consultasCarregadas() || carregandoDisponibilidades() || falhaDisponibilidades()" (change)="alterarSalaEdicao($any($event.target).value)">
+              @if (!opcoesSala().length) { <option value="" disabled>Nenhuma sala disponível</option> }
+              @for (sala of opcoesSala(); track sala) { <option [value]="sala">{{ sala }}</option> }
             </select>
           </span>
         </label>
       </div>
 
-      <button type="button" class="edicao-botao edicao-confirmar" (click)="confirmarConsulta()"><app-icone nome="check-grande" /> Confirmar consulta</button>
-      <button type="button" class="edicao-botao edicao-remarcar" (click)="remarcarConsulta()"><app-icone nome="calendario" /> Remarcar consulta</button>
-      <button type="button" class="edicao-botao edicao-cancelar" (click)="cancelando.set(true)"><app-icone nome="lixeira" /> Cancelar consulta</button>
+      <p class="edicao-sub edicao-paciente-atual">Paciente: {{ s.nome }}</p>
+
+      @if (falhaConsulta() || falhaDisponibilidades()) {
+        <div class="edicao-alerta" role="alert">
+          <p>Não foi possível consultar a agenda ou a disponibilidade. Atualize os dados antes de alterar a consulta.</p>
+          <button type="button" class="link-botao" (click)="tentarNovamenteCarregarAgenda()">Tentar novamente</button>
+        </div>
+      }
+
+      <button type="button" class="edicao-botao edicao-confirmar" [disabled]="executandoAcao()" (click)="confirmarConsulta()"><app-icone nome="check-grande" /> Confirmar consulta</button>
+      <button type="button" class="edicao-botao edicao-remarcar" [disabled]="executandoAcao() || !consultasCarregadas() || carregandoDisponibilidades() || falhaDisponibilidades() || !opcoesHorario().includes(editHora()) || !opcoesSala().includes(editSala())" (click)="remarcarConsulta()"><app-icone nome="calendario" /> Remarcar consulta</button>
+      <button type="button" class="edicao-botao edicao-cancelar" [disabled]="executandoAcao()" (click)="cancelando.set(true)"><app-icone nome="lixeira" /> Cancelar consulta</button>
     </div>
   </div>
 }
 
-<app-dialogo [aberto]="cancelando()" titulo="Cancelar esta consulta?" textoCancelar="Voltar" textoConfirmar="Cancelar consulta" (cancelar)="cancelando.set(false)" (confirmar)="confirmarCancelamento()" />
+<app-dialogo [aberto]="confirmando()" titulo="Confirmar esta consulta?" textoCancelar="Voltar" textoConfirmar="Confirmar consulta" (cancelar)="confirmando.set(false)" (confirmar)="executarConfirmacao()">
+  @if (escolhido(); as s) {
+    <p class="dialogo-texto">{{ s.nome }} · {{ s.dataBR }} às {{ s.a.inicio }} · {{ s.profissional }}</p>
+  }
+</app-dialogo>
+
+<app-dialogo [aberto]="confirmandoRemarcacao()" titulo="Revisar remarcação" textoCancelar="Voltar à edição" textoConfirmar="Salvar remarcação" (cancelar)="confirmandoRemarcacao.set(false); remarcacaoPendente.set(null)" (confirmar)="executarRemarcacao()">
+  @if (escolhido(); as s) {
+    @if (remarcacaoPendente(); as nova) {
+      <div class="remarcacao-resumo">
+        <p><strong>Paciente</strong><span>{{ s.nome }}</span></p>
+        <div class="remarcacao-colunas">
+          <section>
+            <h3>Consulta atual</h3>
+            <p>{{ s.dataBR }} às {{ s.a.inicio }}</p>
+            <p>{{ s.profissional }}</p>
+            <p>{{ s.a.local }}</p>
+          </section>
+          <section>
+            <h3>Nova consulta</h3>
+            <p>{{ dataDaRemarcacao(nova.dataHora) }}</p>
+            <p>{{ nomeProfissional(nova.profissionalId) }}</p>
+            <p>{{ nova.local }}</p>
+          </section>
+        </div>
+      </div>
+    }
+  }
+</app-dialogo>
+
+<app-dialogo [aberto]="cancelando()" titulo="Cancelar esta consulta?" textoCancelar="Voltar" textoConfirmar="Cancelar consulta" (cancelar)="cancelando.set(false)" (confirmar)="confirmarCancelamento()">
+  @if (escolhido(); as s) {
+    <p class="dialogo-texto">{{ s.nome }} · {{ s.dataBR }} às {{ s.a.inicio }} · {{ s.profissional }}. O registro será mantido no histórico.</p>
+  }
+</app-dialogo>

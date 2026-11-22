@@ -22,14 +22,13 @@
   </nav>
 
   <div class="menu-rodape">
-    <!-- TODO: ligar às telas de Configurações e Ajuda. -->
-    <button type="button" class="menu-item menu-item-rodape">
+    <a class="menu-item menu-item-rodape" [routerLink]="'/' + perfil() + '/configuracoes'" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
       <app-icone nome="engrenagem" />
       <span>Configurações</span>
-    </button>
-    <button type="button" class="menu-item menu-item-rodape">
+    </a>
+    <a class="menu-item menu-item-rodape" [routerLink]="'/' + perfil() + '/ajuda'" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
       <app-icone nome="ajuda" />
       <span>Ajuda</span>
-    </button>
+    </a>
   </div>
 </aside>

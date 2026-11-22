@@ -60,7 +60,16 @@ export class SecaoPaciente {
       .filter((d) => !this.dataFiltro() || d.dataSessao === this.dataFiltro())
       .filter((d) => !this.tipoFiltro() || d.tipoAtendimento === this.tipoFiltro())
       .filter((d) => !termo || normalizar(d.titulo).includes(termo))
-      .map((d) => ({ doc: d, dataBR: formatarData(d.dataSessao) }));
+      .map((d) => {
+        const arquivo = d.arquivo ?? d.anexos[0];
+        return {
+          doc: d,
+          arquivo,
+          imagem: !!arquivo && /\.(png|jpe?g|gif|webp)$/i.test(arquivo.nome),
+          miniatura: (d.conteudo ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180),
+          dataBR: formatarData(d.dataSessao),
+        };
+      });
   });
 
   protected readonly dados = computed(() => {

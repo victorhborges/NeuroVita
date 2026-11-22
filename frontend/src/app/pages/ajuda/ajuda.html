@@ -1,0 +1,63 @@
+<div class="pg">
+  <app-titulo-pagina titulo="Ajuda" subtitulo="Encontre respostas, tire suas dúvidas e aprenda a usar o NeuroVita" />
+
+  <section class="ajuda-banner ajuda-banner-busca" aria-label="Pesquisar na ajuda">
+    <div class="ajuda-banner-texto">
+      <h2 class="ajuda-banner-titulo">Como podemos ajudar?</h2>
+      <p class="ajuda-banner-sub">Pesquise por um tópico ou explore nossas opções abaixo.</p>
+    </div>
+    <label class="ajuda-busca">
+      <input type="search" placeholder="Pesquisar na ajuda..." autocomplete="off" aria-label="Pesquisar na ajuda" [value]="busca()" (input)="busca.set($any($event.target).value)" />
+      <app-icone nome="busca" />
+    </label>
+    <app-imagem-ajuda class="ajuda-banner-figura" src="img/ajuda/assistente.png" alt="Assistente do NeuroVita" [ocultarSeFalhar]="true" />
+  </section>
+
+  <section class="cartao ajuda-painel" aria-label="Tópicos de ajuda">
+    <div class="ajuda-topicos">
+      @for (t of topicos(); track t.id) {
+        <a class="ajuda-topico" [routerLink]="[raiz(), 'ajuda', t.id]">
+          <app-icone class="ajuda-topico-icone" [nome]="t.cartao.icone" />
+          <span class="ajuda-topico-texto">
+            <span class="ajuda-topico-titulo">{{ t.cartao.titulo }}</span>
+            <span class="ajuda-topico-desc">{{ t.cartao.descricao }}</span>
+          </span>
+          <app-icone nome="seta-direita" />
+        </a>
+      } @empty {
+        <p class="ajuda-vazio">Nenhum tópico encontrado para "{{ busca() }}".</p>
+      }
+    </div>
+
+    <div class="ajuda-contato">
+      <section class="ajuda-contato-cartao" aria-labelledby="aj-fale">
+        <div class="ajuda-contato-topo">
+          <app-icone nome="telefone" />
+          <div>
+            <h3 id="aj-fale" class="ajuda-topico-titulo">Fale conosco</h3>
+            <p class="ajuda-topico-desc">Ainda com dúvidas? Nossa equipe está pronta para ajudar!</p>
+          </div>
+        </div>
+        <a class="botao-escuro ajuda-botao" [routerLink]="[raiz(), 'ajuda', 'fale-conosco']">
+          <app-icone nome="email" />
+          <span>Enviar mensagem</span>
+          <app-icone nome="seta-direita" />
+        </a>
+      </section>
+      <section class="ajuda-contato-cartao" aria-labelledby="aj-suporte">
+        <div class="ajuda-contato-topo">
+          <app-icone nome="telefone" />
+          <div>
+            <h3 id="aj-suporte" class="ajuda-topico-titulo">Suporte</h3>
+            <p class="ajuda-topico-desc">Atendimento de segunda a sexta, das 08h às 18h.</p>
+          </div>
+        </div>
+        <a class="botao-escuro ajuda-botao" href="tel:+551140028922">
+          <app-icone nome="telefone" />
+          <span>(11) 4002-8922</span>
+          <app-icone nome="seta-direita" />
+        </a>
+      </section>
+    </div>
+  </section>
+</div>

@@ -1,18 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../shared/auth';
 import { AuthCard } from '../../shared/auth-card/auth-card';
 import { CampoSenha } from '../../shared/campo-senha/campo-senha';
+import { PreferenciasGlobaisService } from '../../shared/clinica/preferencias-globais.service';
 
 @Component({
   selector: 'app-login',
   imports: [AuthCard, CampoSenha, RouterLink],
   templateUrl: './login.html',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(Auth);
+  private readonly preferencias = inject(PreferenciasGlobaisService);
   private readonly router = inject(Router);
 
   readonly sucesso = input<string>();
@@ -27,6 +29,17 @@ export class Login {
   protected readonly senha = signal('');
   protected readonly erro = signal('');
   protected readonly carregando = signal(false);
+
+  ngOnInit(): void {
+    const rota = this.auth.rotaInicialAutenticada();
+    if (!rota) return;
+
+    this.carregando.set(true);
+    this.preferencias.carregar().subscribe({
+      next: () => this.router.navigateByUrl(rota),
+      error: () => this.router.navigateByUrl(rota),
+    });
+  }
 
   protected aoDigitarEmail(evento: Event): void {
     this.email.set((evento.target as HTMLInputElement).value);
@@ -66,11 +79,15 @@ export class Login {
           return;
         }
 
-        this.router.navigateByUrl(
-          resultado.primeiroAcesso
-            ? '/primeiro-acesso'
-            : resultado.rota,
-        );
+        // Carrega as preferências da sessão antes de montar o painel para evitar
+        // uma renderização inicial com tema/formato diferentes dos salvos.
+        this.preferencias.carregar().subscribe(() => {
+          this.router.navigateByUrl(
+            resultado.primeiroAcesso
+              ? '/primeiro-acesso'
+              : resultado.rota,
+          );
+        });
       },
 
       error: (erro: HttpErrorResponse) => {

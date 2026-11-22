@@ -14,27 +14,52 @@
       <div class="form-pac-grade">
         <section class="form-pac-bloco" aria-labelledby="t-dados">
           <h2 id="t-dados" class="form-pac-titulo"><app-icone nome="usuario" /> Dados Pessoais</h2>
-          <label class="campo-form" [class.campo-form-erro]="mostrarErro('nome')">
-            <input type="text" placeholder="Nome completo" autocomplete="off" [value]="f().nome" (input)="digitar('nome', $event)" [attr.aria-invalid]="!!mostrarErro('nome')" />
-            @if (mostrarErro('nome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
-          </label>
-          <label class="campo-form" [class.campo-form-erro]="mostrarErro('nascimento')">
-            <input type="date" [max]="hoje" aria-label="Data de nascimento" [value]="f().nascimento" (input)="digitar('nascimento', $event)" [class.campo-vazio]="!f().nascimento" />
-            @if (!f().nascimento) { <span class="campo-falso">Data de nascimento</span> }
-            @if (mostrarErro('nascimento'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
-          </label>
-          <label class="campo-form" [class.campo-form-erro]="mostrarErro('email')">
-            <input type="email" placeholder="E-mail" autocomplete="off" [value]="f().email" (input)="digitar('email', $event)" />
-            @if (mostrarErro('email'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
-          </label>
-          <label class="campo-form" [class.campo-form-erro]="mostrarErro('cpf')">
-            <input type="text" inputmode="numeric" placeholder="CPF" autocomplete="off" [value]="f().cpf" (input)="digitar('cpf', $event)" />
-            @if (mostrarErro('cpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
-          </label>
-          <label class="campo-form" [class.campo-form-erro]="mostrarErro('telefone')">
-            <input type="tel" inputmode="tel" placeholder="Telefone" autocomplete="off" [value]="f().telefone" (input)="digitar('telefone', $event)" />
-            @if (mostrarErro('telefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
-          </label>
+          <div class="form-pac-duas">
+            <label class="campo-form campo-duplo" [class.campo-form-erro]="mostrarErro('nome')">
+              <span class="campo-rotulo">Nome completo *</span>
+              <input type="text" placeholder="Digite o nome completo" autocomplete="off" [value]="f().nome" (input)="digitar('nome', $event)" [attr.aria-invalid]="!!mostrarErro('nome')" />
+              @if (mostrarErro('nome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('nascimento')">
+              <span class="campo-rotulo">Data de nascimento *</span>
+              <input type="date" [max]="hoje" aria-label="Data de nascimento" [value]="f().nascimento" (input)="digitar('nascimento', $event)" [class.campo-vazio]="!f().nascimento" />
+              @if (!f().nascimento) { <span class="campo-falso">Data de nascimento</span> }
+              @if (mostrarErro('nascimento'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('cpf')">
+              <span class="campo-rotulo">CPF *</span><input type="text" inputmode="numeric" placeholder="Digite o CPF" autocomplete="off" [value]="f().cpf" (input)="digitar('cpf', $event)" />
+              @if (mostrarErro('cpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('cep')">
+              <span class="campo-rotulo">CEP *</span><input type="text" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" [value]="f().cep" (input)="digitar('cep', $event)" />
+              @if (mostrarErro('cep'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form">
+              <span class="campo-rotulo">Cidade</span><input type="text" autocomplete="address-level2" placeholder="Digite a cidade" [value]="f().cidade" (input)="digitar('cidade', $event)" />
+            </label>
+            <label class="campo-form campo-duplo">
+              <span class="campo-rotulo">Endereço</span><input type="text" autocomplete="street-address" placeholder="Digite o endereço" [value]="f().endereco" (input)="digitar('endereco', $event)" />
+            </label>
+            <label class="campo-form" [class.campo-form-erro]="mostrarErro('numero')">
+              <span class="campo-rotulo">Número *</span><input type="text" autocomplete="address-line2" placeholder="Número" [value]="f().numero" (input)="digitar('numero', $event)" />
+              @if (mostrarErro('numero'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form">
+              <span class="campo-rotulo">Complemento</span><input type="text" placeholder="Complemento" [value]="f().complemento" (input)="digitar('complemento', $event)" />
+            </label>
+            <label class="campo-form campo-duplo" [class.campo-form-erro]="mostrarErro('bairro')">
+              <span class="campo-rotulo">Bairro *</span><input type="text" autocomplete="address-level3" placeholder="Digite o bairro" [value]="f().bairro" (input)="digitar('bairro', $event)" />
+              @if (mostrarErro('bairro'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form campo-duplo" [class.campo-form-erro]="mostrarErro('email')">
+              <span class="campo-rotulo">E-mail</span><input type="email" placeholder="Digite o e-mail" autocomplete="email" [value]="f().email" (input)="digitar('email', $event)" />
+              @if (mostrarErro('email'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+            <label class="campo-form campo-duplo" [class.campo-form-erro]="mostrarErro('telefone')">
+              <span class="campo-rotulo">Telefone *</span><input type="tel" inputmode="tel" placeholder="(00) 00000-0000" autocomplete="tel" [value]="f().telefone" (input)="digitar('telefone', $event)" />
+              @if (mostrarErro('telefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+            </label>
+          </div>
         </section>
 
         <section class="form-pac-bloco" aria-labelledby="t-plano">
@@ -45,22 +70,25 @@
             <label class="radio"><input type="radio" name="plano" [checked]="!f().possuiPlano" (change)="definir('possuiPlano', false)" /><span class="radio-bolinha"></span> Não</label>
           </fieldset>
           <label class="campo-form" [class.campo-form-erro]="mostrarErro('plano')">
-            <input type="text" placeholder="Plano de saúde" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().plano" (input)="digitar('plano', $event)" />
+            <span class="campo-rotulo">Plano de saúde</span><input type="text" placeholder="Digite o plano de saúde" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().plano" (input)="digitar('plano', $event)" />
             @if (mostrarErro('plano'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
           </label>
           <label class="campo-form" [class.campo-form-erro]="mostrarErro('carteirinha')">
-            <input type="text" placeholder="Número de carteirinha" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().carteirinha" (input)="digitar('carteirinha', $event)" />
+            <span class="campo-rotulo">Número da carteirinha</span><input type="text" placeholder="Digite o número da carteirinha" autocomplete="off" [disabled]="!f().possuiPlano" [value]="f().carteirinha" (input)="digitar('carteirinha', $event)" />
             @if (mostrarErro('carteirinha'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
           </label>
           <label class="campo-form">
+            <span class="campo-rotulo">Validade do plano</span>
             <input type="date" aria-label="Validade" [disabled]="!f().possuiPlano" [value]="f().validade" (input)="digitar('validade', $event)" [class.campo-vazio]="!f().validade" [class.campo-form-erro]="mostrarErro('validade')" />
             @if (!f().validade) { <span class="campo-falso">Validade</span> }
             @if (mostrarErro('validade'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
           </label>
           <fieldset class="radios radios-status">
             <legend>Status do paciente</legend>
-            <label class="radio"><input type="radio" name="status" [checked]="f().ativo" (change)="definir('ativo', true)" /><span class="radio-bolinha"></span> Ativo</label>
-            <label class="radio"><input type="radio" name="status" [checked]="!f().ativo" (change)="definir('ativo', false)" /><span class="radio-bolinha"></span> Inativo</label>
+            <span class="status-caixa">
+              <label class="radio"><input type="radio" name="status" [checked]="f().ativo" (change)="definir('ativo', true)" /><span class="radio-bolinha"></span> Ativo</label>
+              <label class="radio"><input type="radio" name="status" [checked]="!f().ativo" (change)="definir('ativo', false)" /><span class="radio-bolinha"></span> Inativo</label>
+            </span>
           </fieldset>
         </section>
 
@@ -71,27 +99,28 @@
           </h2>
           <div class="form-pac-duas">
             <label class="campo-form" [class.campo-form-erro]="mostrarErro('rNome')">
-              <input type="text" placeholder="Nome completo" autocomplete="off" [value]="f().rNome" (input)="digitar('rNome', $event)" />
+              <span class="campo-rotulo">Nome completo do responsável</span><input type="text" placeholder="Digite o nome completo" autocomplete="off" [value]="f().rNome" (input)="digitar('rNome', $event)" />
               @if (mostrarErro('rNome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
             <label class="campo-form" [class.campo-form-erro]="mostrarErro('rParentesco')">
-              <input type="text" placeholder="Grau de Parentesco" autocomplete="off" [value]="f().rParentesco" (input)="digitar('rParentesco', $event)" />
+              <span class="campo-rotulo">Grau de parentesco</span><input type="text" placeholder="Ex.: mãe, pai ou tutor" autocomplete="off" [value]="f().rParentesco" (input)="digitar('rParentesco', $event)" />
               @if (mostrarErro('rParentesco'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
             <label class="campo-form">
+              <span class="campo-rotulo">Data de nascimento do responsável</span>
               <input type="date" aria-label="Data de nascimento do responsável" [max]="hoje" [value]="f().rNascimento" (input)="digitar('rNascimento', $event)" [class.campo-vazio]="!f().rNascimento" />
               @if (!f().rNascimento) { <span class="campo-falso">Data de nascimento</span> }
             </label>
             <label class="campo-form" [class.campo-form-erro]="mostrarErro('rTelefone')">
-              <input type="tel" inputmode="tel" placeholder="Telefone" autocomplete="off" [value]="f().rTelefone" (input)="digitar('rTelefone', $event)" />
+              <span class="campo-rotulo">Telefone do responsável</span><input type="tel" inputmode="tel" placeholder="(00) 00000-0000" autocomplete="off" [value]="f().rTelefone" (input)="digitar('rTelefone', $event)" />
               @if (mostrarErro('rTelefone'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
             <label class="campo-form" [class.campo-form-erro]="mostrarErro('rEmail')">
-              <input type="email" placeholder="E-mail" autocomplete="off" [value]="f().rEmail" (input)="digitar('rEmail', $event)" />
+              <span class="campo-rotulo">E-mail do responsável</span><input type="email" placeholder="Digite o e-mail" autocomplete="off" [value]="f().rEmail" (input)="digitar('rEmail', $event)" />
               @if (mostrarErro('rEmail'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
             <label class="campo-form" [class.campo-form-erro]="mostrarErro('rCpf')">
-              <input type="text" inputmode="numeric" placeholder="CPF" autocomplete="off" [value]="f().rCpf" (input)="digitar('rCpf', $event)" />
+              <span class="campo-rotulo">CPF do responsável</span><input type="text" inputmode="numeric" placeholder="Digite o CPF" autocomplete="off" [value]="f().rCpf" (input)="digitar('rCpf', $event)" />
               @if (mostrarErro('rCpf'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
             </label>
           </div>

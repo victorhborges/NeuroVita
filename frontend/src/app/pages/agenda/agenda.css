@@ -1,0 +1,90 @@
+/* Agenda: proporções e hierarquia ajustadas à referência FBR, p. 181. */
+:host { display: block; min-width: 0; }
+
+.ag-grade-geral {
+  grid-template-columns: minmax(0, 1fr) 16rem;
+  gap: 1rem;
+}
+
+.ag-principal { padding: 0.5rem 0.375rem 0 0.75rem; }
+.ag-barra { flex-wrap: nowrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.ag-hoje, .ag-faixa, .ag-setas {
+  min-height: 2.75rem;
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+}
+.ag-hoje, .ag-faixa { padding-inline: 0.9rem; }
+.ag-faixa { flex-shrink: 0; white-space: nowrap; }
+.ag-setas { padding: 0.3rem 0.45rem; }
+.ag-setas button { min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; }
+.ag-busca { width: min(20rem, 28vw); }
+
+.ag-rolagem {
+  max-height: calc(100vh - 10.5625rem - 1px);
+  margin-inline: -0.75rem;
+  border-radius: 0.65rem;
+  scrollbar-width: thin;
+}
+.ag-grade {
+  grid-template-columns: 4rem repeat(6, minmax(6.5rem, 1fr));
+  grid-template-rows: 3.5rem repeat(21, minmax(5.25rem, auto));
+  min-width: 47rem;
+}
+.ag-canto, .ag-dia { font-size: 0.85rem; }
+.ag-hora { font-size: 0.85rem; }
+.ag-celula { padding: 3px; }
+.ag-evento { padding: 0.2rem 0.45rem; font-size: 0.75rem; }
+.ag-evento small { font-size: 0.68rem; }
+
+.ag-lateral { gap: 0.7rem; }
+.ag-caixa { padding: 0.95rem 1rem; border-radius: 0.8rem; }
+.ag-caixa-titulo { font-size: 1.05rem; }
+.ag-caixa-sub, .ag-legenda, .ag-info { font-size: 0.9rem; }
+.ag-paciente app-avatar { --avatar: 3.5rem; }
+.ag-contato { font-size: 0.82rem; }
+.ag-info-quando strong { font-size: 0.9rem; }
+.ag-info-quando small { font-size: 0.78rem; }
+
+@media (max-width: 1100px) {
+  .ag-grade-geral { grid-template-columns: minmax(0, 1fr); }
+  .ag-rolagem { max-height: 40rem; }
+  .ag-lateral { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ag-lateral > :last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 800px) {
+  .ag-barra {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .ag-hoje, .ag-setas, .ag-faixa { min-width: 0; padding-inline: 0.55rem; }
+  .ag-faixa { justify-content: center; white-space: nowrap; font-size: 0.8rem; }
+  .ag-busca { grid-column: 1 / -1; width: 100%; margin: 0; }
+  .ag-lateral { grid-template-columns: minmax(0, 1fr); }
+  .ag-lateral > :last-child { grid-column: auto; }
+  /* A grade mantém rolagem horizontal; reduzir linhas internas evita sobreposição
+     do texto em compromissos dentro de colunas estreitas. Os detalhes completos
+     continuam disponíveis no title e no painel do compromisso selecionado. */
+  .ag-evento {
+    min-height: 0;
+    max-height: 100%;
+    gap: 0.05rem;
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
+    line-height: 1.1;
+  }
+  .ag-evento span:nth-of-type(2),
+  .ag-evento small { display: none; }
+  .ag-evento strong,
+  .ag-evento span:first-of-type { line-height: 1.1; }
+}
+
+@media (max-width: 420px) {
+  .ag-barra { grid-template-columns: auto auto minmax(0, 1fr); }
+  .ag-hoje { font-size: 0.8rem; }
+  .ag-faixa { gap: 0.25rem; padding-inline: 0.35rem; font-size: 0.72rem; }
+  .ag-setas { gap: 0; }
+  .ag-setas button { min-width: 1.65rem; min-height: 1.8rem; }
+}

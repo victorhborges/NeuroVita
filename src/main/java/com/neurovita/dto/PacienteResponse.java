@@ -18,6 +18,9 @@ public class PacienteResponse {
     private String endereco;
     private String cep;
     private String cidade;
+    private String numero;
+    private String complemento;
+    private String bairro;
     private Boolean ativo;
 
     private List<VinculoResponsavelResponse> responsaveis;
@@ -48,6 +51,9 @@ public class PacienteResponse {
         this.endereco = paciente.getEndereco();
         this.cep = paciente.getCep();
         this.cidade = paciente.getCidade();
+        this.numero = paciente.getNumero();
+        this.complemento = paciente.getComplemento();
+        this.bairro = paciente.getBairro();
         this.ativo = paciente.getAtivo();
 
         this.responsaveis = vinculos != null ? vinculos.stream()
@@ -91,6 +97,9 @@ public class PacienteResponse {
     public String getEndereco() { return endereco; }
     public String getCep() { return cep; }
     public String getCidade() { return cidade; }
+    public String getNumero() { return numero; }
+    public String getComplemento() { return complemento; }
+    public String getBairro() { return bairro; }
     public Boolean getAtivo() { return ativo; }
 
     public List<VinculoResponsavelResponse> getResponsaveis() {

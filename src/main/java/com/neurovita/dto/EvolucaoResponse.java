@@ -2,6 +2,7 @@ package com.neurovita.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import com.neurovita.model.Evolucao;
 
@@ -28,16 +29,38 @@ public record EvolucaoResponse(
         String motivoRetificacao) {
 
     public EvolucaoResponse(Evolucao evolucao) {
-        this(evolucao.getId(), evolucao.getPacienteId(), evolucao.getProfissionalId(),
-                evolucao.getConsultaId(), evolucao.getProntuarioId(), evolucao.getTipoEvolucao(),
-                evolucao.getAreaAtendimento(), evolucao.getTitulo(), evolucao.getDataAtendimento(),
-                evolucao.getConteudo(), copiar(evolucao.getObjetivosTrabalhados()),
-                evolucao.getObservacoes(), evolucao.getConduta(), copiar(evolucao.getEncaminhamentos()),
-                evolucao.getStatus(), evolucao.getCriadoEm(), evolucao.getAtualizadoEm(),
-                evolucao.getVersao(), evolucao.getRetificadaPorId(), evolucao.getMotivoRetificacao());
+        this(
+                evolucao.getId(),
+                evolucao.getPacienteId(),
+                evolucao.getProfissionalId(),
+                evolucao.getConsultaId(),
+                evolucao.getProntuarioId(),
+                evolucao.getTipoEvolucao(),
+                evolucao.getAreaAtendimento(),
+                evolucao.getTitulo(),
+                evolucao.getDataAtendimento(),
+                evolucao.getConteudo(),
+                copiar(evolucao.getObjetivosTrabalhados()),
+                evolucao.getObservacoes(),
+                evolucao.getConduta(),
+                copiar(evolucao.getEncaminhamentos()),
+                evolucao.getStatus(),
+                evolucao.getCriadoEm(),
+                evolucao.getAtualizadoEm(),
+                evolucao.getVersao(),
+                evolucao.getRetificadaPorId(),
+                evolucao.getMotivoRetificacao()
+        );
     }
 
     private static List<String> copiar(List<String> itens) {
-        return itens == null ? List.of() : List.copyOf(itens);
+
+        if (itens == null || itens.isEmpty()) {
+            return List.of();
+        }
+
+        return itens.stream()
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
