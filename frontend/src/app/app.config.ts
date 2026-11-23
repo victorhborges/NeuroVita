@@ -1,16 +1,16 @@
 import {
-  ApplicationConfig,
-  provideBrowserGlobalErrorListeners,
-  provideAppInitializer,
-  inject,
+    ApplicationConfig,
+    provideBrowserGlobalErrorListeners,
+    provideAppInitializer,
+    inject,
 } from '@angular/core';
 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import {
-  provideRouter,
-  withComponentInputBinding,
-  withRouterConfig,
+    provideRouter,
+    withComponentInputBinding,
+    withRouterConfig,
 } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -18,21 +18,21 @@ import { authInterceptor } from './shared/auth.interceptor';
 import { PreferenciasGlobaisService } from './shared/clinica/preferencias-globais.service';
 
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideBrowserGlobalErrorListeners(),
+    providers: [
+        provideBrowserGlobalErrorListeners(),
 
-    provideAppInitializer(() => inject(PreferenciasGlobaisService).inicializar()),
+        provideAppInitializer(() => inject(PreferenciasGlobaisService).inicializar()),
 
-    provideHttpClient(
-      withInterceptors([authInterceptor]),
-    ),
+        provideHttpClient(
+            withInterceptors([authInterceptor]),
+        ),
 
-    provideRouter(
-      routes,
-      withComponentInputBinding(),
-      withRouterConfig({
-        paramsInheritanceStrategy: 'always',
-      }),
-    ),
-  ],
+        provideRouter(
+            routes,
+            withComponentInputBinding(),
+            withRouterConfig({
+                paramsInheritanceStrategy: 'always',
+            }),
+        ),
+    ],
 };

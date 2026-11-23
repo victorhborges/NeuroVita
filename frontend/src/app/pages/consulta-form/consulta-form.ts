@@ -1,10 +1,10 @@
 import {
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
+    Component,
+    computed,
+    effect,
+    inject,
+    input,
+    signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -13,767 +13,776 @@ import { catchError, forkJoin, of, throwError } from 'rxjs';
 import { Aviso } from '../../shared/aviso/aviso';
 import { Avatar } from '../../shared/avatar/avatar';
 import {
-  ConsultaApi,
-  ConsultaRequestApi,
-  ConsultasApiService,
+    ConsultaApi,
+    ConsultaRequestApi,
+    ConsultasApiService,
 } from '../../shared/clinica/consultas-api.service';
 import {
-  PacienteApi,
-  PacientesApiService,
+    PacienteApi,
+    PacientesApiService,
 } from '../../shared/clinica/pacientes-api.service';
 import {
-  DisponibilidadeApi,
-  ProfissionalApi,
-  ProfissionaisApiService,
+    DisponibilidadeApi,
+    ProfissionalApi,
+    ProfissionaisApiService,
 } from '../../shared/clinica/profissionais-api.service';
 import {
-  ResponsavelApi,
-  ResponsaveisApiService,
+    ResponsavelApi,
+    ResponsaveisApiService,
 } from '../../shared/clinica/responsaveis-api.service';
 import {
-  DURACAO_PADRAO_CONSULTA_MINUTOS,
-  horariosDaDisponibilidade,
-  minutosDe,
+    DURACAO_PADRAO_CONSULTA_MINUTOS,
+    horariosDaDisponibilidade,
+    intervaloEntreConsultas,
+    minutosDe,
 } from '../../shared/clinica/status';
 import { PreferenciasApiService } from '../../shared/clinica/preferencias-api.service';
 import { Dialogo } from '../../shared/dialogo/dialogo';
 import { Icone } from '../../shared/icone/icone';
 import {
-  ListaSuspensa,
-  OpcaoLista,
+    ListaSuspensa,
+    OpcaoLista,
 } from '../../shared/lista-suspensa/lista-suspensa';
 import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
 import {
-  MESES_CURTOS,
-  deISO,
-  formatarData,
-  idadeDe,
-  somarDias,
+    MESES_CURTOS,
+    deISO,
+    formatarData,
+    idadeDe,
+    somarDias,
 } from '../../shared/util';
 
 const NOMES_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 interface ResponsavelFormulario {
-  nome: string;
-  relacao: string;
-  telefone: string;
-  email: string;
+    nome: string;
+    relacao: string;
+    telefone: string;
+    email: string;
 }
 
 interface PacienteFormulario {
-  id: string;
-  nome: string;
-  nascimento: string;
-  telefone: string;
-  email: string;
-  foto?: string;
-  quantidadeResponsaveis: number;
-  responsavel: ResponsavelFormulario;
+    id: string;
+    nome: string;
+    nascimento: string;
+    telefone: string;
+    email: string;
+    foto?: string;
+    quantidadeResponsaveis: number;
+    responsavel: ResponsavelFormulario;
 }
 
 @Component({
-  selector: 'app-consulta-form',
-  imports: [Avatar, Dialogo, Icone, ListaSuspensa, TituloPagina],
-  templateUrl: './consulta-form.html',
-  styleUrl: './consulta-form.css',
+    selector: 'app-consulta-form',
+    imports: [Avatar, Dialogo, Icone, ListaSuspensa, TituloPagina],
+    templateUrl: './consulta-form.html',
+    styleUrl: './consulta-form.css',
 })
 export class ConsultaForm {
-  private readonly pacientesApi = inject(PacientesApiService);
-  private readonly profissionaisApi = inject(ProfissionaisApiService);
-  private readonly responsaveisApi = inject(ResponsaveisApiService);
-  private readonly consultasApi = inject(ConsultasApiService);
-  private readonly preferenciasApi = inject(PreferenciasApiService);
-  private readonly aviso = inject(Aviso);
-  private readonly router = inject(Router);
-
-  readonly perfil = input<Perfil>('secretaria');
-
-  private readonly hoje = this.dataAtual();
-
-  protected readonly pacientes = signal<PacienteApi[]>([]);
-  protected readonly profissionais = signal<ProfissionalApi[]>([]);
-  protected readonly responsaveisPorId =
-    signal<Record<string, ResponsavelApi>>({});
-  protected readonly disponibilidades = signal<DisponibilidadeApi[]>([]);
-  protected readonly carregando = signal(true);
-  protected readonly carregandoDisponibilidade = signal(false);
-  protected readonly erroDisponibilidade = signal(false);
-  protected readonly consultasExistentes = signal<ConsultaApi[]>([]);
-  protected readonly carregandoConsultas = signal(false);
-  protected readonly erroConsultas = signal(false);
-  protected readonly salvando = signal(false);
-  protected readonly duracao = signal(DURACAO_PADRAO_CONSULTA_MINUTOS);
-
-  protected readonly pacienteId = signal('');
-  protected readonly profissionalId = signal('');
-  protected readonly atendimento =
-    signal<'Presencial' | 'Online'>('Presencial');
-  protected readonly local = signal('Unidade Santa Maria');
-  protected readonly semana = signal(0);
-  protected readonly dia = signal(this.hoje);
-  protected readonly hora = signal('');
-  protected readonly tentou = signal(false);
-  protected readonly confirmando = signal(false);
-
-  protected readonly opcoesAtendimento: OpcaoLista[] = [
-    { valor: 'Presencial', rotulo: 'Presencial' },
-    { valor: 'Online', rotulo: 'Online' },
-  ];
-
-  protected readonly opcoesPacientes = computed<OpcaoLista[]>(() =>
-    this.pacientes().map((p) => ({
-      valor: p.id,
-      rotulo: `${p.nome} - ${idadeDe(p.dataNascimento)} anos`,
-    })),
-  );
-
-  protected readonly opcoesProfissionais = computed<OpcaoLista[]>(() =>
-    this.profissionais()
-      .filter((p) => p.ativo)
-      .map((p) => ({
-        valor: p.id,
-        rotulo: `${p.nome} - ${p.categoria || 'Profissional'}`,
-      })),
-  );
-
-  protected readonly paciente = computed<PacienteFormulario | undefined>(
-    () => {
-      const p = this.pacientes().find(
-        (item) => item.id === this.pacienteId(),
-      );
-
-      if (!p) return undefined;
-
-      const vinculo = p.responsaveis?.[0];
-
-      const responsavel = vinculo
-        ? this.responsaveisPorId()[vinculo.responsavelId]
-        : undefined;
-
-      return {
-        id: p.id,
-        nome: p.nome,
-        nascimento: p.dataNascimento,
-        telefone: p.telefone,
-        email: p.email,
-        foto: undefined,
-        quantidadeResponsaveis: p.responsaveis?.length ?? 0,
-        responsavel: {
-          nome: responsavel?.nome ?? '',
-          relacao: vinculo?.grauParentesco ?? '',
-          telefone: responsavel?.telefone ?? '',
-          email: responsavel?.email ?? '',
-        },
-      };
-    },
-  );
-
-  protected readonly profissional = computed(() =>
-    this.profissionais().find(
-      (p) => p.id === this.profissionalId(),
-    ),
-  );
-
-  protected readonly idade = computed(() =>
-    this.paciente() ? idadeDe(this.paciente()!.nascimento) : 0,
-  );
-
-  protected readonly rotuloProfissional = computed(() => {
-    const p = this.profissional();
-
-    return p
-      ? `${p.nome} - ${p.categoria || 'Profissional'}`
-      : '';
-  });
-
-  protected readonly dias = computed(() =>
-    NOMES_DIAS.map((nome, i) => {
-      const iso = somarDias(
-        this.segundaInicial(),
-        this.semana() * 7 + i,
-      );
-
-      const d = deISO(iso);
-
-      return {
-        nome,
-        iso,
-        numero: String(d.getDate()).padStart(2, '0'),
-        mes: MESES_CURTOS[d.getMonth()],
-        passado: iso < this.hoje,
-      };
-    }),
-  );
-
-  protected readonly horarios = computed(() =>
-    horariosDaDisponibilidade(
-      this.disponibilidadesAtivasDoDia(),
-      this.duracao(),
-    ).map((hora) => ({
-      hora,
-      livre: this.horarioPodeSerSelecionado(hora),
-    })),
-  );
-
-  protected readonly horaValida = computed(() => {
-    const h = this.hora();
-
-    return h &&
-      this.horarios().some(
-        (item) => item.hora === h && item.livre,
-      )
-      ? h
-      : '';
-  });
-
-  protected readonly dicaHorarios = computed(() => {
-    if (!this.profissional()) {
-      return 'Selecione um profissional para escolher o horário.';
-    }
-
-    if (
-      this.atendimento() === 'Online' &&
-      !this.profissional()?.atendeOnline
-    ) {
-      return 'Este profissional não está habilitado para atendimento online.';
-    }
-
-    if (
-      this.atendimento() === 'Presencial' &&
-      this.profissional()?.atendePresencial === false
-    ) {
-      return 'Este profissional não está habilitado para atendimento presencial.';
-    }
-
-    if (this.carregandoDisponibilidade()) {
-      return 'Carregando a disponibilidade do profissional.';
-    }
-
-    if (this.erroDisponibilidade()) {
-      return 'Não foi possível consultar a disponibilidade deste profissional.';
-    }
-
-    if (this.carregandoConsultas()) {
-      return 'Consultando os horários já agendados.';
-    }
-
-    if (this.erroConsultas()) {
-      return 'Não foi possível verificar os conflitos de agenda. Tente novamente.';
-    }
-
-    if (this.disponibilidadesAtivasDoDia().length === 0) {
-      return 'Este profissional não possui disponibilidade cadastrada para este dia.';
-    }
-
-    if (!this.horarios().some((item) => item.livre)) {
-      return 'Não há horários disponíveis para este dia.';
-    }
-
-    return 'Os conflitos com outras consultas serão validados pelo servidor ao salvar.';
-  });
-
-  private readonly disponibilidadesAtivasDoDia = computed(() => {
-    const diaSemana = this.nomeDiaSemana(this.dia());
-
-    return this.disponibilidades().filter(
-      (item) =>
-        item.ativo &&
-        this.normalizarDia(item.diaSemana) === diaSemana,
-    );
-  });
-
-  constructor() {
-    this.carregarCadastros();
-
-    this.preferenciasApi.buscar().subscribe({
-      next: (preferencias) => {
-        if (preferencias.duracaoPadraoConsulta != null) {
-          this.duracao.set(preferencias.duracaoPadraoConsulta);
-        }
-      },
-      error: () =>
-        this.aviso.mostrar(
-          'Não foi possível carregar as preferências. Será usada a duração padrão de 50 minutos.',
-        ),
-    });
-
-    effect((onCleanup) => {
-      const profissionalId = this.profissionalId();
-      const pacienteId = this.pacienteId();
-      const semana = this.semana();
-
-      if (!profissionalId) {
-        this.consultasExistentes.set([]);
-        this.erroConsultas.set(false);
-        this.carregandoConsultas.set(false);
-        return;
-      }
-
-      const dataInicio = somarDias(
-        this.segundaInicial(),
-        semana * 7,
-      );
-      const dataFim = somarDias(dataInicio, 7);
-      const inicioPeriodo = `${dataInicio}T00:00:00`;
-      const fimPeriodo = `${dataFim}T00:00:00`;
-
-      this.carregandoConsultas.set(true);
-      this.erroConsultas.set(false);
-
-      const requisicaoPaciente = pacienteId
-        ? this.consultasApi.listarPorPacienteNoPeriodo(
-          pacienteId,
-          inicioPeriodo,
-          fimPeriodo,
-        ).pipe(catchError((erro: unknown) => {
-          this.registrarFalhaConflito('paciente', erro);
-          return throwError(() => erro);
-        }))
-        : of([] as ConsultaApi[]);
-
-      const requisicao = forkJoin({
-        profissional: this.consultasApi.listarPorProfissionalNoPeriodo(
-          profissionalId,
-          inicioPeriodo,
-          fimPeriodo,
-        ).pipe(catchError((erro: unknown) => {
-          this.registrarFalhaConflito('profissional', erro);
-          return throwError(() => erro);
-        })),
-        paciente: requisicaoPaciente,
-      }).subscribe({
-        next: ({ profissional, paciente }) => {
-          const porId = new Map<string, ConsultaApi>();
-
-          [...profissional, ...paciente].forEach((consulta) =>
-            porId.set(consulta.id, consulta),
-          );
-
-          this.consultasExistentes.set([...porId.values()]);
-          this.erroConsultas.set(false);
-          this.carregandoConsultas.set(false);
-        },
-        error: () => {
-          this.erroConsultas.set(true);
-          this.carregandoConsultas.set(false);
-          this.aviso.mostrar(
-            'Não foi possível consultar os conflitos de agenda.',
-          );
-        },
-      });
-
-      onCleanup(() => requisicao.unsubscribe());
-    });
-
-    effect((onCleanup) => {
-      const profissionalId = this.profissionalId();
-
-      this.disponibilidades.set([]);
-      this.erroDisponibilidade.set(false);
-
-      if (!profissionalId) {
-        this.carregandoDisponibilidade.set(false);
-        return;
-      }
-
-      this.carregandoDisponibilidade.set(true);
-
-      const requisicao = this.profissionaisApi
-        .listarDisponibilidades(profissionalId)
-        .subscribe({
-          next: (lista) => {
-            this.disponibilidades.set(lista);
-            this.erroDisponibilidade.set(false);
-            this.carregandoDisponibilidade.set(false);
-          },
-          error: () => {
-            this.erroDisponibilidade.set(true);
-            this.carregandoDisponibilidade.set(false);
-
-            this.aviso.mostrar(
-              'Não foi possível carregar a disponibilidade do profissional.',
-            );
-          },
-        });
-
-      onCleanup(() => requisicao.unsubscribe());
-    });
-  }
-
-  private carregarCadastros(): void {
-    this.carregando.set(true);
-
-    forkJoin({
-      pacientes: this.pacientesApi
-        .listarTodos()
-        .pipe(catchError(() => of(null))),
-      profissionais: this.profissionaisApi
-        .listarTodos()
-        .pipe(catchError(() => of(null))),
-    }).subscribe({
-      next: ({ pacientes, profissionais }) => {
-        if (!pacientes || !profissionais) {
-          this.aviso.mostrar(
-            'Não foi possível carregar os dados da consulta. Os dados já carregados foram preservados.',
-          );
-          return;
-        }
-
-        this.pacientes.set(pacientes);
-        this.profissionais.set(profissionais);
-        this.carregarResponsaveis(pacientes);
-      },
-      error: () => {
-        this.aviso.mostrar(
-          'Não foi possível carregar os dados da consulta.',
-        );
-      },
-      complete: () => this.carregando.set(false),
-    });
-  }
-
-  private carregarResponsaveis(pacientes: PacienteApi[]): void {
-    const ids = [
-      ...new Set(
-        pacientes.flatMap((paciente) =>
-          (paciente.responsaveis ?? []).map(
-            (vinculo) => vinculo.responsavelId,
-          ),
-        ),
-      ),
-    ].filter(Boolean);
-
-    if (ids.length === 0) {
-      this.responsaveisPorId.set({});
-      return;
-    }
-
-    const requisicoes = ids.map((id) =>
-      this.responsaveisApi.buscarPorId(id).pipe(
-        catchError(() => {
-          this.aviso.mostrar(
-            'Não foi possível carregar os dados dos responsáveis.',
-          );
-          return of(null);
-        }),
-      ),
-    );
-
-    forkJoin(requisicoes).subscribe((lista) => {
-      if (lista.some((responsavel) => responsavel === null)) return;
-
-      const mapa: Record<string, ResponsavelApi> = {};
-
-      lista.forEach((responsavel) => {
-        if (responsavel) {
-          mapa[responsavel.id] = responsavel;
-        }
-      });
-
-      this.responsaveisPorId.set(mapa);
-    });
-  }
-
-  private registrarFalhaConflito(origem: 'paciente' | 'profissional', erro: unknown): void {
-    const status = erro instanceof HttpErrorResponse ? erro.status : 'sem resposta HTTP';
-    const statusTexto = erro instanceof HttpErrorResponse ? erro.statusText : 'erro inesperado';
-    const endpoint = origem === 'paciente'
-      ? 'GET /api/consultas/paciente/:id'
-      : 'GET /api/consultas/profissional/:id';
-    console.error('[ConsultaForm] Falha na consulta de conflitos', {
-      origem,
-      endpoint,
-      status,
-      statusTexto,
-    });
-  }
-
-  private dataAtual(): string {
-    const agora = new Date();
-    const ano = agora.getFullYear();
-    const mes = String(agora.getMonth() + 1).padStart(2, '0');
-    const dia = String(agora.getDate()).padStart(2, '0');
-
-    return `${ano}-${mes}-${dia}`;
-  }
-
-  private segundaInicial(): string {
-    const data = deISO(this.hoje);
-    const diaSemana = (data.getDay() + 6) % 7;
-
-    data.setDate(data.getDate() - diaSemana);
-
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const dia = String(data.getDate()).padStart(2, '0');
-
-    return `${ano}-${mes}-${dia}`;
-  }
-
-  private nomeDiaSemana(iso: string): string {
-    const nomes = [
-      'DOMINGO',
-      'SEGUNDA',
-      'TERCA',
-      'QUARTA',
-      'QUINTA',
-      'SEXTA',
-      'SABADO',
+    private readonly pacientesApi = inject(PacientesApiService);
+    private readonly profissionaisApi = inject(ProfissionaisApiService);
+    private readonly responsaveisApi = inject(ResponsaveisApiService);
+    private readonly consultasApi = inject(ConsultasApiService);
+    private readonly preferenciasApi = inject(PreferenciasApiService);
+    private readonly aviso = inject(Aviso);
+    private readonly router = inject(Router);
+
+    readonly perfil = input<Perfil>('secretaria');
+
+    private readonly hoje = this.dataAtual();
+
+    protected readonly pacientes = signal<PacienteApi[]>([]);
+    protected readonly profissionais = signal<ProfissionalApi[]>([]);
+    protected readonly responsaveisPorId =
+        signal<Record<string, ResponsavelApi>>({});
+    protected readonly disponibilidades = signal<DisponibilidadeApi[]>([]);
+    protected readonly carregando = signal(true);
+    protected readonly carregandoDisponibilidade = signal(false);
+    protected readonly erroDisponibilidade = signal(false);
+    protected readonly consultasExistentes = signal<ConsultaApi[]>([]);
+    protected readonly carregandoConsultas = signal(false);
+    protected readonly erroConsultas = signal(false);
+    protected readonly salvando = signal(false);
+    protected readonly duracao = signal(DURACAO_PADRAO_CONSULTA_MINUTOS);
+
+    protected readonly pacienteId = signal('');
+    protected readonly profissionalId = signal('');
+    protected readonly atendimento =
+        signal<'Presencial' | 'Online'>('Presencial');
+    protected readonly local = signal('Unidade Santa Maria');
+    protected readonly semana = signal(0);
+    protected readonly dia = signal(this.hoje);
+    protected readonly hora = signal('');
+    protected readonly tentou = signal(false);
+    protected readonly confirmando = signal(false);
+
+    protected readonly opcoesAtendimento: OpcaoLista[] = [
+        { valor: 'Presencial', rotulo: 'Presencial' },
+        { valor: 'Online', rotulo: 'Online' },
     ];
 
-    return nomes[deISO(iso).getDay()];
-  }
-
-  private normalizarDia(dia: string): string {
-    const valor = (dia ?? '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .trim()
-      .replace(/[\s-]+/g, '_');
-
-    const equivalencias: Record<string, string> = {
-      DOM: 'DOMINGO',
-      DOMINGO: 'DOMINGO',
-      SUN: 'DOMINGO',
-      SUNDAY: 'DOMINGO',
-
-      SEG: 'SEGUNDA',
-      SEGUNDA: 'SEGUNDA',
-      SEGUNDA_FEIRA: 'SEGUNDA',
-      MON: 'SEGUNDA',
-      MONDAY: 'SEGUNDA',
-
-      TER: 'TERCA',
-      TERCA: 'TERCA',
-      TERCA_FEIRA: 'TERCA',
-      TUE: 'TERCA',
-      TUESDAY: 'TERCA',
-
-      QUA: 'QUARTA',
-      QUARTA: 'QUARTA',
-      QUARTA_FEIRA: 'QUARTA',
-      WED: 'QUARTA',
-      WEDNESDAY: 'QUARTA',
-
-      QUI: 'QUINTA',
-      QUINTA: 'QUINTA',
-      QUINTA_FEIRA: 'QUINTA',
-      THU: 'QUINTA',
-      THURSDAY: 'QUINTA',
-
-      SEX: 'SEXTA',
-      SEXTA: 'SEXTA',
-      SEXTA_FEIRA: 'SEXTA',
-      FRI: 'SEXTA',
-      FRIDAY: 'SEXTA',
-
-      SAB: 'SABADO',
-      SABADO: 'SABADO',
-      SAT: 'SABADO',
-      SATURDAY: 'SABADO',
-    };
-
-    return equivalencias[valor] ?? valor;
-  }
-
-  private horarioPodeSerSelecionado(hora: string): boolean {
-    if (
-      !this.profissionalId() ||
-      this.carregandoDisponibilidade() ||
-      this.erroDisponibilidade() ||
-      this.carregandoConsultas() ||
-      this.erroConsultas()
-    ) {
-      return false;
-    }
-
-    if (this.dia() < this.hoje) return false;
-
-    if (this.dia() === this.hoje) {
-      const agora = new Date();
-      const minutosAgora =
-        agora.getHours() * 60 + agora.getMinutes();
-
-      if (minutosDe(hora) <= minutosAgora) return false;
-    }
-
-    const inicioConsulta = minutosDe(hora);
-    const fimConsulta = inicioConsulta + this.duracao();
-
-    const dentroDaDisponibilidade = this.disponibilidadesAtivasDoDia().some(
-      (disponibilidade) => {
-        const inicioDisponivel = minutosDe(
-          disponibilidade.horaInicio,
-        );
-
-        const fimDisponivel = minutosDe(
-          disponibilidade.horaFim,
-        );
-
-        return (
-          inicioConsulta >= inicioDisponivel &&
-          fimConsulta <= fimDisponivel
-        );
-      },
+    protected readonly opcoesPacientes = computed<OpcaoLista[]>(() =>
+        this.pacientes().map((p) => ({
+            valor: p.id,
+            rotulo: `${p.nome} - ${idadeDe(p.dataNascimento)} anos`,
+        })),
     );
 
-    if (!dentroDaDisponibilidade) return false;
+    protected readonly opcoesProfissionais = computed<OpcaoLista[]>(() =>
+        this.profissionais()
+            .filter((p) => p.ativo)
+            .map((p) => ({
+                valor: p.id,
+                rotulo: `${p.nome} - ${p.categoria || 'Profissional'}`,
+            })),
+    );
 
-    return !this.consultasExistentes().some((consulta) => {
-      if (
-        consulta.status === 'CANCELADA' ||
-        consulta.dataHora.slice(0, 10) !== this.dia() ||
-        !consulta.duracao ||
-        consulta.duracao <= 0
-      ) {
-        return false;
-      }
+    protected readonly paciente = computed<PacienteFormulario | undefined>(
+        () => {
+            const p = this.pacientes().find(
+                (item) => item.id === this.pacienteId(),
+            );
 
-      const inicioExistente = minutosDe(
-        consulta.dataHora.slice(11, 16),
-      );
-      const fimExistente = inicioExistente + consulta.duracao;
+            if (!p) return undefined;
 
-      return (
-        inicioExistente < fimConsulta &&
-        fimExistente > inicioConsulta
-      );
+            const vinculo = p.responsaveis?.[0];
+
+            const responsavel = vinculo
+                ? this.responsaveisPorId()[vinculo.responsavelId]
+                : undefined;
+
+            return {
+                id: p.id,
+                nome: p.nome,
+                nascimento: p.dataNascimento,
+                telefone: p.telefone,
+                email: p.email,
+                foto: undefined,
+                quantidadeResponsaveis: p.responsaveis?.length ?? 0,
+                responsavel: {
+                    nome: responsavel?.nome ?? '',
+                    relacao: vinculo?.grauParentesco ?? '',
+                    telefone: responsavel?.telefone ?? '',
+                    email: responsavel?.email ?? '',
+                },
+            };
+        },
+    );
+
+    protected readonly profissional = computed(() =>
+        this.profissionais().find(
+            (p) => p.id === this.profissionalId(),
+        ),
+    );
+
+    protected readonly idade = computed(() =>
+        this.paciente() ? idadeDe(this.paciente()!.nascimento) : 0,
+    );
+
+    protected readonly rotuloProfissional = computed(() => {
+        const p = this.profissional();
+
+        return p
+            ? `${p.nome} - ${p.categoria || 'Profissional'}`
+            : '';
     });
-  }
 
-  protected escolherDia(iso: string, passado: boolean): void {
-    if (!passado) {
-      this.dia.set(iso);
-      this.hora.set('');
-    }
-  }
+    protected readonly dias = computed(() =>
+        NOMES_DIAS.map((nome, i) => {
+            const iso = somarDias(
+                this.segundaInicial(),
+                this.semana() * 7 + i,
+            );
 
-  protected mudarSemana(delta: number): void {
-    const proxima = Math.max(0, this.semana() + delta);
+            const d = deISO(iso);
 
-    this.semana.set(proxima);
-
-    const primeiroDia = somarDias(
-      this.segundaInicial(),
-      proxima * 7,
+            return {
+                nome,
+                iso,
+                numero: String(d.getDate()).padStart(2, '0'),
+                mes: MESES_CURTOS[d.getMonth()],
+                passado: iso < this.hoje,
+            };
+        }),
     );
 
-    this.dia.set(
-      primeiroDia < this.hoje ? this.hoje : primeiroDia,
+    protected readonly horarios = computed(() =>
+        horariosDaDisponibilidade(
+            this.disponibilidadesAtivasDoDia(),
+            this.duracao(),
+        ).map((hora) => ({
+            hora,
+            livre: this.horarioPodeSerSelecionado(hora),
+        })),
     );
 
-    this.hora.set('');
-  }
+    protected readonly horaValida = computed(() => {
+        const h = this.hora();
 
-  protected readonly formatar = formatarData;
+        return h &&
+            this.horarios().some(
+                (item) => item.hora === h && item.livre,
+            )
+            ? h
+            : '';
+    });
 
-  protected erroPaciente = () =>
-    this.tentou() && !this.pacienteId();
+    protected readonly dicaHorarios = computed(() => {
+        if (!this.profissional()) {
+            return 'Selecione um profissional para escolher o horário.';
+        }
 
-  protected erroProfissional = () =>
-    this.tentou() && !this.profissionalId();
+        if (
+            this.atendimento() === 'Online' &&
+            !this.profissional()?.atendeOnline
+        ) {
+            return 'Este profissional não está habilitado para atendimento online.';
+        }
 
-  protected salvar(): void {
-    this.tentou.set(true);
+        if (
+            this.atendimento() === 'Presencial' &&
+            this.profissional()?.atendePresencial === false
+        ) {
+            return 'Este profissional não está habilitado para atendimento presencial.';
+        }
 
-    if (!this.pacienteId()) {
-      this.aviso.mostrar('Selecione o paciente.');
-      return;
-    }
+        if (this.carregandoDisponibilidade()) {
+            return 'Carregando a disponibilidade do profissional.';
+        }
 
-    if (!this.profissionalId()) {
-      this.aviso.mostrar('Selecione o profissional.');
-      return;
-    }
+        if (this.erroDisponibilidade()) {
+            return 'Não foi possível consultar a disponibilidade deste profissional.';
+        }
 
-    if (!this.horaValida()) {
-      this.aviso.mostrar('Escolha um horário válido.');
-      return;
-    }
+        if (this.carregandoConsultas()) {
+            return 'Consultando os horários já agendados.';
+        }
 
-    if (
-      this.atendimento() === 'Online' &&
-      !this.profissional()?.atendeOnline
-    ) {
-      this.aviso.mostrar(
-        'Este profissional não atende online.',
-      );
-      return;
-    }
+        if (this.erroConsultas()) {
+            return 'Não foi possível verificar os conflitos de agenda. Tente novamente.';
+        }
 
-    if (
-      this.atendimento() === 'Presencial' &&
-      this.profissional()?.atendePresencial === false
-    ) {
-      this.aviso.mostrar(
-        'Este profissional não está habilitado para atendimento presencial.',
-      );
-      return;
-    }
+        if (this.disponibilidadesAtivasDoDia().length === 0) {
+            return 'Este profissional não possui disponibilidade cadastrada para este dia.';
+        }
 
-    this.confirmando.set(true);
-  }
+        if (!this.horarios().some((item) => item.livre)) {
+            return 'Não há horários disponíveis para este dia.';
+        }
 
-  protected confirmar(): void {
-    if (this.salvando()) return;
+        return 'Os conflitos com outras consultas serão validados pelo servidor ao salvar.';
+    });
 
-    const paciente = this.paciente();
-    const profissional = this.profissional();
-    const hora = this.horaValida();
+    private readonly disponibilidadesAtivasDoDia = computed(() => {
+        const diaSemana = this.nomeDiaSemana(this.dia());
 
-    if (!paciente || !profissional || !hora) {
-      this.confirmando.set(false);
-      this.aviso.mostrar('Confira os dados da consulta.');
-      return;
-    }
-
-    const modalidade = this.atendimento();
-
-    const dados: ConsultaRequestApi = {
-      pacienteId: paciente.id,
-      profissionalId: profissional.id,
-      dataHora: `${this.dia()}T${hora}:00`,
-      tipoAtendimento: 'Consulta',
-      local:
-        modalidade === 'Online'
-          ? 'Teleconsulta'
-          : this.local().trim() || 'Unidade Santa Maria',
-      modalidade,
-      duracao: this.duracao(),
-    };
-
-    this.salvando.set(true);
-
-    this.consultasApi.criar(dados).subscribe({
-      next: (consulta) => {
-        this.confirmando.set(false);
-        this.salvando.set(false);
-
-        this.aviso.mostrar(
-          'Consulta agendada com sucesso. Ela ficará pendente até a confirmação.',
+        return this.disponibilidades().filter(
+            (item) =>
+                item.ativo &&
+                this.normalizarDia(item.diaSemana) === diaSemana,
         );
+    });
 
-        this.router.navigate(['/', this.perfil(), 'agenda'], {
-          queryParams: { consulta: consulta.id },
+    constructor() {
+        this.carregarCadastros();
+
+        this.preferenciasApi.buscar().subscribe({
+            next: (preferencias) => {
+                if (preferencias.duracaoPadraoConsulta != null) {
+                    this.duracao.set(preferencias.duracaoPadraoConsulta);
+                }
+            },
+            error: () =>
+                this.aviso.mostrar(
+                    'Não foi possível carregar as preferências. Será usada a duração padrão de 50 minutos.',
+                ),
         });
-      },
-      error: (erro: HttpErrorResponse) => {
-        this.salvando.set(false);
-        this.confirmando.set(false);
 
-        const mensagem =
-          erro.error?.message ||
-          erro.error?.mensagem ||
-          'Não foi possível agendar. Verifique a disponibilidade do profissional e os conflitos de horário.';
+        effect((onCleanup) => {
+            const profissionalId = this.profissionalId();
+            const pacienteId = this.pacienteId();
+            const semana = this.semana();
 
-        this.aviso.mostrar(mensagem);
-      },
-    });
-  }
+            if (!profissionalId) {
+                this.consultasExistentes.set([]);
+                this.erroConsultas.set(false);
+                this.carregandoConsultas.set(false);
+                return;
+            }
 
-  protected cancelar(): void {
-    this.router.navigate(['/', this.perfil()]);
-  }
+            const dataInicio = somarDias(
+                this.segundaInicial(),
+                semana * 7,
+            );
+            const dataFim = somarDias(dataInicio, 7);
+            const inicioPeriodo = `${dataInicio}T00:00:00`;
+            const fimPeriodo = `${dataFim}T00:00:00`;
+
+            this.carregandoConsultas.set(true);
+            this.erroConsultas.set(false);
+
+            const requisicaoPaciente = pacienteId
+                ? this.consultasApi.listarPorPacienteNoPeriodo(
+                    pacienteId,
+                    inicioPeriodo,
+                    fimPeriodo,
+                ).pipe(catchError((erro: unknown) => {
+                    this.registrarFalhaConflito('paciente', erro);
+                    return throwError(() => erro);
+                }))
+                : of([] as ConsultaApi[]);
+
+            const requisicao = forkJoin({
+                profissional: this.consultasApi.listarPorProfissionalNoPeriodo(
+                    profissionalId,
+                    inicioPeriodo,
+                    fimPeriodo,
+                ).pipe(catchError((erro: unknown) => {
+                    this.registrarFalhaConflito('profissional', erro);
+                    return throwError(() => erro);
+                })),
+                paciente: requisicaoPaciente,
+            }).subscribe({
+                next: ({ profissional, paciente }) => {
+                    const porId = new Map<string, ConsultaApi>();
+
+                    [...profissional, ...paciente].forEach((consulta) =>
+                        porId.set(consulta.id, consulta),
+                    );
+
+                    this.consultasExistentes.set([...porId.values()]);
+                    this.erroConsultas.set(false);
+                    this.carregandoConsultas.set(false);
+                },
+                error: () => {
+                    this.erroConsultas.set(true);
+                    this.carregandoConsultas.set(false);
+                    this.aviso.mostrar(
+                        'Não foi possível consultar os conflitos de agenda.',
+                    );
+                },
+            });
+
+            onCleanup(() => requisicao.unsubscribe());
+        });
+
+        effect((onCleanup) => {
+            const profissionalId = this.profissionalId();
+
+            this.disponibilidades.set([]);
+            this.erroDisponibilidade.set(false);
+
+            if (!profissionalId) {
+                this.carregandoDisponibilidade.set(false);
+                return;
+            }
+
+            this.carregandoDisponibilidade.set(true);
+
+            const requisicao = this.profissionaisApi
+                .listarDisponibilidades(profissionalId)
+                .subscribe({
+                    next: (lista) => {
+                        this.disponibilidades.set(lista);
+                        this.erroDisponibilidade.set(false);
+                        this.carregandoDisponibilidade.set(false);
+                    },
+                    error: () => {
+                        this.erroDisponibilidade.set(true);
+                        this.carregandoDisponibilidade.set(false);
+
+                        this.aviso.mostrar(
+                            'Não foi possível carregar a disponibilidade do profissional.',
+                        );
+                    },
+                });
+
+            onCleanup(() => requisicao.unsubscribe());
+        });
+    }
+
+    private carregarCadastros(): void {
+        this.carregando.set(true);
+
+        forkJoin({
+            pacientes: this.pacientesApi
+                .listarTodos()
+                .pipe(catchError(() => of(null))),
+            profissionais: this.profissionaisApi
+                .listarTodos()
+                .pipe(catchError(() => of(null))),
+        }).subscribe({
+            next: ({ pacientes, profissionais }) => {
+                if (!pacientes || !profissionais) {
+                    this.aviso.mostrar(
+                        'Não foi possível carregar os dados da consulta. Os dados já carregados foram preservados.',
+                    );
+                    return;
+                }
+
+                this.pacientes.set(pacientes);
+                this.profissionais.set(profissionais);
+                this.carregarResponsaveis(pacientes);
+            },
+            error: () => {
+                this.aviso.mostrar(
+                    'Não foi possível carregar os dados da consulta.',
+                );
+            },
+            complete: () => this.carregando.set(false),
+        });
+    }
+
+    private carregarResponsaveis(pacientes: PacienteApi[]): void {
+        const ids = [
+            ...new Set(
+                pacientes.flatMap((paciente) =>
+                    (paciente.responsaveis ?? []).map(
+                        (vinculo) => vinculo.responsavelId,
+                    ),
+                ),
+            ),
+        ].filter(Boolean);
+
+        if (ids.length === 0) {
+            this.responsaveisPorId.set({});
+            return;
+        }
+
+        const requisicoes = ids.map((id) =>
+            this.responsaveisApi.buscarPorId(id).pipe(
+                catchError(() => {
+                    this.aviso.mostrar(
+                        'Não foi possível carregar os dados dos responsáveis.',
+                    );
+                    return of(null);
+                }),
+            ),
+        );
+
+        forkJoin(requisicoes).subscribe((lista) => {
+            if (lista.some((responsavel) => responsavel === null)) return;
+
+            const mapa: Record<string, ResponsavelApi> = {};
+
+            lista.forEach((responsavel) => {
+                if (responsavel) {
+                    mapa[responsavel.id] = responsavel;
+                }
+            });
+
+            this.responsaveisPorId.set(mapa);
+        });
+    }
+
+    private registrarFalhaConflito(origem: 'paciente' | 'profissional', erro: unknown): void {
+        const status = erro instanceof HttpErrorResponse ? erro.status : 'sem resposta HTTP';
+        const statusTexto = erro instanceof HttpErrorResponse ? erro.statusText : 'erro inesperado';
+        const endpoint = origem === 'paciente'
+            ? 'GET /api/consultas/paciente/:id'
+            : 'GET /api/consultas/profissional/:id';
+        console.error('[ConsultaForm] Falha na consulta de conflitos', {
+            origem,
+            endpoint,
+            status,
+            statusTexto,
+        });
+    }
+
+    private dataAtual(): string {
+        const agora = new Date();
+        const ano = agora.getFullYear();
+        const mes = String(agora.getMonth() + 1).padStart(2, '0');
+        const dia = String(agora.getDate()).padStart(2, '0');
+
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    private segundaInicial(): string {
+        const data = deISO(this.hoje);
+        const diaSemana = (data.getDay() + 6) % 7;
+
+        data.setDate(data.getDate() - diaSemana);
+
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, '0');
+        const dia = String(data.getDate()).padStart(2, '0');
+
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    private nomeDiaSemana(iso: string): string {
+        const nomes = [
+            'DOMINGO',
+            'SEGUNDA',
+            'TERCA',
+            'QUARTA',
+            'QUINTA',
+            'SEXTA',
+            'SABADO',
+        ];
+
+        return nomes[deISO(iso).getDay()];
+    }
+
+    private normalizarDia(dia: string): string {
+        const valor = (dia ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .trim()
+            .replace(/[\s-]+/g, '_');
+
+        const equivalencias: Record<string, string> = {
+            DOM: 'DOMINGO',
+            DOMINGO: 'DOMINGO',
+            SUN: 'DOMINGO',
+            SUNDAY: 'DOMINGO',
+
+            SEG: 'SEGUNDA',
+            SEGUNDA: 'SEGUNDA',
+            SEGUNDA_FEIRA: 'SEGUNDA',
+            MON: 'SEGUNDA',
+            MONDAY: 'SEGUNDA',
+
+            TER: 'TERCA',
+            TERCA: 'TERCA',
+            TERCA_FEIRA: 'TERCA',
+            TUE: 'TERCA',
+            TUESDAY: 'TERCA',
+
+            QUA: 'QUARTA',
+            QUARTA: 'QUARTA',
+            QUARTA_FEIRA: 'QUARTA',
+            WED: 'QUARTA',
+            WEDNESDAY: 'QUARTA',
+
+            QUI: 'QUINTA',
+            QUINTA: 'QUINTA',
+            QUINTA_FEIRA: 'QUINTA',
+            THU: 'QUINTA',
+            THURSDAY: 'QUINTA',
+
+            SEX: 'SEXTA',
+            SEXTA: 'SEXTA',
+            SEXTA_FEIRA: 'SEXTA',
+            FRI: 'SEXTA',
+            FRIDAY: 'SEXTA',
+
+            SAB: 'SABADO',
+            SABADO: 'SABADO',
+            SAT: 'SABADO',
+            SATURDAY: 'SABADO',
+        };
+
+        return equivalencias[valor] ?? valor;
+    }
+
+    private horarioPodeSerSelecionado(hora: string): boolean {
+        if (
+            !this.profissionalId() ||
+            this.carregandoDisponibilidade() ||
+            this.erroDisponibilidade() ||
+            this.carregandoConsultas() ||
+            this.erroConsultas()
+        ) {
+            return false;
+        }
+
+        if (this.dia() < this.hoje) return false;
+
+        if (this.dia() === this.hoje) {
+            const agora = new Date();
+            const minutosAgora =
+                agora.getHours() * 60 + agora.getMinutes();
+
+            if (minutosDe(hora) <= minutosAgora) return false;
+        }
+
+        const inicioConsulta = minutosDe(hora);
+
+        // Considera o bloco reservado, incluindo a margem de 10 minutos
+        // quando a duração configurada for de 50 minutos.
+        const intervaloReserva = intervaloEntreConsultas(this.duracao());
+        const fimReserva = inicioConsulta + intervaloReserva;
+
+        const dentroDaDisponibilidade = this.disponibilidadesAtivasDoDia().some(
+            (disponibilidade) => {
+                const inicioDisponivel = minutosDe(
+                    disponibilidade.horaInicio,
+                );
+
+                const fimDisponivel = minutosDe(
+                    disponibilidade.horaFim,
+                );
+
+                return (
+                    inicioConsulta >= inicioDisponivel &&
+                    fimReserva <= fimDisponivel
+                );
+            },
+        );
+
+        if (!dentroDaDisponibilidade) return false;
+
+        return !this.consultasExistentes().some((consulta) => {
+            if (
+                consulta.status === 'CANCELADA' ||
+                consulta.dataHora.slice(0, 10) !== this.dia() ||
+                !consulta.duracao ||
+                consulta.duracao <= 0
+            ) {
+                return false;
+            }
+
+            const inicioExistente = minutosDe(
+                consulta.dataHora.slice(11, 16),
+            );
+
+            // Consulta existente de 50 minutos também ocupa 60 minutos
+            // na agenda, preservando a margem de 10 minutos.
+            const fimExistente =
+                inicioExistente + intervaloEntreConsultas(consulta.duracao);
+
+            return (
+                inicioExistente < fimReserva &&
+                fimExistente > inicioConsulta
+            );
+        });
+    }
+
+    protected escolherDia(iso: string, passado: boolean): void {
+        if (!passado) {
+            this.dia.set(iso);
+            this.hora.set('');
+        }
+    }
+
+    protected mudarSemana(delta: number): void {
+        const proxima = Math.max(0, this.semana() + delta);
+
+        this.semana.set(proxima);
+
+        const primeiroDia = somarDias(
+            this.segundaInicial(),
+            proxima * 7,
+        );
+
+        this.dia.set(
+            primeiroDia < this.hoje ? this.hoje : primeiroDia,
+        );
+
+        this.hora.set('');
+    }
+
+    protected readonly formatar = formatarData;
+
+    protected erroPaciente = () =>
+        this.tentou() && !this.pacienteId();
+
+    protected erroProfissional = () =>
+        this.tentou() && !this.profissionalId();
+
+    protected salvar(): void {
+        this.tentou.set(true);
+
+        if (!this.pacienteId()) {
+            this.aviso.mostrar('Selecione o paciente.');
+            return;
+        }
+
+        if (!this.profissionalId()) {
+            this.aviso.mostrar('Selecione o profissional.');
+            return;
+        }
+
+        if (!this.horaValida()) {
+            this.aviso.mostrar('Escolha um horário válido.');
+            return;
+        }
+
+        if (
+            this.atendimento() === 'Online' &&
+            !this.profissional()?.atendeOnline
+        ) {
+            this.aviso.mostrar(
+                'Este profissional não atende online.',
+            );
+            return;
+        }
+
+        if (
+            this.atendimento() === 'Presencial' &&
+            this.profissional()?.atendePresencial === false
+        ) {
+            this.aviso.mostrar(
+                'Este profissional não está habilitado para atendimento presencial.',
+            );
+            return;
+        }
+
+        this.confirmando.set(true);
+    }
+
+    protected confirmar(): void {
+        if (this.salvando()) return;
+
+        const paciente = this.paciente();
+        const profissional = this.profissional();
+        const hora = this.horaValida();
+
+        if (!paciente || !profissional || !hora) {
+            this.confirmando.set(false);
+            this.aviso.mostrar('Confira os dados da consulta.');
+            return;
+        }
+
+        const modalidade = this.atendimento();
+
+        const dados: ConsultaRequestApi = {
+            pacienteId: paciente.id,
+            profissionalId: profissional.id,
+            dataHora: `${this.dia()}T${hora}:00`,
+            tipoAtendimento: 'Consulta',
+            local:
+                modalidade === 'Online'
+                    ? 'Teleconsulta'
+                    : this.local().trim() || 'Unidade Santa Maria',
+            modalidade,
+            duracao: this.duracao(),
+        };
+
+        this.salvando.set(true);
+
+        this.consultasApi.criar(dados).subscribe({
+            next: (consulta) => {
+                this.confirmando.set(false);
+                this.salvando.set(false);
+
+                this.aviso.mostrar(
+                    'Consulta agendada com sucesso. Ela ficará pendente até a confirmação.',
+                );
+
+                this.router.navigate(['/', this.perfil(), 'agenda'], {
+                    queryParams: { consulta: consulta.id },
+                });
+            },
+            error: (erro: HttpErrorResponse) => {
+                this.salvando.set(false);
+                this.confirmando.set(false);
+
+                const mensagem =
+                    erro.error?.message ||
+                    erro.error?.mensagem ||
+                    'Não foi possível agendar. Verifique a disponibilidade do profissional e os conflitos de horário.';
+
+                this.aviso.mostrar(mensagem);
+            },
+        });
+    }
+
+    protected cancelar(): void {
+        this.router.navigate(['/', this.perfil()]);
+    }
 }

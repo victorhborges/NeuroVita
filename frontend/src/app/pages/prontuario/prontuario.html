@@ -1,81 +1,97 @@
 @if (paciente(); as p) {
-  <div class="pg">
-    <app-titulo-pagina titulo="Prontuário do paciente" subtitulo="Histórico e informações do paciente" [voltarPara]="raiz() + '/pacientes'" />
+<div class="pg">
+    <app-titulo-pagina titulo="Prontuário do paciente" subtitulo="Histórico e informações do paciente"
+        [voltarPara]="raiz() + '/pacientes'" />
 
     <app-faixa-paciente [paciente]="p" [perfil]="perfil()" />
 
     <div class="pront2-grade">
-      <div class="pront2-coluna">
-        <section class="cartao pront2-dados">
-          <h2 class="pront2-titulo"><app-icone nome="usuario" /> Informações pessoais</h2>
-          <dl class="pront2-lista">
-            <dt>Nascimento:</dt><dd>{{ nascimento() }}</dd>
-            <dt>CPF:</dt><dd>{{ p.cpf || '—' }}</dd>
-            <dt>Telefone:</dt><dd>{{ p.telefone || '—' }}</dd>
-            <dt>E-mail:</dt><dd>{{ p.email || '—' }}</dd>
-            <dt>Endereço:</dt><dd>{{ endereco() }}</dd>
-          </dl>
-          <h2 class="pront2-titulo pront2-titulo-2"><app-icone nome="usuario" /> Responsáveis</h2>
-          @if (p.responsaveis.length) {
-            @for (responsavel of p.responsaveis; track responsavel.id || $index) {
-              <dl class="pront2-lista">
-                <dt>Nome:</dt><dd>{{ responsavel.nome || '—' }}</dd>
-                <dt>Relação:</dt><dd>{{ responsavel.relacao || '—' }}</dd>
-                <dt>Telefone:</dt><dd>{{ responsavel.telefone || '—' }}</dd>
-                <dt>Endereço:</dt><dd>{{ responsavel.endereco || '—' }}</dd>
-              </dl>
+        <div class="pront2-coluna">
+            <section class="cartao pront2-dados">
+                <h2 class="pront2-titulo"><app-icone nome="usuario" /> Informações pessoais</h2>
+                <dl class="pront2-lista">
+                    <dt>Nascimento:</dt>
+                    <dd>{{ nascimento() }}</dd>
+                    <dt>CPF:</dt>
+                    <dd>{{ p.cpf || '—' }}</dd>
+                    <dt>Telefone:</dt>
+                    <dd>{{ p.telefone || '—' }}</dd>
+                    <dt>E-mail:</dt>
+                    <dd>{{ p.email || '—' }}</dd>
+                    <dt>Endereço:</dt>
+                    <dd>{{ endereco() }}</dd>
+                </dl>
+                <h2 class="pront2-titulo pront2-titulo-2"><app-icone nome="usuario" /> Responsáveis</h2>
+                @if (p.responsaveis.length) {
+                @for (responsavel of p.responsaveis; track responsavel.id || $index) {
+                <dl class="pront2-lista">
+                    <dt>Nome:</dt>
+                    <dd>{{ responsavel.nome || '—' }}</dd>
+                    <dt>Relação:</dt>
+                    <dd>{{ responsavel.relacao || '—' }}</dd>
+                    <dt>Telefone:</dt>
+                    <dd>{{ responsavel.telefone || '—' }}</dd>
+                    <dt>Endereço:</dt>
+                    <dd>{{ responsavel.endereco || '—' }}</dd>
+                </dl>
+                }
+                } @else {
+                <dl class="pront2-lista">
+                    <dt>Nome:</dt>
+                    <dd>{{ p.responsavel.nome || '—' }}</dd>
+                    <dt>Relação:</dt>
+                    <dd>{{ p.responsavel.relacao || '—' }}</dd>
+                    <dt>Telefone:</dt>
+                    <dd>{{ p.responsavel.telefone || '—' }}</dd>
+                    <dt>Endereço:</dt>
+                    <dd>{{ p.responsavel.endereco || '—' }}</dd>
+                </dl>
+                }
+            </section>
+
+            <section class="cartao pront2-ultimas">
+                <h2 class="pront2-titulo"><app-icone nome="relogio" /> Últimas informações</h2>
+                <div class="pront2-bloco">
+                    <p><strong>Próxima consulta — {{ ultimas().proxima?.dataBR ?? 'sem consulta marcada' }}</strong></p>
+                    @if (ultimas().proxima; as consulta) { <p>{{ consulta.profissional }}</p> }
+                </div>
+                <div class="pront2-bloco">
+                    <p><strong>Última consulta — {{ ultimas().ultima?.dataBR ?? 'sem registro' }}</strong></p>
+                    @if (ultimas().ultima; as consulta) { <p>{{ consulta.profissional }}</p> }
+                </div>
+            </section>
+        </div>
+
+        <nav class="pront2-secoes" aria-label="Seções do prontuário">
+            @for (s of secoes(); track s.id) {
+            <a class="cartao pront2-atalho" [routerLink]="[raiz(), 'pacientes', p.id, s.id]">
+                <app-icone nome="prancheta" class="pront2-icone" />
+                <span class="pront2-texto">
+                    <strong>{{ s.rotulo }}</strong>
+                    <small>{{ s.informacao }}</small>
+                </span>
+                <app-icone nome="seta-direita" class="pront2-seta" />
+            </a>
             }
-          } @else {
-            <dl class="pront2-lista">
-              <dt>Nome:</dt><dd>{{ p.responsavel.nome || '—' }}</dd>
-              <dt>Relação:</dt><dd>{{ p.responsavel.relacao || '—' }}</dd>
-              <dt>Telefone:</dt><dd>{{ p.responsavel.telefone || '—' }}</dd>
-              <dt>Endereço:</dt><dd>{{ p.responsavel.endereco || '—' }}</dd>
-            </dl>
-          }
-        </section>
-
-        <section class="cartao pront2-ultimas">
-          <h2 class="pront2-titulo"><app-icone nome="relogio" /> Últimas informações</h2>
-          <div class="pront2-bloco">
-            <p><strong>Próxima consulta — {{ ultimas().proxima?.dataBR ?? 'sem consulta marcada' }}</strong></p>
-            @if (ultimas().proxima; as consulta) { <p>{{ consulta.profissional }}</p> }
-          </div>
-          <div class="pront2-bloco">
-            <p><strong>Última consulta — {{ ultimas().ultima?.dataBR ?? 'sem registro' }}</strong></p>
-            @if (ultimas().ultima; as consulta) { <p>{{ consulta.profissional }}</p> }
-          </div>
-        </section>
-      </div>
-
-      <nav class="pront2-secoes" aria-label="Seções do prontuário">
-        @for (s of secoes(); track s.id) {
-          <a class="cartao pront2-atalho" [routerLink]="[raiz(), 'pacientes', p.id, s.id]">
-            <app-icone nome="prancheta" class="pront2-icone" />
-            <span class="pront2-texto">
-              <strong>{{ s.rotulo }}</strong>
-              <small>{{ s.informacao }}</small>
-            </span>
-            <app-icone nome="seta-direita" class="pront2-seta" />
-          </a>
-        }
-      </nav>
+        </nav>
     </div>
 
     <section class="cartao pront-historico">
-      <h2 class="pront-titulo"><app-icone nome="relogio" /> Histórico de consultas</h2>
-      <div class="hist-cab hist-linha" role="row"><span>Data</span><span>Profissional</span><span>Resumo</span></div>
-      <div class="hist-corpo">
-        @for (consulta of consultas(); track $index) {
-          <div class="hist-linha hist-item"><span>{{ consulta.dataBR }}</span><span>{{ consulta.profissional }}</span><span>{{ consulta.resumo }}</span></div>
-        } @empty {
-          <p class="tabela-vazio">Nenhuma consulta registrada.</p>
-        }
-      </div>
+        <h2 class="pront-titulo"><app-icone nome="relogio" /> Histórico de consultas</h2>
+        <div class="hist-cab hist-linha" role="row"><span>Data</span><span>Profissional</span><span>Resumo</span></div>
+        <div class="hist-corpo">
+            @for (consulta of consultas(); track $index) {
+            <div class="hist-linha hist-item"><span>{{ consulta.dataBR }}</span><span>{{ consulta.profissional
+                    }}</span><span>{{ consulta.resumo }}</span></div>
+            } @empty {
+            <p class="tabela-vazio">Nenhuma consulta registrada.</p>
+            }
+        </div>
     </section>
-  </div>
+</div>
 } @else {
-  <div class="pg">
-    <app-titulo-pagina titulo="Paciente não encontrado" subtitulo="Esse paciente não existe ou foi removido." [voltarPara]="raiz() + '/pacientes'" />
-  </div>
+<div class="pg">
+    <app-titulo-pagina titulo="Paciente não encontrado" subtitulo="Esse paciente não existe ou foi removido."
+        [voltarPara]="raiz() + '/pacientes'" />
+</div>
 }
