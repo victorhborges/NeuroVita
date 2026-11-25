@@ -6,17 +6,25 @@ export interface ProfissionalApi {
     id: string;
     nome: string;
     email: string;
-    emailContato?: string;
-    dataNascimento?: string;
-    cpf: string;
-    telefone: string;
+    emailContato: string | null;
+    dataNascimento: string | null;
+    cpf: string | null;
+    telefone: string | null;
+    cep: string | null;
+    cidade: string | null;
+    endereco: string | null;
+    numero: string | null;
+    complemento: string | null;
+    bairro: string | null;
+    admissao: string | null;
+    encerramento: string | null;
     categoria: string;
-    formacaoAcademica: string;
-    numeroRegistro: string;
+    formacaoAcademica: string | null;
+    numeroRegistro: string | null;
     anoConclusao: number | null;
-    atendeOnline: boolean;
-    atendePresencial?: boolean;
-    ativo: boolean;
+    atendeOnline: boolean | null;
+    atendePresencial: boolean;
+    ativo: boolean | null;
 }
 
 export interface ProfissionalRequestApi extends Omit<ProfissionalApi, 'id'> {
@@ -29,10 +37,15 @@ export interface DisponibilidadeApi {
     diaSemana: string;
     horaInicio: string;
     horaFim: string;
-    ativo: boolean;
+    ativo: boolean | null;
 }
 
-export interface DisponibilidadeRequestApi { diaSemana: string; horaInicio: string; horaFim: string; ativo: boolean; }
+export interface DisponibilidadeRequestApi {
+    diaSemana: string;
+    horaInicio: string;
+    horaFim: string;
+    ativo: boolean;
+}
 
 @Injectable({
     providedIn: 'root',
@@ -46,33 +59,63 @@ export class ProfissionaisApiService {
     }
 
     buscarPorId(id: string): Observable<ProfissionalApi> {
-        return this.http.get<ProfissionalApi>(`${this.api}/${id}`);
+        return this.http.get<ProfissionalApi>(
+            `${this.api}/${encodeURIComponent(id)}`
+        );
     }
 
     listarDisponibilidades(
         profissionalId: string
     ): Observable<DisponibilidadeApi[]> {
         return this.http.get<DisponibilidadeApi[]>(
-            `${this.api}/${profissionalId}/disponibilidades`
+            `${this.api}/${encodeURIComponent(profissionalId)}/disponibilidades`
         );
     }
 
-    criar(dados: ProfissionalRequestApi): Observable<{ profissional: ProfissionalApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }> {
-        return this.http.post<{ profissional: ProfissionalApi; senhaProvisoria: string | null; emailBoasVindasEnviado: boolean }>(this.api, dados);
+    criar(dados: ProfissionalRequestApi): Observable<{
+        profissional: ProfissionalApi;
+        senhaProvisoria: string | null;
+        emailBoasVindasEnviado: boolean;
+    }> {
+        return this.http.post<{
+            profissional: ProfissionalApi;
+            senhaProvisoria: string | null;
+            emailBoasVindasEnviado: boolean;
+        }>(this.api, dados);
     }
 
-    atualizar(id: string, dados: ProfissionalRequestApi): Observable<ProfissionalApi> {
-        return this.http.put<ProfissionalApi>(`${this.api}/${id}`, dados);
+    atualizar(
+        id: string,
+        dados: ProfissionalRequestApi
+    ): Observable<ProfissionalApi> {
+        return this.http.put<ProfissionalApi>(
+            `${this.api}/${encodeURIComponent(id)}`,
+            dados
+        );
     }
 
     excluir(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.api}/${id}`);
+        return this.http.delete<void>(
+            `${this.api}/${encodeURIComponent(id)}`
+        );
     }
 
-    adicionarDisponibilidade(profissionalId: string, disponibilidadeId: string): Observable<ProfissionalApi> {
-        return this.http.post<ProfissionalApi>(`${this.api}/${profissionalId}/disponibilidades/${disponibilidadeId}`, {});
+    adicionarDisponibilidade(
+        profissionalId: string,
+        disponibilidadeId: string
+    ): Observable<ProfissionalApi> {
+        return this.http.post<ProfissionalApi>(
+            `${this.api}/${encodeURIComponent(profissionalId)}/disponibilidades/${encodeURIComponent(disponibilidadeId)}`,
+            {}
+        );
     }
-    removerDisponibilidade(profissionalId: string, disponibilidadeId: string): Observable<void> {
-        return this.http.delete<void>(`${this.api}/${profissionalId}/disponibilidades/${disponibilidadeId}`);
+
+    removerDisponibilidade(
+        profissionalId: string,
+        disponibilidadeId: string
+    ): Observable<void> {
+        return this.http.delete<void>(
+            `${this.api}/${encodeURIComponent(profissionalId)}/disponibilidades/${encodeURIComponent(disponibilidadeId)}`
+        );
     }
 }

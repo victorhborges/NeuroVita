@@ -43,13 +43,20 @@ import com.neurovita.repository.VinculoResponsavelRepository;
 @ExtendWith(MockitoExtension.class)
 class PacienteServiceTest {
 
-    @Mock private PacienteRepository pacienteRepository;
-    @Mock private ConsultaRepository consultaRepository;
-    @Mock private UsuarioRepository usuarioRepository;
-    @Mock private ResponsavelRepository responsavelRepository;
-    @Mock private VinculoResponsavelRepository vinculoRepository;
-    @Mock private VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
-    @Mock private PasswordEncoder passwordEncoder;
+    @Mock
+    private PacienteRepository pacienteRepository;
+    @Mock
+    private ConsultaRepository consultaRepository;
+    @Mock
+    private UsuarioRepository usuarioRepository;
+    @Mock
+    private ResponsavelRepository responsavelRepository;
+    @Mock
+    private VinculoResponsavelRepository vinculoRepository;
+    @Mock
+    private VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private PacienteService pacienteService;
@@ -99,8 +106,7 @@ class PacienteServiceTest {
 
         Paciente pacienteVinculado = paciente("pac-1");
 
-        VinculoProfissionalPaciente vinculo =
-                new VinculoProfissionalPaciente();
+        VinculoProfissionalPaciente vinculo = new VinculoProfissionalPaciente();
         vinculo.setPacienteId("pac-1");
         vinculo.setProfissionalId("prof-1");
 

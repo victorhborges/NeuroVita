@@ -44,12 +44,12 @@ export class Secretarias {
     const s = this.excluindo();
     if (!s) return;
     try {
-    await this.clinica.removerSecretaria(s.id);
-    this.excluindo.set(null);
-    this.aviso.mostrar('Secretária inativada.');
+      await this.clinica.removerSecretaria(s.id);
+      this.excluindo.set(null);
+      this.aviso.mostrar('Secretária excluída com sucesso.');
     } catch (erro) {
-      console.error('Falha ao inativar secretária:', erro);
-      this.aviso.mostrar('Não foi possível inativar a secretária.');
+      console.error('Falha ao excluir secretária:', erro);
+      this.aviso.mostrar('Não foi possível excluir a secretária.');
     }
   }
 }

@@ -1,16 +1,16 @@
+
 # Etapa 1: Compilar o frontend Angular
 FROM node:24-alpine AS frontend-build
 
 WORKDIR /frontend
 
-COPY frontend/package*.json ./
+COPY ["frontend/package.json", "frontend/package-lock.json", "./"]
 
 RUN npm ci
 
-COPY frontend/ ./
+COPY ["frontend/", "./"]
 
 RUN npm run build
-
 
 # Etapa 2: Compilar o backend Java
 FROM eclipse-temurin:21-jdk AS backend-build
@@ -25,7 +25,6 @@ COPY --from=frontend-build /frontend/dist/neurovita/browser/ src/main/resources/
 RUN chmod +x mvnw
 
 RUN ./mvnw clean package -DskipTests
-
 
 # Etapa 3: Executar a aplicação
 FROM eclipse-temurin:21-jre

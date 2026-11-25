@@ -6,41 +6,41 @@
 
   <div class="topo-usuario">
     @if (config().sino) {
-    <button type="button" class="topo-sino" aria-label="Notificações">
-      <app-icone nome="sino" />
-    </button>
+      <!-- TODO: ligar as notificações. -->
+      <button type="button" class="topo-sino" aria-label="Notificações">
+        <app-icone nome="sino" />
+      </button>
     }
 
     @if (config().setaUsuario) {
-    <button type="button" class="topo-perfil topo-perfil-botao" aria-haspopup="menu" [attr.aria-expanded]="menuAberto()"
-      (click)="alternarMenu()">
-      <app-avatar [nome]="nomeUsuario()" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
-
-      <span class="topo-dados">
-        <span class="topo-nome">{{ nomeUsuario() }}</span>
-        <span class="topo-cargo">{{ config().usuario.cargo }}</span>
-      </span>
-
-      <app-icone nome="seta-baixo" class="topo-seta" />
-    </button>
-
-    @if (menuAberto()) {
-    <div class="topo-menu" role="menu">
-      <button type="button" class="topo-menu-item" role="menuitem" (click)="sair()">
-        <app-icone nome="sair" />
-        Sair
+      <button
+        type="button" class="topo-perfil topo-perfil-botao" aria-haspopup="menu"
+        [attr.aria-expanded]="menuAberto()" (click)="alternarMenu()"
+      >
+        <app-avatar [nome]="config().usuario.nome" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
+        <span class="topo-dados">
+          <span class="topo-nome">{{ config().usuario.nome }}</span>
+          <span class="topo-cargo">{{ config().usuario.cargo }}</span>
+        </span>
+        <app-icone nome="seta-baixo" class="topo-seta" />
       </button>
-    </div>
-    }
-    } @else {
-    <div class="topo-perfil">
-      <app-avatar [nome]="nomeUsuario()" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
 
-      <span class="topo-dados">
-        <span class="topo-nome">{{ nomeUsuario() }}</span>
-        <span class="topo-cargo">{{ config().usuario.cargo }}</span>
-      </span>
-    </div>
+      @if (menuAberto()) {
+        <div class="topo-menu" role="menu">
+          <a class="topo-menu-item" role="menuitem" routerLink="/" (click)="sair()">
+            <app-icone nome="sair" />
+            Sair
+          </a>
+        </div>
+      }
+    } @else {
+      <div class="topo-perfil">
+        <app-avatar [nome]="config().usuario.nome" [foto]="config().usuario.foto" [neutro]="!!config().usuario.neutro" />
+        <span class="topo-dados">
+          <span class="topo-nome">{{ config().usuario.nome }}</span>
+          <span class="topo-cargo">{{ config().usuario.cargo }}</span>
+        </span>
+      </div>
     }
   </div>
 </header>

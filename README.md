@@ -49,7 +49,7 @@ Aplicação Spring Boot
         +----------------------+
         |                      |
         v                      v
-Arquivos estáticos         API REST
+Arquivos estáticos          API REST
                                |
                            Controller
                                |
@@ -59,7 +59,7 @@ Arquivos estáticos         API REST
                                |
                              Model
                                |
-                           MongoDB
+                            MongoDB
                                |
                          MongoDB Atlas
 ```
@@ -78,7 +78,9 @@ O backend é organizado em pacotes com responsabilidades específicas:
 
 ### Frontend
 
-O frontend é desenvolvido em Angular e utiliza serviços para comunicação com a API.
+O frontend oficial está localizado em `frontend/` e é desenvolvido em Angular.
+
+Os serviços Angular utilizam os endpoints REST do backend para autenticação, preferências e operações administrativas e clínicas.
 
 Os arquivos compilados são incorporados à aplicação Spring Boot em:
 
@@ -89,6 +91,10 @@ src/main/resources/static/
 A autenticação utiliza JWT. As requisições protegidas enviam o token no cabeçalho `Authorization`.
 
 A proteção de rotas no Angular complementa, mas não substitui, as verificações de autorização realizadas pelo backend.
+
+Os contratos de cadastro contemplam campos de acompanhamento de pacientes, endereço e datas de vínculo de profissionais, além de dados de endereço e atividade das secretárias. Documentos clínicos também podem persistir o grupo selecionado na interface.
+
+A conclusão da integração depende da validação dos formulários, telas, rotas e operações do frontend com os contratos efetivamente disponibilizados pelo backend.
 
 ---
 
@@ -101,7 +107,7 @@ O sistema contempla os seguintes módulos:
 - Cadastro e gerenciamento de responsáveis.
 - Vínculos entre pacientes e responsáveis.
 - Cadastro e gerenciamento de profissionais.
-- Cadastro e gerenciamento de secretarias.
+- Cadastro e gerenciamento de secretárias.
 - Vínculos entre profissionais e pacientes.
 - Disponibilidades profissionais.
 - Consultas e agenda.
@@ -140,9 +146,11 @@ O módulo permite cadastrar, consultar, atualizar e inativar pacientes e respons
 - Número da carteirinha e validade permanecem opcionais.
 - Quando o paciente não possui plano, os dados de identificação do plano não são obrigatórios.
 
-### Endereço
+### Endereço e acompanhamento
 
 O cadastro contempla campos de endereço, incluindo CEP, cidade, número, complemento e bairro, conforme os contratos e regras aplicáveis ao cadastro.
+
+As datas opcionais de início e encerramento do acompanhamento também são persistidas. Quando ambas são informadas, o backend rejeita encerramento anterior ao início.
 
 ---
 
@@ -177,6 +185,8 @@ As regras contemplam:
 - A autoria dos registros clínicos deve ser preservada.
 
 As permissões são verificadas no backend, não apenas nas rotas do frontend.
+
+Os cadastros de profissionais e secretárias preservam os dados de endereço e funcionais apresentados pelos formulários, incluindo datas de início e encerramento, CBO e carga horária quando aplicável.
 
 ---
 
@@ -297,7 +307,7 @@ Os registros clínicos são organizados em módulos próprios:
 
 O mecanismo de documentos clínicos contempla registros textuais organizados por seção, incluindo acolhimento, assistência social, relatórios escolares, declarações, rastreio, devolutiva e outros documentos previstos na implementação.
 
-O modelo contempla conteúdo textual, autoria, profissional responsável, paciente, data e anexos.
+O modelo contempla conteúdo textual, autoria, profissional responsável, paciente, data, grupo opcional e anexos.
 
 A implementação atual não deve ser confundida com geração formal de documentos assinados digitalmente ou emissão de PDFs oficiais.
 
@@ -308,9 +318,10 @@ As evoluções possuem API específica para registro e consulta.
 ```http
 GET  /api/evolucoes/paciente/{pacienteId}
 POST /api/evolucoes
+POST /api/evolucoes/{id}/anexos
 ```
 
-Os registros específicos são append-only nesta versão, preservando a autoria e o histórico.
+Os registros específicos são append-only nesta versão, preservando a autoria e o histórico. Anexos são acrescentados por operação própria, sem permitir alteração do conteúdo clínico; somente o profissional autor ou um administrador pode vinculá-los.
 
 ### Diagnósticos e tratamentos
 
@@ -328,7 +339,7 @@ PUT  /api/exames/{id}
 PUT  /api/exames/{id}/resultado
 ```
 
-A atualização de resultado é independente da solicitação. Campos omitidos preservam informações existentes, conforme as regras do serviço.
+A atualização de resultado é independente da solicitação. Campos omitidos preservam informações existentes, conforme as regras do serviço. Um resultado textual exige data de realização; anexos podem ser vinculados sem inventar essa data.
 
 ### Prescrições
 
@@ -343,9 +354,10 @@ POST /api/prescricoes
 GET  /api/prescricoes/{id}
 GET  /api/prescricoes/paciente/{pacienteId}
 PUT  /api/prescricoes/{id}
+POST /api/prescricoes/{id}/anexos
 ```
 
-Os dados estruturados são informativos e não substituem a avaliação clínica do profissional responsável.
+Os anexos são persistidos junto à prescrição e acrescentados sem substituir o conteúdo nem os medicamentos existentes. Os dados estruturados são informativos e não substituem a avaliação clínica do profissional responsável.
 
 ### Arquivamento lógico
 
@@ -415,7 +427,7 @@ A autenticação em duas etapas (2FA) depende de definição funcional específi
 
 As preferências individuais são persistidas por usuário autenticado.
 
-Endpoint:
+Endpoints:
 
 ```http
 GET /api/preferencias
@@ -518,14 +530,16 @@ As variáveis SMTP são necessárias para os fluxos de e-mail correspondentes.
 
 | Ambiente | Branch | Serviço |
 |---|---|---|
-| Desenvolvimento | `develop` | https://neurovita-dev.onrender.com |
-| Testes | `testes` | https://neurovita-testes.onrender.com |
-| Homologação | `homologacao` | https://neurovita-homologacao.onrender.com |
-| Produção | `main` | https://neurovita.onrender.com |
+| Desenvolvimento | `develop` | [neurovita-dev.onrender.com](https://neurovita-dev.onrender.com) |
+| Testes | `testes` | [neurovita-testes.onrender.com](https://neurovita-testes.onrender.com) |
+| Homologação | `homologacao` | [neurovita-homologacao.onrender.com](https://neurovita-homologacao.onrender.com) |
+| Produção | `main` | [neurovita.onrender.com](https://neurovita.onrender.com) |
 
 Cada ambiente deve utilizar sua configuração e seu banco de dados correspondentes.
 
 A branch `main` representa a produção.
+
+A branch temporária `revisao-integracao` é destinada à revisão técnica da integração e não representa um ambiente de produção ou homologação.
 
 ---
 
@@ -555,6 +569,12 @@ git switch develop
 git pull origin develop
 ```
 
+Para trabalhar na revisão da integração, utilize a branch correspondente:
+
+```bash
+git switch revisao-integracao
+```
+
 ### Configurar variáveis no Windows
 
 ```cmd
@@ -578,7 +598,9 @@ Linux/macOS:
 ./mvnw spring-boot:run
 ```
 
-### Compilar o frontend
+### Compilar o frontend oficial
+
+A partir da raiz do projeto:
 
 ```bash
 cd frontend
@@ -606,14 +628,30 @@ Os testes Java são executados pelo Maven.
 
 ### Compilação
 
+Windows:
+
 ```cmd
 mvnw.cmd compile
 ```
 
+Linux/macOS:
+
+```bash
+./mvnw compile
+```
+
 ### Executar a suíte completa
 
+Windows:
+
 ```cmd
-mvnw.cmd test
+mvnw.cmd verify
+```
+
+Linux/macOS:
+
+```bash
+./mvnw verify
 ```
 
 ### Executar testes específicos
@@ -634,14 +672,16 @@ mvnw.cmd package -DskipTests
 
 ### Estado da validação
 
-**Última validação informada: 21/11/2026.**
+**Última validação informada: 25/11/2026.**
 
-- Suíte completa de testes Java: aprovada.
-- `ConsultaServiceTest`: 30 testes aprovados, sem falhas ou erros.
-- `AgendaServiceTest`: testes aprovados.
-- Regras de normalização e conflito de salas: cobertas por testes automatizados.
+- Suíte completa de testes Java (`mvnw verify`): aprovada, com 176 testes executados, sem falhas ou erros.
+- Compilação do frontend Angular: aprovada.
+- Build Angular: concluído com aviso de limite de tamanho do bundle.
+- Construção da imagem Docker: concluída com sucesso.
+- Execução integrada com MongoDB: ainda pendente de configuração e validação da URI de conexão no ambiente local.
+- Integração funcional de todas as telas, formulários e fluxos: ainda pendente de validação.
 
-Os avisos de inicialização do agente Mockito/OpenJDK não representam, por si só, falha nos testes.
+Os avisos de inicialização do agente Mockito/OpenJDK e de tamanho do bundle Angular não representam, por si só, falha de compilação ou de testes.
 
 A aprovação dos testes automatizados não substitui os testes funcionais da equipe, nem a validação completa da aplicação com MongoDB Atlas e Render.
 
@@ -651,7 +691,8 @@ A aprovação dos testes automatizados não substitui os testes funcionais da eq
 
 ```text
 NeuroVita/
-├── frontend/
+├── frontend/                    # Frontend oficial Angular
+│   ├── public/
 │   ├── src/
 │   │   └── app/
 │   ├── package.json
@@ -692,13 +733,14 @@ NeuroVita/
 
 Repositório oficial:
 
-https://github.com/victorhborges/NeuroVita
+[github.com/victorhborges/NeuroVita](https://github.com/victorhborges/NeuroVita)
 
 ### Branches
 
 | Branch | Finalidade |
 |---|---|
 | `develop` | Desenvolvimento e integração |
+| `revisao-integracao` | Revisão técnica da integração |
 | `testes` | Validação pela equipe de testes |
 | `homologacao` | Validação antes da produção |
 | `main` | Produção |
@@ -720,6 +762,8 @@ homologacao
    v
 main
 ```
+
+A branch `revisao-integracao` é temporária e utilizada para revisão antes da incorporação das alterações ao fluxo principal.
 
 As promoções devem ocorrer por Pull Requests, preservando o histórico do Git.
 
@@ -752,7 +796,6 @@ Nunca versionar credenciais, tokens, URIs privadas ou arquivos `.env`.
 As próximas atividades devem priorizar a conclusão do MVP e a validação integrada:
 
 - [x] Implementar os principais módulos do backend.
-- [x] Integrar frontend Angular e backend Spring Boot.
 - [x] Implementar vínculos entre pacientes e responsáveis.
 - [x] Implementar vínculos profissionais-pacientes.
 - [x] Implementar controle de acesso clínico por vínculo ativo.
@@ -762,17 +805,20 @@ As próximas atividades devem priorizar a conclusão do MVP e a validação inte
 - [x] Implementar módulos clínicos existentes no backend.
 - [x] Implementar autenticação JWT e alteração de senha.
 - [x] Implementar persistência de preferências.
-- [x] Validar a suíte completa de testes Java.
+- [x] Validar a suíte automatizada Java.
+- [x] Validar a compilação do frontend Angular.
+- [x] Validar a construção da imagem Docker.
+- [ ] Concluir e validar todos os fluxos do frontend oficial com o backend.
 - [ ] Revisar e concluir a integração de todas as telas com as APIs.
 - [ ] Conferir todos os campos obrigatórios do MVP FBR.
 - [ ] Validar os fluxos completos com MongoDB Atlas.
-- [ ] Validar a versão integrada com Docker.
+- [ ] Validar a execução integrada com Docker e MongoDB.
 - [ ] Publicar e validar a versão atual no ambiente `develop` do Render.
 - [ ] Disponibilizar a versão para a equipe de testes.
 - [ ] Executar os testes funcionais.
 - [ ] Promover a versão aprovada para homologação.
 - [ ] Publicar a versão final em produção.
-- [ ] Definir requisitos ainda pendentes do MVP, como o módulo de Receitas e eventual 2FA.
+- [ ] Definir os requisitos ainda pendentes do MVP, como o módulo de Receitas. A autenticação 2FA permanece fora do escopo atual e desabilitada como funcionalidade futura.
 
 ---
 

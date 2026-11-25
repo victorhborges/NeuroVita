@@ -25,6 +25,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.PrescricaoRequest;
+import com.neurovita.dto.AnexosClinicosRequest;
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Prescricao;
 import com.neurovita.model.Prescricao.MedicamentoPrescrito;
 import com.neurovita.model.Usuario;
@@ -185,5 +187,35 @@ class PrescricaoServiceTest {
 
         assertEquals(409, erro.getStatusCode().value());
         verify(prescricoes, never()).save(any());
+    }
+
+    @Test
+    void profissionalAutorAcrescentaAnexoSemPerderMedicamentos() {
+        autenticarProfissional("prof@neurovita.test", "prof-1");
+        Prescricao prescricao = new Prescricao();
+        prescricao.setId("presc-1");
+        prescricao.setPacienteId("pac-1");
+        prescricao.setProfissionalId("prof-1");
+        prescricao.setConteudo("Orientação");
+        MedicamentoPrescrito medicamento = new MedicamentoPrescrito();
+        medicamento.setMedicamento("Medicamento A");
+        prescricao.setMedicamentos(List.of(medicamento));
+        when(prescricoes.findById("presc-1")).thenReturn(Optional.of(prescricao));
+        when(vinculos.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull("pac-1", "prof-1"))
+                .thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(prescricoes.save(prescricao)).thenReturn(prescricao);
+        AnexoClinico anexo = new AnexoClinico();
+        anexo.setNome("receita.pdf");
+        anexo.setConteudoBase64("cGRm");
+        anexo.setTipoMime("application/pdf");
+        AnexosClinicosRequest request = new AnexosClinicosRequest();
+        request.setAnexos(List.of(anexo));
+
+        var resposta = service.anexar("presc-1", request);
+
+        assertEquals(1, resposta.anexos().size());
+        assertEquals("Medicamento A", resposta.medicamentos().get(0).getMedicamento());
+        assertEquals("Orientação", resposta.conteudo());
+        verify(prescricoes).save(prescricao);
     }
 }

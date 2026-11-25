@@ -1,6 +1,7 @@
 package com.neurovita.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -12,7 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.EvolucaoRequest;
 import com.neurovita.dto.EvolucaoResponse;
+import com.neurovita.dto.AnexosClinicosRequest;
 import com.neurovita.exception.ResourceNotFoundException;
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Evolucao;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.ConsultaRepository;
@@ -180,6 +183,31 @@ public class EvolucaoService {
         evolucao.setAtualizadoEm(agora);
         evolucao.setVersao(1);
 
+        return new EvolucaoResponse(evolucoes.save(evolucao));
+    }
+
+    public EvolucaoResponse anexar(
+            String id,
+            AnexosClinicosRequest request,
+            Authentication auth) {
+        exigirProfissionalOuAdmin(auth);
+        if (request == null || request.getAnexos() == null || request.getAnexos().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe ao menos um anexo.");
+        }
+
+        Evolucao evolucao = evolucoes.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Evolução não encontrada."));
+        validarAcessoPaciente(evolucao.getPacienteId(), auth);
+        if (!ehAdmin(auth) && !Objects.equals(evolucao.getProfissionalId(), profissionalId(auth))) {
+            throw new AccessDeniedException("Somente o profissional autor pode anexar arquivos à evolução.");
+        }
+        List<AnexoClinico> anexos = evolucao.getAnexos() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(evolucao.getAnexos());
+        anexos.addAll(request.getAnexos());
+        AnexoClinicoValidator.validar(anexos);
+        evolucao.setAnexos(anexos);
+        evolucao.setAtualizadoEm(LocalDateTime.now());
         return new EvolucaoResponse(evolucoes.save(evolucao));
     }
 

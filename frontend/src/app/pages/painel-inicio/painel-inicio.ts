@@ -1,123 +1,70 @@
-import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AgendaDoDiaTabela, LinhaAgendaClinica } from '../../shared/agenda-do-dia-tabela/agenda-do-dia-tabela';
-import { Aviso } from '../../shared/aviso/aviso';
 import { Banner } from '../../shared/banner/banner';
 import { Cabecalho } from '../../shared/cabecalho/cabecalho';
-import { Auth } from '../../shared/auth';
 import { CardsResumo } from '../../shared/cards-resumo/cards-resumo';
-import { ConsultasApiService, ConsultaApi, StatusConsultaApi } from '../../shared/clinica/consultas-api.service';
-import { PacienteApi, PacientesApiService } from '../../shared/clinica/pacientes-api.service';
-import { ProfissionaisApiService, ProfissionalApi } from '../../shared/clinica/profissionais-api.service';
+import { Clinica } from '../../shared/clinica/clinica';
 import { StatusConsulta } from '../../shared/clinica/modelos';
-import { Icone } from '../../shared/icone/icone';
+import { minutosDe } from '../../shared/clinica/status';
 import { CardResumo } from '../../shared/dados-demo';
+import { Icone } from '../../shared/icone/icone';
 import { CONFIG_PERFIS, Perfil } from '../../shared/perfil';
-import { ROTULO_STATUS } from '../../shared/clinica/status';
+import { paraISO } from '../../shared/util';
 
+const HOJE_DEMO = paraISO(new Date());
+
+/**
+ * Tela inicial dos 4 perfis (psicólogo, psiquiatra, secretária e administrador).
+ * É a mesma tela: o que muda (cards, botões, banner...) vem de CONFIG_PERFIS.
+ * O perfil chega pela rota (o `data` do pai, ver app.routes.ts) e o menu lateral vem do PainelShell.
+ */
 @Component({
   selector: 'app-painel-inicio',
   imports: [AgendaDoDiaTabela, Banner, Cabecalho, CardsResumo, Icone, RouterLink],
   templateUrl: './painel-inicio.html',
 })
-export class PainelInicio implements OnInit {
+export class PainelInicio {
   readonly perfil = input.required<Perfil>();
 
-  private readonly auth = inject(Auth);
-  private readonly aviso = inject(Aviso);
-  private readonly consultasApi = inject(ConsultasApiService);
-  private readonly pacientesApi = inject(PacientesApiService);
-  private readonly profissionaisApi = inject(ProfissionaisApiService);
+  protected readonly config = computed(() => CONFIG_PERFIS[this.perfil()]);
 
-  private readonly consultas = signal<ConsultaApi[]>([]);
-  private readonly pacientes = signal<PacienteApi[]>([]);
-  private readonly profissionais = signal<ProfissionalApi[]>([]);
-  protected readonly carregando = signal(true);
-  protected readonly erroCarga = signal(false);
-  protected readonly rotuloStatus = ROTULO_STATUS;
-  private readonly hojeISO = this.dataAtualISO();
+  private readonly clinica = inject(Clinica);
 
-  protected readonly config = computed(() => {
-    const perfil = CONFIG_PERFIS[this.perfil()];
-    const nome = this.auth.obterNome()?.trim() || 'Usuário';
-    return { ...perfil, saudacao: `Olá, ${nome}`, usuario: { ...perfil.usuario, nome } };
-  });
+  /** Consultas de hoje, em ordem de horário. */
+  private readonly hoje = computed(() =>
+    this.clinica.agendamentos()
+      .filter((a) => a.data === HOJE_DEMO)
+      .sort((a, b) => minutosDe(a.inicio) - minutosDe(b.inicio)),
+  );
 
-  private dataAtualISO(): string {
-    const hoje = new Date();
-    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-  }
-
-  protected recarregar(): void {
-    this.carregando.set(true);
-    this.erroCarga.set(false);
-    this.consultas.set([]);
-    this.pacientes.set([]);
-    this.profissionais.set([]);
-    this.carregarDados();
-  }
-
-  ngOnInit(): void {
-    this.carregarDados();
-  }
-
-  private carregarDados(): void {
-    const carregarProfissionais = this.perfil() === 'admin' || this.perfil() === 'secretaria';
-    let pendentes = carregarProfissionais ? 3 : 2;
-    const finalizado = (falhou = false) => {
-      if (falhou) this.erroCarga.set(true);
-      pendentes -= 1;
-      if (pendentes === 0) this.carregando.set(false);
-    };
-
-    this.consultasApi.listarTodas().subscribe({
-      next: (lista) => { this.consultas.set(lista ?? []); finalizado(); },
-      error: (erro) => { console.error('Erro ao carregar consultas do painel:', erro); finalizado(true); },
-    });
-    this.pacientesApi.listarTodos().subscribe({
-      next: (lista) => { this.pacientes.set(lista ?? []); finalizado(); },
-      error: (erro) => { console.error('Erro ao carregar pacientes do painel:', erro); finalizado(true); },
-    });
-    if (carregarProfissionais) {
-      this.profissionaisApi.listarTodos().subscribe({
-        next: (lista) => { this.profissionais.set(lista ?? []); finalizado(); },
-        error: (erro) => { console.error('Erro ao carregar profissionais do painel:', erro); finalizado(true); },
-      });
-    }
-  }
-
-  private readonly consultasDeHoje = computed(() => this.consultas()
-    .filter((consulta) => consulta.dataHora.slice(0, 10) === this.hojeISO)
-    .sort((a, b) => a.dataHora.localeCompare(b.dataHora)));
-
+  /** Números dos cards (secretária e administrador), calculados a partir das consultas de hoje. */
   protected readonly cards = computed<CardResumo[]>(() => {
-    const lista = this.consultasDeHoje();
-    const conta = (status: StatusConsultaApi) => String(lista.filter((consulta) => consulta.status === status).length).padStart(2, '0');
+    const lista = this.hoje();
+    const conta = (s: StatusConsulta) => String(lista.filter((a) => a.status === s).length).padStart(2, '0');
     return [
       { valor: String(lista.length).padStart(2, '0'), rotulo: 'Consultas\nDo dia', icone: 'calendario' },
-      { valor: conta('CONFIRMADA'), rotulo: 'Consultas\nConfirmadas', icone: 'usuario' },
-      { valor: conta('PENDENTE'), rotulo: 'Consultas\nPendentes', icone: 'info' },
-      { valor: conta('CANCELADA'), rotulo: 'Consultas\nCanceladas', icone: 'usuario-x' },
+      { valor: conta('confirmado'), rotulo: 'Consultas\nConfirmadas', icone: 'usuario' },
+      { valor: conta('pendente'), rotulo: 'Consultas\nPendentes', icone: 'info' },
+      { valor: conta('cancelado'), rotulo: 'Consultas\nCanceladas', icone: 'usuario-x' },
     ];
   });
 
-  protected readonly agendaClinica = computed<LinhaAgendaClinica[]>(() => this.consultasDeHoje().map((consulta) => {
-    const paciente = this.pacientes().find((item) => item.id === consulta.pacienteId);
-    const profissional = this.profissionais().find((item) => item.id === consulta.profissionalId);
-    return {
-      hora: consulta.dataHora.slice(11, 16),
-      paciente: paciente?.nome ?? '—',
-      telefone: paciente?.telefone || '—',
-      profissional: profissional?.nome ?? (this.perfil() === 'admin' || this.perfil() === 'secretaria' ? '—' : this.auth.obterNome() ?? '—'),
-      status: this.converterStatus(consulta.status),
-    };
-  }));
-
-  private converterStatus(status: StatusConsultaApi): StatusConsulta {
-    const conversao: Record<StatusConsultaApi, StatusConsulta> = {
-      PENDENTE: 'pendente', CONFIRMADA: 'confirmado', REMARCADA: 'remarcado', CANCELADA: 'cancelado',
-    };
-    return conversao[status] ?? 'pendente';
-  }
+  /** Agenda do dia (todos os perfis): consultas de hoje com telefone do paciente e nome do profissional. */
+  protected readonly agendaClinica = computed<LinhaAgendaClinica[]>(() =>
+    this.hoje().map((a) => {
+      const paciente = this.clinica.paciente(a.pacienteId);
+      const profissional = this.clinica.profissional(a.profissionalId);
+      return {
+        hora: a.inicio,
+        paciente: paciente?.nome ?? '—',
+        foto: paciente?.foto,
+        telefone: paciente?.telefone ?? '—',
+        tipo: a.atendimento,
+        profissional: profissional ? `${profissional.tratamento} ${profissional.nome}`.trim() : '—',
+        status: a.status,
+      };
+    }),
+  );
 }

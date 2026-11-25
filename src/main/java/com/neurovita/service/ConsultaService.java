@@ -196,13 +196,8 @@ public class ConsultaService {
                     "Consultas canceladas não podem ser confirmadas.");
         }
 
-        if (consulta.getStatus() == StatusConsulta.REMARCADA) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Uma consulta remarcada não pode ser confirmada por esta operação.");
-        }
-
-        if (consulta.getStatus() == StatusConsulta.PENDENTE) {
+        if (consulta.getStatus() == StatusConsulta.PENDENTE
+                || consulta.getStatus() == StatusConsulta.REMARCADA) {
             consulta.registrarHistorico(
                     LocalDateTime.now(),
                     obterAutenticacao().getName());

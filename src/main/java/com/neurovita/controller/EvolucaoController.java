@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.neurovita.dto.EvolucaoRequest;
 import com.neurovita.dto.EvolucaoResponse;
+import com.neurovita.dto.AnexosClinicosRequest;
 import com.neurovita.service.EvolucaoService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,5 +38,15 @@ public class EvolucaoController {
     @Operation(summary = "Registrar evolução clínica", description = "Cria registro finalizado e preservado no histórico; não há atualização destrutiva.")
     public EvolucaoResponse criar(@Valid @RequestBody EvolucaoRequest request, Authentication auth) {
         return service.criar(request, auth);
+    }
+
+    @PostMapping("/{id}/anexos")
+    @Operation(summary = "Anexar arquivos a uma evolução",
+            description = "Acrescenta anexos sem alterar o conteúdo clínico imutável da evolução.")
+    public EvolucaoResponse anexar(
+            @PathVariable String id,
+            @Valid @RequestBody AnexosClinicosRequest request,
+            Authentication auth) {
+        return service.anexar(id, request, auth);
     }
 }

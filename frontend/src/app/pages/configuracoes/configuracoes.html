@@ -1,130 +1,192 @@
 <div class="pg">
   <app-titulo-pagina titulo="Configurações" subtitulo="Personalize o sistema de acordo com suas informações" />
-
-  @if (carregando()) {
-    <p class="estado-carregamento" role="status">Carregando suas preferências…</p>
-  } @else if (erroCarga()) {
-    <div class="estado-erro" role="alert">
-      <p>{{ erroCarga() }}</p>
-      <button type="button" class="botao-contorno" (click)="carregar(true)">Tentar novamente</button>
-    </div>
-  } @else {
-    <div class="cfg-grade">
-      <section class="cartao cfg-cartao cfg-perfil" aria-labelledby="cfg-perfil">
-        <div class="cfg-avatar" aria-hidden="true"><app-icone nome="usuario" /></div>
-        <div class="cfg-perfil-corpo">
-          <h2 id="cfg-perfil" class="cfg-titulo"><app-icone nome="usuario" /> Perfil da conta</h2>
-          <p class="cfg-sub">Informações da sessão autenticada</p>
-          <dl class="cfg-dados">
-            <div><dt>Nome</dt><dd>{{ nome() }}</dd></div>
-            <div><dt>Perfil</dt><dd>{{ cargo() }}</dd></div>
-            <div><dt>E-mail</dt><dd>{{ email() }}</dd></div>
-          </dl>
-          <button type="button" class="botao-contorno cfg-editar-perfil" (click)="abrirEdicaoPerfil()"><app-icone nome="editar" /> Editar perfil</button>
-        </div>
-      </section>
-
-      <section class="cartao cfg-cartao" aria-labelledby="cfg-pref">
-        <h2 id="cfg-pref" class="cfg-titulo cfg-titulo-grande"><app-icone nome="engrenagem" /> Preferências do Sistema</h2>
-        <ul class="cfg-linhas">
-          <li class="cfg-linha"><span class="cfg-rotulo"><app-icone nome="info" /> Idioma</span>
-            <span class="cfg-campo"><app-lista-suspensa titulo="Idioma" [opcoes]="idiomas" [valor]="preferencias().idioma" (valorChange)="definir('idioma', $event === 'en' ? 'en' : 'pt')" /></span>
-          </li>
-          <li class="cfg-nota" role="note">A preferência é salva na conta. A interface do MVP está disponível em português; a tradução para inglês ainda não foi implementada.</li>
-          <li class="cfg-linha"><span class="cfg-rotulo"><app-icone nome="relogio" /> Formato de data</span>
-            <span class="cfg-campo"><app-lista-suspensa titulo="Formato de data" [opcoes]="formatosData" [valor]="preferencias().formatoData" (valorChange)="definirFormatoData($event)" /></span>
-          </li>
-          <li class="cfg-linha"><span class="cfg-rotulo"><app-icone nome="relogio" /> Duração padrão da consulta</span>
-            <span class="cfg-campo"><app-lista-suspensa titulo="Duração padrão da consulta" [opcoes]="duracoes" [valor]="preferencias().duracaoConsulta" (valorChange)="definir('duracaoConsulta', $event)" /></span>
-          </li>
-          <li class="cfg-linha"><span class="cfg-rotulo"><app-icone nome="calendario" /> Início da semana</span>
-            <span class="cfg-campo cfg-semana">
-              <button type="button" class="lista-campo" aria-haspopup="listbox" [attr.aria-expanded]="semanaAberta()" (click)="semanaAberta.set(!semanaAberta())">
-                {{ nomeInicioSemana() }} <app-icone nome="seta-baixo" />
-              </button>
-              @if (semanaAberta()) {
-                <div class="cfg-semana-painel" role="listbox" aria-label="Início da semana">
-                  @for (dia of dias; track dia.valor) {
-                    <button type="button" role="option" class="lista-opcao" [attr.aria-selected]="dia.valor === preferencias().inicioSemana" (click)="definir('inicioSemana', dia.valor); semanaAberta.set(false)">{{ dia.nome }}</button>
-                  }
-                </div>
-              }
-            </span>
-          </li>
-        </ul>
-        <p class="cfg-nota" role="note">A preferência é salva. A agenda atual mantém a grade de segunda-feira a sábado, conforme a tela de referência.</p>
-      </section>
-
-      <section class="cartao cfg-cartao" aria-labelledby="cfg-notif">
-        <h2 id="cfg-notif" class="cfg-titulo cfg-titulo-grande"><app-icone nome="sino" /> Notificações</h2>
-        <p class="cfg-nota" role="note">Estas opções registram suas preferências. O envio de e-mails e notificações ainda não está configurado.</p>
-        <ul class="cfg-linhas">
-          <li class="cfg-linha"><span class="cfg-rotulo cfg-rotulo-longo">Receber lembretes de consulta por e-mail</span>
-            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="preferencias().lembreteEmail" aria-label="Lembretes de consulta por e-mail" (click)="alternar('lembreteEmail')"><span class="interruptor-bola"></span></button>
-          </li>
-          <li class="cfg-linha"><span class="cfg-rotulo cfg-rotulo-longo">Alertas de consultas pendentes</span>
-            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="preferencias().alertaPendentes" aria-label="Alertas de consultas pendentes" (click)="alternar('alertaPendentes')"><span class="interruptor-bola"></span></button>
-          </li>
-          <li class="cfg-linha"><span class="cfg-rotulo cfg-rotulo-longo">Notificações do sistema</span>
-            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="preferencias().notificacaoSistema" aria-label="Notificações do sistema" (click)="alternar('notificacaoSistema')"><span class="interruptor-bola"></span></button>
-          </li>
-        </ul>
-      </section>
-
-      <section class="cartao cfg-cartao" aria-labelledby="cfg-seg">
-        <h2 id="cfg-seg" class="cfg-titulo cfg-titulo-grande"><app-icone nome="info" /> Segurança</h2>
-        <ul class="cfg-linhas">
-          <li class="cfg-linha"><span class="cfg-rotulo">Alterar senha</span>
-            <button type="button" class="botao-contorno cfg-pilula" (click)="alterandoSenha.set(!alterandoSenha())">{{ alterandoSenha() ? 'Fechar' : 'Alterar' }}</button>
-          </li>
-          <li class="cfg-linha"><span class="cfg-rotulo">Ativar autenticação em duas etapas</span>
-            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="false" aria-label="Ativar autenticação em duas etapas" title="O fluxo de 2FA depende de integração com canal de autenticação (em definição)"><span class="interruptor-bola"></span></button>
-          </li>
-        </ul>
-        @if (alterandoSenha()) {
-          <form class="cfg-senha" (submit)="$event.preventDefault(); alterarSenha()">
-            <label class="campo-form"><span class="campo-rotulo">Senha atual</span><input type="password" autocomplete="current-password" [value]="senhaAtual()" (input)="senhaAtual.set($any($event.target).value)" required /></label>
-            <label class="campo-form"><span class="campo-rotulo">Nova senha</span><input type="password" autocomplete="new-password" [value]="senhaNova()" (input)="senhaNova.set($any($event.target).value)" required minlength="8" /></label>
-            <label class="campo-form"><span class="campo-rotulo">Confirmar nova senha</span><input type="password" autocomplete="new-password" [value]="senhaConfirmacao()" (input)="senhaConfirmacao.set($any($event.target).value)" required minlength="8" /></label>
-            @if (erroSenha()) { <p class="campo-msg" role="alert">{{ erroSenha() }}</p> }
-            <button class="botao-escuro" type="submit" [disabled]="salvandoSenha()">{{ salvandoSenha() ? 'Salvando…' : 'Salvar nova senha' }}</button>
-          </form>
-        }
-      </section>
-
-      <section class="cartao cfg-cartao cfg-aparencia" aria-labelledby="cfg-apar">
-        <div class="cfg-aparencia-topo"><app-icone nome="info" /><div><h2 id="cfg-apar" class="cfg-titulo cfg-titulo-grande">Aparência</h2><p class="cfg-sub">Personalize a aparência do sistema.</p></div></div>
-        <p class="cfg-escolha">Escolha o tema</p>
-        <div class="cfg-temas">
-          <button type="button" class="cfg-tema" [class.cfg-tema-ativo]="preferencias().tema === 'claro'" [attr.aria-pressed]="preferencias().tema === 'claro'" (click)="definir('tema', 'claro')">Claro</button>
-          <button type="button" class="cfg-tema" [class.cfg-tema-ativo]="preferencias().tema === 'escuro'" [attr.aria-pressed]="preferencias().tema === 'escuro'" (click)="definir('tema', 'escuro')">Escuro</button>
-        </div>
-      </section>
-
-      <div class="cfg-botoes">
-        <button type="button" class="botao-contorno cfg-botao-grande" [disabled]="salvando()" (click)="confirmarRestaurar.set(true)"><app-icone nome="atualizar" /> Restaurar padrão</button>
-        <button type="button" class="botao-escuro cfg-botao-grande cfg-botao-salvar" [disabled]="salvando()" (click)="confirmarSalvar.set(true)">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
-      </div>
-    </div>
+  @if (carregando()) { <p role="status">Carregando configurações...</p> }
+  @if (erroCarga()) {
+    <p class="campo-msg" role="alert">{{ erroCarga() }}</p>
+    <button type="button" class="botao-contorno" (click)="carregar(true)">Tentar novamente</button>
   }
+
+  <div class="cfg-grade">
+    <!-- Perfil -->
+    <section class="cartao cfg-cartao cfg-perfil" aria-labelledby="cfg-perfil">
+      <div class="cfg-avatar" aria-hidden="true"></div>
+      <div class="cfg-perfil-corpo">
+        <h2 id="cfg-perfil" class="cfg-titulo"><app-icone nome="usuario" /> Perfil do Profissional</h2>
+        <p class="cfg-sub">Atualize suas informações</p>
+        <dl class="cfg-dados">
+          <div>
+            <dt>Nome completo*</dt>
+            <dd>
+              @if (editando()) {
+                <input class="cfg-input" type="text" aria-label="Nome completo" placeholder="Digite seu nome" autocomplete="off" [value]="conta().nome" (input)="digitarConta('nome', $event)" />
+                @if (erroNome(); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+              } @else { {{ conta().nome || 'Digite seu nome' }} }
+            </dd>
+          </div>
+          <div>
+            <dt>Especialidade</dt>
+            <dd>{{ conta().especialidade }}</dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>
+              @if (editando()) {
+                <input class="cfg-input" type="email" aria-label="E-mail" autocomplete="off" [value]="conta().email" (input)="digitarConta('email', $event)" />
+                @if (erroEmail(); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+              } @else { {{ conta().email }} }
+            </dd>
+          </div>
+        </dl>
+        <button type="button" class="botao-contorno cfg-editar" [disabled]="salvandoPerfil()" (click)="concluirEdicaoPerfil()">
+          <app-icone nome="editar" /> {{ editando() ? (salvandoPerfil() ? 'Salvando...' : 'Salvar Perfil') : 'Editar Perfil' }}
+        </button>
+        @if (erroPerfil()) { <small class="campo-msg" role="alert">{{ erroPerfil() }}</small> }
+      </div>
+    </section>
+
+    <!-- Preferências do sistema -->
+    <section class="cartao cfg-cartao" aria-labelledby="cfg-pref">
+      <h2 id="cfg-pref" class="cfg-titulo cfg-titulo-grande"><app-icone nome="ajustes" /> Preferências do Sistema</h2>
+      <ul class="cfg-linhas">
+        <li class="cfg-linha">
+          <span class="cfg-rotulo"><app-icone nome="globo" /> Idioma</span>
+          <span class="cfg-campo">
+            <app-lista-suspensa titulo="Idioma" [mostrarTitulo]="false" [opcoes]="idiomas" [valor]="rascunho().idioma" (valorChange)="definirTexto('idioma', $event)" />
+          </span>
+        </li>
+        <li class="cfg-linha">
+          <span class="cfg-rotulo"><app-icone nome="relogio" /> Formato de data</span>
+          <span class="cfg-campo">
+            <app-lista-suspensa titulo="Formato de data" [mostrarTitulo]="false" [opcoes]="formatosData" [valor]="rascunho().formatoData" (valorChange)="definirTexto('formatoData', $event)" />
+          </span>
+        </li>
+        <li class="cfg-linha">
+          <span class="cfg-rotulo"><app-icone nome="relogio" /> Duração padrão da consulta</span>
+          <span class="cfg-campo">
+            <app-lista-suspensa titulo="Duração padrão da consulta" [mostrarTitulo]="false" [opcoes]="duracoes" [valor]="rascunho().duracaoConsulta" (valorChange)="definirTexto('duracaoConsulta', $event)" />
+          </span>
+        </li>
+        <li class="cfg-linha">
+          <span class="cfg-rotulo"><app-icone nome="calendario" /> Início da semana</span>
+          <span class="cfg-campo cfg-semana">
+            <button type="button" class="lista-campo" aria-haspopup="dialog" [attr.aria-expanded]="semanaAberta()" (click)="semanaAberta() ? semanaAberta.set(false) : abrirSemana()">
+              <span>{{ nomeInicioSemana() }}</span>
+              <app-icone nome="seta-baixo" />
+            </button>
+            @if (semanaAberta()) {
+              <div class="cfg-semana-painel" role="dialog" aria-label="Início da semana">
+                <h3 class="cfg-semana-titulo"><app-icone nome="calendario" /> Início da semana</h3>
+                <div class="cfg-semana-corpo">
+                  <div class="cfg-mini">
+                    <div class="cfg-mini-topo">
+                      <button type="button" class="cfg-mini-seta" aria-label="Mês anterior" (click)="mudarMes(-1)"><app-icone nome="seta-esquerda" /></button>
+                      <span>{{ nomeMes() }}</span>
+                      <button type="button" class="cfg-mini-seta" aria-label="Próximo mês" (click)="mudarMes(1)"><app-icone nome="seta-direita" /></button>
+                    </div>
+                    <div class="cfg-mini-grade" aria-hidden="true">
+                      @for (c of cabecalhoSemana(); track $index) { <span class="cfg-mini-cab">{{ c }}</span> }
+                      @for (d of diasDoMes(); track $index) {
+                        <span class="cfg-mini-dia" [class.cfg-mini-dia-sel]="d === diaDestaque()">@if (d) { {{ d }} }</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="cfg-semana-lista" role="listbox" aria-label="Dia em que a semana começa">
+                    @for (d of dias; track d.valor) {
+                      <button type="button" role="option" class="lista-opcao" [attr.aria-selected]="d.valor === semanaEscolhida()" (click)="semanaEscolhida.set(d.valor)">{{ d.nome }}</button>
+                    }
+                  </div>
+                </div>
+                <div class="cfg-semana-botoes">
+                  <button type="button" class="botao-claro" (click)="semanaAberta.set(false)">Cancelar</button>
+                  <button type="button" class="botao-escuro" (click)="salvarSemana()">Salvar</button>
+                </div>
+              </div>
+            }
+          </span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Notificação -->
+    <section class="cartao cfg-cartao" aria-labelledby="cfg-notif">
+      <h2 id="cfg-notif" class="cfg-titulo cfg-titulo-grande"><app-icone nome="sino" /> Notificação</h2>
+      <ul class="cfg-linhas">
+        @for (n of notificacoes; track n.chave) {
+          <li class="cfg-linha">
+            <span class="cfg-rotulo cfg-rotulo-longo"><app-icone [nome]="n.icone" /> {{ n.texto }}</span>
+            <button type="button" class="interruptor" role="switch" [attr.aria-checked]="rascunho()[n.chave]" [attr.aria-label]="n.texto" (click)="alternar(n.chave)">
+              <span class="interruptor-bola"></span>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- Segurança -->
+    <section class="cartao cfg-cartao" aria-labelledby="cfg-seg">
+      <h2 id="cfg-seg" class="cfg-titulo cfg-titulo-grande"><app-icone nome="escudo" /> Segurança</h2>
+      <ul class="cfg-linhas">
+        <li class="cfg-linha">
+          <span class="cfg-rotulo">Alterar senha</span>
+          <button type="button" class="botao-contorno cfg-pilula" (click)="abrirAlteracaoSenha()">Alterar</button>
+        </li>
+        <li class="cfg-linha">
+          <span class="cfg-rotulo">Autenticação em duas etapas <small>Em breve</small></span>
+          <button type="button" class="interruptor" role="switch" disabled aria-checked="false" aria-label="Autenticação em duas etapas — em breve">
+            <span class="interruptor-bola"></span>
+          </button>
+        </li>
+      </ul>
+      @if (alterandoSenha()) {
+        <form class="cfg-senha-form" (submit)="alterarSenha($event)">
+          <h3 class="cfg-titulo">Alterar senha</h3>
+          <label class="campo-form">
+            <span class="campo-rotulo">Senha atual</span>
+            <input class="cfg-input" type="password" autocomplete="current-password" [value]="senhaAtual()" (input)="senhaAtual.set($any($event.target).value)" required />
+          </label>
+          <label class="campo-form">
+            <span class="campo-rotulo">Nova senha</span>
+            <input class="cfg-input" type="password" autocomplete="new-password" [value]="senhaNova()" (input)="senhaNova.set($any($event.target).value)" required />
+          </label>
+          <label class="campo-form">
+            <span class="campo-rotulo">Confirmar nova senha</span>
+            <input class="cfg-input" type="password" autocomplete="new-password" [value]="senhaConfirmacao()" (input)="senhaConfirmacao.set($any($event.target).value)" required />
+          </label>
+          @if (erroSenha()) { <small class="campo-msg" role="alert">{{ erroSenha() }}</small> }
+          <div class="cfg-semana-botoes">
+            <button type="button" class="botao-claro" [disabled]="salvandoSenha()" (click)="cancelarAlteracaoSenha()">Cancelar</button>
+            <button type="submit" class="botao-escuro" [disabled]="salvandoSenha()">{{ salvandoSenha() ? 'Salvando...' : 'Salvar senha' }}</button>
+          </div>
+        </form>
+      }
+    </section>
+
+    <!-- Aparência -->
+    <section class="cartao cfg-cartao cfg-aparencia" aria-labelledby="cfg-apar">
+      <div class="cfg-aparencia-topo">
+        <app-icone nome="paleta" />
+        <div>
+          <h2 id="cfg-apar" class="cfg-titulo cfg-titulo-grande">Aparência</h2>
+          <p class="cfg-sub">Personalize a aparência do sistema.</p>
+        </div>
+      </div>
+      <p class="cfg-escolha">Escolha o Tema</p>
+      <div class="cfg-temas">
+        <button type="button" class="cfg-tema" [class.cfg-tema-ativo]="rascunho().tema === 'claro'" [attr.aria-pressed]="rascunho().tema === 'claro'" (click)="definirTema('claro')">
+          <app-icone nome="sol" /> Claro
+        </button>
+        <button type="button" class="cfg-tema" [class.cfg-tema-ativo]="rascunho().tema === 'escuro'" [attr.aria-pressed]="rascunho().tema === 'escuro'" (click)="definirTema('escuro')">
+          <app-icone nome="lua" /> Escuro
+        </button>
+      </div>
+    </section>
+
+    <div class="cfg-botoes">
+      <button type="button" class="botao-contorno cfg-botao-grande" [disabled]="carregando() || !!erroCarga() || salvando()" (click)="confirmarRestaurar.set(true)"><app-icone nome="desfazer" /> Restaurar Padrão</button>
+      <button type="button" class="botao-escuro cfg-botao-grande cfg-botao-salvar" [disabled]="carregando() || !!erroCarga() || salvando()" (click)="pedirSalvar()">{{ salvando() ? 'Salvando...' : 'Salvar' }}</button>
+    </div>
+  </div>
 </div>
 
-<app-dialogo [aberto]="confirmarSalvar()" titulo="Confirmar alterações?" textoConfirmar="Sim" (cancelar)="cancelarSalvar()" (confirmar)="salvar()" />
-<app-dialogo [aberto]="confirmarRestaurar()" titulo="Restaurar preferências padrão?" textoConfirmar="Restaurar" (cancelar)="confirmarRestaurar.set(false)" (confirmar)="restaurar()" />
-
-@if (editandoPerfil()) {
-  <div class="dialogo-fundo" (mousedown)="$event.target === $event.currentTarget && editandoPerfil.set(false)">
-    <section class="dialogo cfg-dialogo-perfil" role="dialog" aria-modal="true" aria-labelledby="cfg-editar-titulo">
-      <h2 id="cfg-editar-titulo" class="edicao-titulo">Editar perfil</h2>
-      <form class="cfg-form-perfil" (submit)="salvarPerfil($event)">
-        <label class="campo-form"><span class="campo-rotulo">Nome completo *</span><input name="nome" autocomplete="name" maxlength="120" required [value]="nomePerfil()" (input)="nomePerfil.set($any($event.target).value)" /></label>
-        <label class="campo-form"><span class="campo-rotulo">E-mail *</span><input name="email" type="email" autocomplete="email" maxlength="254" required [value]="emailPerfil()" (input)="emailPerfil.set($any($event.target).value)" /></label>
-        @if (erroPerfil()) { <p class="campo-msg" role="alert">{{ erroPerfil() }}</p> }
-        <div class="cfg-form-perfil-acoes">
-          <button type="button" class="botao-claro" (click)="editandoPerfil.set(false)">Cancelar</button>
-          <button type="submit" class="botao-escuro" [disabled]="salvandoPerfil()">{{ salvandoPerfil() ? 'Salvando…' : 'Salvar' }}</button>
-        </div>
-      </form>
-    </section>
-  </div>
-}
+<app-dialogo [aberto]="confirmarSalvar()" titulo="Confirmar Alteração?" textoConfirmar="Sim" (cancelar)="cancelarSalvar()" (confirmar)="salvar()" />
+<app-dialogo [aberto]="confirmarRestaurar()" titulo="Confirmar Restauração?" textoConfirmar="Sim" (cancelar)="confirmarRestaurar.set(false)" (confirmar)="restaurar()" />

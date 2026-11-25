@@ -1,14 +1,11 @@
 package com.neurovita.service;
 
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -39,31 +35,24 @@ import com.neurovita.repository.VinculoResponsavelRepository;
 @Service
 public class PacienteService {
 
-    private static final String PERFIL_PACIENTE = "PACIENTE";
-
     private final PacienteRepository pacienteRepository;
     private final UsuarioRepository usuarioRepository;
     private final ResponsavelRepository responsavelRepository;
     private final VinculoResponsavelRepository vinculoRepository;
     private final VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    private final SecureRandom secureRandom = new SecureRandom();
 
     public PacienteService(
             PacienteRepository pacienteRepository,
             UsuarioRepository usuarioRepository,
             ResponsavelRepository responsavelRepository,
             VinculoResponsavelRepository vinculoRepository,
-            VinculoProfissionalPacienteRepository vinculoProfissionalRepository,
-            PasswordEncoder passwordEncoder) {
+            VinculoProfissionalPacienteRepository vinculoProfissionalRepository) {
 
         this.pacienteRepository = pacienteRepository;
         this.usuarioRepository = usuarioRepository;
         this.responsavelRepository = responsavelRepository;
         this.vinculoRepository = vinculoRepository;
         this.vinculoProfissionalRepository = vinculoProfissionalRepository;
-        this.passwordEncoder = passwordEncoder;
     }
 
     public CadastroPacienteResponse salvar(PacienteRequest request) {
@@ -72,8 +61,8 @@ public class PacienteService {
         validarEmailDisponivel(request.getEmail(), null);
         validarPlanoSaude(request);
 
-        List<VinculoResponsavelRequest> responsaveis =
-                validarResponsaveis(request);
+        List<VinculoResponsavelRequest> responsaveis = validarResponsaveis(request);
+
         validarEnderecoObrigatorio(request);
 
         Paciente paciente = new Paciente();
@@ -81,30 +70,13 @@ public class PacienteService {
         aplicarPlanoSaude(paciente, request, true);
 
         Paciente pacienteSalvo = pacienteRepository.save(paciente);
-        Usuario usuarioSalvo = null;
-
-        String senhaProvisoria = null;
 
         try {
-            if (pacienteSalvo.getEmail() != null && !pacienteSalvo.getEmail().isBlank()) {
-                senhaProvisoria = gerarSenhaProvisoria();
-                Usuario usuario = new Usuario();
-                usuario.setNome(pacienteSalvo.getNome());
-                usuario.setEmail(pacienteSalvo.getEmail());
-                usuario.setSenha(passwordEncoder.encode(senhaProvisoria));
-                usuario.setPerfil(PERFIL_PACIENTE);
-                usuario.setSenhaProvisoria(true);
-                usuario.setAtivo(Boolean.TRUE.equals(pacienteSalvo.getAtivo()));
-                usuario.setEntidadeId(pacienteSalvo.getId());
-                usuarioSalvo = usuarioRepository.save(usuario);
-            }
-
             salvarVinculos(pacienteSalvo.getId(), responsaveis);
 
         } catch (RuntimeException e) {
             limparCadastroIncompleto(
                     pacienteSalvo.getId(),
-                    usuarioSalvo,
                     e);
 
             throw new ResponseStatusException(
@@ -113,9 +85,10 @@ public class PacienteService {
                     e);
         }
 
+        // Pacientes são registros clínicos e não possuem conta de acesso.
         return new CadastroPacienteResponse(
                 criarResposta(pacienteSalvo),
-                senhaProvisoria);
+                null);
     }
 
     public List<PacienteResponse> listarTodos() {
@@ -146,24 +119,7 @@ public class PacienteService {
     }
 
     public PacienteResponse buscarPorId(String id) {
-        Authentication autenticacao = obterAutenticacao();
-        boolean ehPaciente = autenticacao.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-
-        if (ehPaciente) {
-            Usuario usuario = usuarioRepository
-                    .findByEmailIgnoreCase(autenticacao.getName())
-                    .orElseThrow(() ->
-                            new AccessDeniedException("Usuário não encontrado"));
-
-            if (usuario.getEntidadeId() == null
-                    || !usuario.getEntidadeId().equals(id)) {
-                throw new AccessDeniedException(
-                        "Pacientes podem consultar somente os próprios dados.");
-            }
-        } else {
-            exigirAdministradorOuSecretaria();
-        }
+        exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
 
@@ -177,7 +133,6 @@ public class PacienteService {
         exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
-        boolean estadoAnterior = Boolean.TRUE.equals(paciente.getAtivo());
 
         if (request.getEmail() != null) {
             validarEmailDisponivel(request.getEmail(), id);
@@ -188,8 +143,11 @@ public class PacienteService {
                 : validarResponsaveis(request);
 
         if (responsaveis == null
-                && Period.between(request.getDataNascimento(), LocalDate.now()).getYears() < 18
+                && Period.between(
+                        request.getDataNascimento(),
+                        LocalDate.now()).getYears() < 18
                 && vinculoRepository.findByPacienteId(id).isEmpty()) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Pacientes menores de 18 anos devem ter pelo menos um responsável vinculado.");
@@ -204,27 +162,6 @@ public class PacienteService {
             atualizarVinculos(atualizado.getId(), responsaveis);
         }
 
-        Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
-        if (usuario != null) {
-            usuario.setNome(atualizado.getNome());
-            usuario.setEmail(atualizado.getEmail());
-
-            if (request.getAtivo() == null) {
-                usuarioRepository.save(usuario);
-            } else {
-                boolean estadoContaAnterior = usuario.isAtivo();
-
-                SincronizacaoAtivo.salvar(
-                        estadoAnterior,
-                        estadoContaAnterior,
-                        request.getAtivo(),
-                        paciente::setAtivo,
-                        () -> pacienteRepository.save(paciente),
-                        usuario::setAtivo,
-                        () -> usuarioRepository.save(usuario));
-            }
-        }
-
         return criarResposta(atualizado);
     }
 
@@ -232,32 +169,24 @@ public class PacienteService {
         exigirAdministradorOuSecretaria();
 
         Paciente paciente = buscarPaciente(id);
+        boolean ativoAnterior = paciente.getAtivo();
 
-        // Exclusão pela interface significa inativação para preservar
-        // consultas, documentos clínicos e relacionamentos do paciente.
-        Usuario usuario = usuarioRepository.findByEntidadeId(id).orElse(null);
+        // A exclusão pela interface significa inativação.
+        // Consultas, documentos clínicos e relacionamentos são preservados.
+        paciente.setAtivo(false);
 
-        if (usuario == null) {
-            paciente.setAtivo(false);
+        try {
             pacienteRepository.save(paciente);
-            return;
+        } catch (RuntimeException erro) {
+            paciente.setAtivo(ativoAnterior);
+            throw erro;
         }
-
-        SincronizacaoAtivo.salvar(
-                Boolean.TRUE.equals(paciente.getAtivo()),
-                usuario.isAtivo(),
-                false,
-                paciente::setAtivo,
-                () -> pacienteRepository.save(paciente),
-                usuario::setAtivo,
-                () -> usuarioRepository.save(usuario));
     }
 
     private Paciente buscarPaciente(String id) {
         return pacienteRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Paciente não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Paciente não encontrado"));
     }
 
     private void preencherPaciente(
@@ -268,17 +197,67 @@ public class PacienteService {
         paciente.setNome(request.getNome());
         paciente.setDataNascimento(request.getDataNascimento());
 
-        if (request.getEmail() != null) paciente.setEmail(request.getEmail());
-        if (request.getCpf() != null) paciente.setCpf(request.getCpf());
-        if (request.getTelefone() != null) paciente.setTelefone(request.getTelefone());
-        if (request.getEndereco() != null) paciente.setEndereco(request.getEndereco());
-        if (request.getCep() != null) paciente.setCep(valorOpcional(request.getCep()));
-        if (request.getCidade() != null) paciente.setCidade(valorOpcional(request.getCidade()));
-        if (request.getNumero() != null) paciente.setNumero(valorOpcional(request.getNumero()));
-        if (request.getComplemento() != null) paciente.setComplemento(valorOpcional(request.getComplemento()));
-        if (request.getBairro() != null) paciente.setBairro(valorOpcional(request.getBairro()));
-        if (request.getAtivo() != null) paciente.setAtivo(request.getAtivo());
-        else if (novoCadastro && paciente.getAtivo() == null) paciente.setAtivo(true);
+        if (request.getEmail() != null) {
+            paciente.setEmail(request.getEmail());
+        }
+
+        if (request.getCpf() != null) {
+            paciente.setCpf(request.getCpf());
+        }
+
+        if (request.getTelefone() != null) {
+            paciente.setTelefone(request.getTelefone());
+        }
+
+        if (request.getEndereco() != null) {
+            paciente.setEndereco(request.getEndereco());
+        }
+
+        if (request.getCep() != null) {
+            paciente.setCep(valorOpcional(request.getCep()));
+        }
+
+        if (request.getCidade() != null) {
+            paciente.setCidade(valorOpcional(request.getCidade()));
+        }
+
+        if (request.getNumero() != null) {
+            paciente.setNumero(valorOpcional(request.getNumero()));
+        }
+
+        if (request.getComplemento() != null) {
+            paciente.setComplemento(valorOpcional(request.getComplemento()));
+        }
+
+        if (request.getBairro() != null) {
+            paciente.setBairro(valorOpcional(request.getBairro()));
+        }
+
+        if (request.getDataInicioAcompanhamento() != null) {
+            paciente.setDataInicioAcompanhamento(
+                    request.getDataInicioAcompanhamento());
+        }
+
+        if (request.getDataEncerramentoAcompanhamento() != null) {
+            paciente.setDataEncerramentoAcompanhamento(
+                    request.getDataEncerramentoAcompanhamento());
+        }
+
+        if (paciente.getDataInicioAcompanhamento() != null
+                && paciente.getDataEncerramentoAcompanhamento() != null
+                && paciente.getDataEncerramentoAcompanhamento()
+                        .isBefore(paciente.getDataInicioAcompanhamento())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A data de encerramento do acompanhamento não pode ser anterior à data de início.");
+        }
+
+        if (request.getAtivo() != null) {
+            paciente.setAtivo(request.getAtivo());
+        } else if (novoCadastro && paciente.getAtivo() == null) {
+            paciente.setAtivo(true);
+        }
     }
 
     private String valorOpcional(String valor) {
@@ -286,9 +265,13 @@ public class PacienteService {
     }
 
     private void validarEnderecoObrigatorio(PacienteRequest request) {
-        if (request.getCep() == null || request.getCep().replaceAll("\\D", "").length() != 8
-                || request.getNumero() == null || request.getNumero().isBlank()
-                || request.getBairro() == null || request.getBairro().isBlank()) {
+        if (request.getCep() == null
+                || request.getCep().replaceAll("\\D", "").length() != 8
+                || request.getNumero() == null
+                || request.getNumero().isBlank()
+                || request.getBairro() == null
+                || request.getBairro().isBlank()) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Informe CEP, número e bairro para cadastrar o paciente.");
@@ -299,6 +282,7 @@ public class PacienteService {
         if (Boolean.TRUE.equals(request.getPossuiPlanoSaude())
                 && (request.getPlanoSaude() == null
                         || request.getPlanoSaude().isBlank())) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Informe o nome do plano de saúde.");
@@ -306,7 +290,9 @@ public class PacienteService {
     }
 
     private void aplicarPlanoSaude(
-            Paciente paciente, PacienteRequest request, boolean novoCadastro) {
+            Paciente paciente,
+            PacienteRequest request,
+            boolean novoCadastro) {
 
         Boolean possuiPlanoSolicitado = request.getPossuiPlanoSaude();
 
@@ -341,8 +327,11 @@ public class PacienteService {
 
         if (request.getNumeroCarteirinha() != null) {
             String numeroCarteirinha = request.getNumeroCarteirinha().trim();
+
             paciente.setNumeroCarteirinha(
-                    numeroCarteirinha.isEmpty() ? null : numeroCarteirinha);
+                    numeroCarteirinha.isEmpty()
+                            ? null
+                            : numeroCarteirinha);
         }
 
         if (request.getValidadePlano() != null) {
@@ -368,19 +357,17 @@ public class PacienteService {
                     "Informe uma data de nascimento válida.");
         }
 
-        List<VinculoResponsavelRequest> responsaveis =
-                request.getResponsaveis() == null
-                        ? List.of()
-                        : request.getResponsaveis();
+        List<VinculoResponsavelRequest> responsaveis = request.getResponsaveis() == null
+                ? List.of()
+                : request.getResponsaveis();
 
-        boolean menorDeIdade =
-                Period.between(nascimento, LocalDate.now()).getYears() < 18;
+        boolean menorDeIdade = Period.between(nascimento, LocalDate.now()).getYears() < 18;
 
         if (menorDeIdade && responsaveis.isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Pacientes menores de 18 anos devem ter "
-                    + "pelo menos um responsável vinculado.");
+                            + "pelo menos um responsável vinculado.");
         }
 
         Set<String> idsInformados = new HashSet<>();
@@ -409,19 +396,16 @@ public class PacienteService {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "O mesmo responsável não pode ser informado "
-                        + "mais de uma vez para o paciente.");
+                                + "mais de uma vez para o paciente.");
             }
 
             Responsavel responsavel = responsavelRepository
                     .findById(responsavelId)
-                    .orElseThrow(() ->
-                            new ResponseStatusException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "Responsável não encontrado: "
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Responsável não encontrado: "
                                     + responsavelId));
 
-            // Confirma que o responsável existe antes de salvar
-            // o paciente ou modificar os vínculos.
             if (responsavel.getId() == null) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
@@ -453,11 +437,9 @@ public class PacienteService {
             String pacienteId,
             List<VinculoResponsavelRequest> responsaveis) {
 
-        List<VinculoResponsavel> existentes =
-                vinculoRepository.findByPacienteId(pacienteId);
+        List<VinculoResponsavel> existentes = vinculoRepository.findByPacienteId(pacienteId);
 
-        Map<String, VinculoResponsavel> porResponsavel =
-                new HashMap<>();
+        Map<String, VinculoResponsavel> porResponsavel = new HashMap<>();
 
         for (VinculoResponsavel vinculo : existentes) {
             porResponsavel.put(
@@ -468,19 +450,18 @@ public class PacienteService {
         Set<String> idsMantidos = new HashSet<>();
 
         for (VinculoResponsavelRequest request : responsaveis) {
-            String responsavelId =
-                    request.getResponsavelId().trim();
+            String responsavelId = request.getResponsavelId().trim();
 
             idsMantidos.add(responsavelId);
 
-            VinculoResponsavel existente =
-                    porResponsavel.get(responsavelId);
+            VinculoResponsavel existente = porResponsavel.get(responsavelId);
 
             if (existente != null) {
                 existente.setGrauParentesco(
                         request.getGrauParentesco().trim());
 
                 vinculoRepository.save(existente);
+
             } else {
                 VinculoResponsavel novo = new VinculoResponsavel();
 
@@ -493,8 +474,7 @@ public class PacienteService {
             }
         }
 
-        // Exclui somente os vínculos que foram retirados
-        // da lista enviada na atualização do paciente.
+        // Remove somente os vínculos retirados da atualização.
         List<VinculoResponsavel> removidos = new ArrayList<>();
 
         for (VinculoResponsavel existente : existentes) {
@@ -509,39 +489,35 @@ public class PacienteService {
     }
 
     private PacienteResponse criarResposta(Paciente paciente) {
-        List<VinculoResponsavel> vinculos =
-                vinculoRepository.findByPacienteId(paciente.getId());
+        List<VinculoResponsavel> vinculos = vinculoRepository.findByPacienteId(paciente.getId());
 
-        List<VinculoProfissionalPaciente> vinculosProfissionais =
-                vinculoProfissionalRepository != null
-                        ? vinculoProfissionalRepository.findByPacienteIdAndEncerradoEmIsNullOrderByIniciadoEmDesc(paciente.getId())
-                        : java.util.Collections.emptyList();
+        List<VinculoProfissionalPaciente> vinculosProfissionais = vinculoProfissionalRepository != null
+                ? vinculoProfissionalRepository
+                        .findByPacienteIdAndEncerradoEmIsNullOrderByIniciadoEmDesc(
+                                paciente.getId())
+                : java.util.Collections.emptyList();
 
-        return new PacienteResponse(paciente, vinculos, vinculosProfissionais);
+        return new PacienteResponse(
+                paciente,
+                vinculos,
+                vinculosProfissionais);
     }
 
     private void limparCadastroIncompleto(
             String pacienteId,
-            Usuario usuarioSalvo,
             RuntimeException erroOriginal) {
 
         try {
             vinculoRepository.deleteAll(
                     vinculoRepository.findByPacienteId(pacienteId));
+
         } catch (RuntimeException erroLimpeza) {
             erroOriginal.addSuppressed(erroLimpeza);
         }
 
-        if (usuarioSalvo != null) {
-            try {
-                usuarioRepository.delete(usuarioSalvo);
-            } catch (RuntimeException erroLimpeza) {
-                erroOriginal.addSuppressed(erroLimpeza);
-            }
-        }
-
         try {
             pacienteRepository.deleteById(pacienteId);
+
         } catch (RuntimeException erroLimpeza) {
             erroOriginal.addSuppressed(erroLimpeza);
         }
@@ -551,91 +527,62 @@ public class PacienteService {
             String email,
             String pacienteId) {
 
-        if (email == null || email.isBlank()) return;
+        if (email == null || email.isBlank()) {
+            return;
+        }
 
         pacienteRepository.findByEmailIgnoreCase(email)
-                .filter(paciente ->
-                        !paciente.getId().equals(pacienteId))
+                .filter(paciente -> !paciente.getId().equals(pacienteId))
                 .ifPresent(paciente -> {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
                             "Este e-mail já está associado a outro paciente.");
                 });
-
-        usuarioRepository.findByEmailIgnoreCase(email)
-                .filter(usuario -> !PERFIL_PACIENTE.equals(
-                        usuario.getPerfil() == null
-                                ? ""
-                                : usuario.getPerfil().toUpperCase(
-                                        Locale.ROOT)))
-                .ifPresent(usuario -> {
-                    throw new ResponseStatusException(
-                            HttpStatus.CONFLICT,
-                            "Este e-mail já está associado a outra conta.");
-                });
-
-        usuarioRepository.findByEmailIgnoreCase(email)
-                .filter(usuario ->
-                        pacienteId == null
-                                || !pacienteId.equals(
-                                        usuario.getEntidadeId()))
-                .ifPresent(usuario -> {
-                    throw new ResponseStatusException(
-                            HttpStatus.CONFLICT,
-                            "Este e-mail já possui uma conta de acesso.");
-                });
-    }
-
-    private String gerarSenhaProvisoria() {
-        byte[] bytes = new byte[18];
-        secureRandom.nextBytes(bytes);
-
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
     }
 
     private void exigirAdministradorOuSecretaria() {
         boolean autorizado = obterAutenticacao()
                 .getAuthorities()
                 .stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
                         || a.getAuthority().equals("ROLE_SECRETARIA"));
 
         if (!autorizado) {
             throw new AccessDeniedException(
                     "Somente administradores ou secretarias podem "
-                    + "cadastrar pacientes");
+                            + "consultar, atualizar ou excluir pacientes.");
         }
     }
 
     private void exigirCadastroPaciente() {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
 
-        if (autenticacao == null || !autenticacao.isAuthenticated()
-                || autenticacao.getAuthorities().stream().noneMatch(a ->
-                        a.getAuthority().equals("ROLE_ADMINISTRADOR")
+        if (autenticacao == null
+                || !autenticacao.isAuthenticated()
+                || autenticacao.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
                         || a.getAuthority().equals("ROLE_SECRETARIA")
                         || a.getAuthority().equals("ROLE_PROFISSIONAL"))) {
-            throw new AccessDeniedException("Perfil sem permissão para cadastrar pacientes.");
+
+            throw new AccessDeniedException(
+                    "Perfil sem permissão para cadastrar pacientes.");
         }
     }
 
     private boolean ehProfissional() {
-        return obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
+        return obterAutenticacao()
+                .getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
     }
 
     private String obterProfissionalId() {
         Usuario usuario = usuarioRepository
                 .findByEmailIgnoreCase(obterAutenticacao().getName())
-                .orElseThrow(() ->
-                        new AccessDeniedException("Usuário não encontrado"));
+                .orElseThrow(() -> new AccessDeniedException("Usuário não encontrado"));
 
         if (usuario.getEntidadeId() == null
                 || usuario.getEntidadeId().isBlank()) {
+
             throw new AccessDeniedException(
                     "Usuário sem vínculo com um profissional");
         }
@@ -643,29 +590,14 @@ public class PacienteService {
         return usuario.getEntidadeId();
     }
 
-    private void exigirAdministrador() {
-        boolean autorizado = obterAutenticacao()
-                .getAuthorities()
-                .stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-
-        if (!autorizado) {
-            throw new AccessDeniedException(
-                    "Somente administradores podem consultar, "
-                    + "atualizar ou excluir pacientes");
-        }
-    }
-
     private Authentication obterAutenticacao() {
-        Authentication autenticacao =
-                SecurityContextHolder.getContext().getAuthentication();
+        Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
 
         if (autenticacao == null
                 || !autenticacao.isAuthenticated()
                 || autenticacao.getAuthorities().stream()
-                        .anyMatch(a ->
-                                a.getAuthority().equals("ROLE_ANONYMOUS"))) {
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ANONYMOUS"))) {
+
             throw new AccessDeniedException("Usuário não autenticado");
         }
 

@@ -17,12 +17,11 @@ export class Login implements OnInit {
   private readonly preferencias = inject(PreferenciasGlobaisService);
   private readonly router = inject(Router);
 
+  /** Vem da URL: /?sucesso=true (após redefinir a senha). */
   readonly sucesso = input<string>();
 
   protected readonly mostrarAviso = computed(
-    () =>
-      this.sucesso() === 'true' ||
-      this.sucesso() === 'senha-alterada',
+    () => this.sucesso() === 'true' || this.sucesso() === 'senha-alterada',
   );
 
   protected readonly email = signal('');
@@ -81,12 +80,17 @@ export class Login implements OnInit {
 
         // Carrega as preferências da sessão antes de montar o painel para evitar
         // uma renderização inicial com tema/formato diferentes dos salvos.
-        this.preferencias.carregar().subscribe(() => {
-          this.router.navigateByUrl(
-            resultado.primeiroAcesso
-              ? '/primeiro-acesso'
-              : resultado.rota,
-          );
+        this.preferencias.carregar().subscribe({
+          next: () => {
+            this.router.navigateByUrl(
+              resultado.primeiroAcesso ? '/primeiro-acesso' : resultado.rota,
+            );
+          },
+          error: () => {
+            this.router.navigateByUrl(
+              resultado.primeiroAcesso ? '/primeiro-acesso' : resultado.rota,
+            );
+          },
         });
       },
 

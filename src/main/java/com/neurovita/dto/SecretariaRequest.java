@@ -33,8 +33,14 @@ public class SecretariaRequest {
     )
     private String cep;
     private String cidade;
+    private String numero;
+    private String complemento;
+    private String bairro;
     private String cargo;
     private LocalDate admissao;
+    private LocalDate encerramento;
+    private String cbo;
+    private String cargaHoraria;
     private Boolean ativo;
     @Size(min = 8, max = 72, message = "A senha provisória deve ter entre 8 e 72 caracteres.")
     private String senhaProvisoria;
@@ -76,10 +82,22 @@ public class SecretariaRequest {
     public void setCep(String cep) { this.cep = cep; }
     public String getCidade() { return cidade; }
     public void setCidade(String cidade) { this.cidade = cidade; }
+    public String getNumero() { return numero; }
+    public void setNumero(String numero) { this.numero = numero; }
+    public String getComplemento() { return complemento; }
+    public void setComplemento(String complemento) { this.complemento = complemento; }
+    public String getBairro() { return bairro; }
+    public void setBairro(String bairro) { this.bairro = bairro; }
     public String getCargo() { return cargo; }
     public void setCargo(String cargo) { this.cargo = cargo; }
     public LocalDate getAdmissao() { return admissao; }
     public void setAdmissao(LocalDate admissao) { this.admissao = admissao; }
+    public LocalDate getEncerramento() { return encerramento; }
+    public void setEncerramento(LocalDate encerramento) { this.encerramento = encerramento; }
+    public String getCbo() { return cbo; }
+    public void setCbo(String cbo) { this.cbo = cbo; }
+    public String getCargaHoraria() { return cargaHoraria; }
+    public void setCargaHoraria(String cargaHoraria) { this.cargaHoraria = cargaHoraria; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
     public String getSenhaProvisoria() { return senhaProvisoria; }

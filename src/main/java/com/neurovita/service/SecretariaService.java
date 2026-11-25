@@ -128,6 +128,11 @@ public class SecretariaService {
 
             usuario.setNome(secretaria.getNome());
             usuario.setEmail(secretaria.getEmail());
+            if (request.getSenhaProvisoria() != null
+                    && !request.getSenhaProvisoria().isBlank()) {
+                usuario.setSenha(passwordEncoder.encode(request.getSenhaProvisoria()));
+                usuario.setSenhaProvisoria(true);
+            }
 
             if (request.getAtivo() == null) {
                 secretariaRepository.save(secretaria);
@@ -206,16 +211,33 @@ public class SecretariaService {
             secretaria.setCpf(request.getCpf());
         if (!atualizacaoParcial || request.getEndereco() != null)
             secretaria.setEndereco(request.getEndereco());
-        if (request.getCep() != null && !request.getCep().isBlank()) {
-            secretaria.setCep(request.getCep());
-        }
-        if (request.getCidade() != null && !request.getCidade().isBlank()) {
-            secretaria.setCidade(request.getCidade());
-        }
+        if (!atualizacaoParcial || request.getCep() != null)
+            secretaria.setCep(valorOpcional(request.getCep()));
+        if (!atualizacaoParcial || request.getCidade() != null)
+            secretaria.setCidade(valorOpcional(request.getCidade()));
+        if (!atualizacaoParcial || request.getNumero() != null)
+            secretaria.setNumero(valorOpcional(request.getNumero()));
+        if (!atualizacaoParcial || request.getComplemento() != null)
+            secretaria.setComplemento(valorOpcional(request.getComplemento()));
+        if (!atualizacaoParcial || request.getBairro() != null)
+            secretaria.setBairro(valorOpcional(request.getBairro()));
         if (!atualizacaoParcial || request.getCargo() != null)
             secretaria.setCargo(request.getCargo());
         if (!atualizacaoParcial || request.getAdmissao() != null)
             secretaria.setAdmissao(request.getAdmissao());
+        if (!atualizacaoParcial || request.getEncerramento() != null)
+            secretaria.setEncerramento(request.getEncerramento());
+        if (!atualizacaoParcial || request.getCbo() != null)
+            secretaria.setCbo(valorOpcional(request.getCbo()));
+        if (!atualizacaoParcial || request.getCargaHoraria() != null)
+            secretaria.setCargaHoraria(valorOpcional(request.getCargaHoraria()));
+        if (secretaria.getAdmissao() != null
+                && secretaria.getEncerramento() != null
+                && secretaria.getEncerramento().isBefore(secretaria.getAdmissao())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A data de encerramento não pode ser anterior à data de início.");
+        }
         if (request.getAtivo() != null)
             secretaria.setAtivo(request.getAtivo());
         else if (!atualizacaoParcial)
@@ -238,6 +260,10 @@ public class SecretariaService {
                     HttpStatus.BAD_REQUEST,
                     "Nome e e-mail são obrigatórios.");
         }
+    }
+
+    private String valorOpcional(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     private void validarEmailDisponivel(

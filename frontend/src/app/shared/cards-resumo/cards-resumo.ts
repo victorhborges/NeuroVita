@@ -8,7 +8,7 @@ import { CardResumo } from '../dados-demo';
   selector: 'app-cards-resumo',
   imports: [Icone],
   template: `
-    <section class="resumo" aria-label="Resumo da clínica">
+    <section class="resumo" aria-label="Resumo da clínica" [style.--colunas]="cards().length">
       @for (card of cards(); track card.rotulo) {
         <div class="cartao resumo-card">
           <span class="resumo-icone"><app-icone [nome]="card.icone" /></span>

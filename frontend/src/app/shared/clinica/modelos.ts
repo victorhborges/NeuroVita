@@ -49,6 +49,9 @@ export interface Paciente {
   numero?: string;
   complemento?: string;
   bairro?: string;
+  /** Datas do acompanhamento do paciente, persistidas pela API. */
+  inicio?: string;
+  encerramento?: string;
   status: StatusPaciente;
   /** Texto mostrado no prontuário (ex.: "Em andamento"). */
   situacao: string;
@@ -76,6 +79,9 @@ export interface DadosPaciente {
   numero?: string;
   complemento?: string;
   bairro?: string;
+  /** Datas do acompanhamento do paciente, persistidas pela API. */
+  inicio?: string;
+  encerramento?: string;
   responsavel: Responsavel;
   responsaveis?: Responsavel[];
   plano: PlanoSaude;
@@ -105,6 +111,15 @@ export interface Profissional {
   registro: string;
   nascimento: string;
   telefone: string;
+  /** Dados profissionais e de endereço persistidos pela API. */
+  cep?: string;
+  cidade?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  inicio?: string;
+  encerramento?: string;
   ativo: boolean;
   cpf: string;
   email: string;
@@ -121,6 +136,15 @@ export interface DadosProfissional {
   email: string;
   cpf: string;
   telefone: string;
+  /** Dados profissionais e de endereço persistidos pela API. */
+  cep?: string;
+  cidade?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  inicio?: string;
+  encerramento?: string;
   tipo: 'psicologo' | 'psiquiatra';
   /** Só o número (o CRP/CRM é colocado pelo sistema). */
   registro: string;
@@ -141,9 +165,19 @@ export interface Secretaria {
   email: string;
   cpf: string;
   endereco: string;
+  /** Campos retornados e aceitos pelo backend. */
+  cep?: string;
+  cidade?: string;
+  /** Dados de endereço e vínculo persistidos pela API. */
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
   cargo: string;
   /** 'aaaa-mm-dd' */
   admissao: string;
+  encerramento?: string;
+  cbo?: string;
+  cargaHoraria?: string;
   ativo: boolean;
   emailAcesso: string;
   foto?: string;
@@ -211,4 +245,6 @@ export interface Documento {
   ativo?: boolean;
   /** Presente quando o documento foi enviado como arquivo (upload). */
   arquivo?: Anexo;
+  /** Agrupamento funcional do documento, persistido no documento clínico da API. */
+  grupo?: string;
 }

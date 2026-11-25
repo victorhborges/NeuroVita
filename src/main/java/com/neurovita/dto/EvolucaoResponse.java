@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Evolucao;
 
 public record EvolucaoResponse(
@@ -26,7 +27,8 @@ public record EvolucaoResponse(
         LocalDateTime atualizadoEm,
         Integer versao,
         String retificadaPorId,
-        String motivoRetificacao) {
+        String motivoRetificacao,
+        List<AnexoClinico> anexos) {
 
     public EvolucaoResponse(Evolucao evolucao) {
         this(
@@ -49,7 +51,8 @@ public record EvolucaoResponse(
                 evolucao.getAtualizadoEm(),
                 evolucao.getVersao(),
                 evolucao.getRetificadaPorId(),
-                evolucao.getMotivoRetificacao()
+                evolucao.getMotivoRetificacao(),
+                copiarAnexos(evolucao.getAnexos())
         );
     }
 
@@ -62,5 +65,16 @@ public record EvolucaoResponse(
         return itens.stream()
                 .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private static List<AnexoClinico> copiarAnexos(List<AnexoClinico> itens) {
+        if (itens == null || itens.isEmpty()) return List.of();
+        return itens.stream().filter(Objects::nonNull).map(anexo -> {
+            AnexoClinico copia = new AnexoClinico();
+            copia.setNome(anexo.getNome());
+            copia.setConteudoBase64(anexo.getConteudoBase64());
+            copia.setTipoMime(anexo.getTipoMime());
+            return copia;
+        }).toList();
     }
 }

@@ -40,15 +40,9 @@ export class Profissionais {
     const lista = this.clinica.profissionais();
     const psicologos = lista.filter((p) => p.tipo === 'psicologo').length;
     const psiquiatras = lista.filter((p) => p.tipo === 'psiquiatra').length;
-    if (this.gerencia()) {
-      return [
-        { rotulo: 'Psicólogos\ncadastrados', valor: psicologos, legenda: '' },
-        { rotulo: 'Psiquiatras\ncadastrados', valor: psiquiatras, legenda: '' },
-      ];
-    }
     return [
-      { rotulo: 'Total de profissionais', valor: lista.length, legenda: 'Cadastrados na clínica' },
-      { rotulo: 'Total de psiquiatras', valor: psiquiatras, legenda: 'Cadastrados na clínica' },
+      { rotulo: 'Psicólogos\ncadastrados', valor: psicologos },
+      { rotulo: 'Psiquiatras\ncadastrados', valor: psiquiatras },
     ];
   });
 
@@ -62,7 +56,9 @@ export class Profissionais {
 
   /** Clique na lixeira: se houver consultas marcadas, o sistema não deixa excluir. */
   protected pedirExclusao(p: Profissional): void {
-    this.excluindo.set(p);
+    const consultas = this.clinica.consultasDoProfissional(p.id);
+    if (consultas > 0) this.bloqueado.set({ prof: p, consultas });
+    else this.excluindo.set(p);
   }
 
   protected async confirmarExclusao(): Promise<void> {
@@ -71,7 +67,7 @@ export class Profissionais {
     try {
       await this.clinica.removerProfissional(p.id);
       this.excluindo.set(null);
-      this.aviso.mostrar('Profissional inativado. O histórico foi preservado.');
+      this.aviso.mostrar('Profissional excluído com sucesso.');
     } catch (erro) {
       console.error('Falha ao excluir profissional:', erro);
       this.aviso.mostrar('Não foi possível excluir o profissional.');

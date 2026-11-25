@@ -50,8 +50,10 @@ public class PerfilUsuarioService {
         String email = request.email().trim();
 
         usuarios.findByEmailIgnoreCase(email).filter(outro -> !java.util.Objects.equals(outro.getId(), usuario.getId()))
-                .ifPresent(outro -> { throw new ResponseStatusException(
-                        HttpStatus.CONFLICT, "Já existe uma conta com este e-mail."); });
+                .ifPresent(outro -> {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT, "Já existe uma conta com este e-mail.");
+                });
 
         String perfil = usuario.getPerfil() == null ? "" : usuario.getPerfil().toUpperCase(Locale.ROOT);
         String categoriaProfissional = null;
@@ -88,7 +90,12 @@ public class PerfilUsuarioService {
         usuario.setNome(nome);
         usuario.setEmail(email);
         usuarios.save(usuario);
-        return new LoginResponse(jwtService.gerarToken(usuario), nome, email,
-                usuario.getPerfil(), categoriaProfissional);
+        return new LoginResponse(
+                jwtService.gerarToken(usuario),
+                nome,
+                email,
+                usuario.getPerfil(),
+                categoriaProfissional,
+                usuario.getEntidadeId());
     }
 }

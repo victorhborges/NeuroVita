@@ -1,0 +1,28 @@
+Imagens da central de Ajuda
+===========================
+
+Ja incluidos (recortados das telas do Figma): cadastro-paciente, lista-pacientes, agendamento,
+agenda, assistente e atendente. Se tiver as imagens originais em
+melhor qualidade, e so substituir os arquivos mantendo o mesmo nome.
+
+Coloque aqui os arquivos abaixo (PNG). Enquanto eles nao existirem, a tela mostra um
+espaco reservado no lugar da imagem (ou nada, nas ilustracoes do topo).
+
+Capturas de tela dos passo a passo:
+  cadastro-paciente.png   -> topico "Cadastro e Perfis" (tela Cadastrar Novo Paciente)
+  agenda.png              -> topico "Agenda Principal" (tela Agenda)
+  lista-pacientes.png     -> topico "Prontuarios" (tela Pacientes)
+  agendamento.png         -> topico "Agendamentos" (tela Gerenciamento de consultas)
+
+Ilustracoes:
+  assistente.png          -> faixa roxa da tela Ajuda (moça de jaleco, a direita)
+  atendente.png           -> tela Fale conosco (moça com headset, no topo do cartao)
+
+Os textos e os nomes dos arquivos ficam em src/app/shared/ajuda-conteudo.ts.
+
+Ajuda do PSICOLOGO (public/img/ajuda/psicologo/)
+  inicio.png, prontuario.png, pacientes.png, agenda.png
+  (recortadas das telas do Figma; se tiver prints das telas em 1280x800, substitua mantendo os nomes)
+
+Ajuda do ADMINISTRADOR (public/img/ajuda/admin/)
+  inicio.png (recortada do Figma; se tiver um print da tela de inicio do admin em 1280x800, substitua mantendo o nome)

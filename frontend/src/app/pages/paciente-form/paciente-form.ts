@@ -8,36 +8,23 @@ import { Icone } from '../../shared/icone/icone';
 import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
 import {
-  cpfValido, deISO, emailValido, formatarCpf, formatarTelefone, idadeDe, paraISO, telefoneValido,
+  cepValido, cpfValido, deISO, emailValido, formatarCep, formatarCpf, formatarTelefone, idadeDe, paraISO, telefoneValido,
 } from '../../shared/util';
 
 interface Formulario {
   nome: string; nascimento: string; email: string; cpf: string; telefone: string;
-  endereco: string; cep: string; cidade: string; numero: string; complemento: string; bairro: string;
+  cep: string; cidade: string; endereco: string; numero: string; complemento: string; bairro: string; inicio: string; encerramento: string; rEndereco: string;
   rNome: string; rNascimento: string; rEmail: string; rParentesco: string; rTelefone: string; rCpf: string;
-  rId?: string;
-  responsaveisExtras: { id?: string; nome: string; nascimento: string; email: string; parentesco: string; telefone: string; cpf: string }[];
   possuiPlano: boolean; plano: string; carteirinha: string; validade: string;
   ativo: boolean;
 }
 
 type Campo = keyof Formulario;
 
-export function erroPlanoSaude(possuiPlano: boolean, nome: string): string | null {
-  return possuiPlano && !nome.trim() ? 'Informe o plano de saúde.' : null;
-}
-
-export function erroEnderecoPaciente(cep: string, numero: string, bairro: string): string | null {
-  if (cep.replace(/\D/g, '').length !== 8) return 'Informe um CEP válido.';
-  if (!numero.trim()) return 'Informe o número do endereço.';
-  if (!bairro.trim()) return 'Informe o bairro.';
-  return null;
-}
-
 const VAZIO: Formulario = {
-  nome: '', nascimento: '', email: '', cpf: '', telefone: '', endereco: '', cep: '', cidade: '', numero: '', complemento: '', bairro: '',
+  nome: '', nascimento: '', email: '', cpf: '', telefone: '',
+  cep: '', cidade: '', endereco: '', numero: '', complemento: '', bairro: '', inicio: '', encerramento: '', rEndereco: '',
   rNome: '', rNascimento: '', rEmail: '', rParentesco: '', rTelefone: '', rCpf: '',
-  responsaveisExtras: [],
   possuiPlano: false, plano: '', carteirinha: '', validade: '', ativo: true,
 };
 
@@ -79,36 +66,27 @@ export class PacienteForm {
     if (f.nome.trim().length < 3) e.nome = 'Informe o nome completo.';
     if (!f.nascimento) e.nascimento = 'Informe a data de nascimento.';
     else if (deISO(f.nascimento) > new Date()) e.nascimento = 'A data não pode ser no futuro.';
-    if (f.email.trim() && !emailValido(f.email)) e.email = 'E-mail inválido.';
     if (!f.cpf.trim()) e.cpf = 'Informe o CPF.';
     else if (!cpfValido(f.cpf)) e.cpf = 'CPF inválido.';
-    if (!f.telefone.trim()) e.telefone = 'Informe o telefone.';
-    else if (!telefoneValido(f.telefone)) e.telefone = 'Telefone inválido.';
-    if (erroEnderecoPaciente(f.cep, f.numero, f.bairro)) {
-      if (f.cep.replace(/\D/g, '').length !== 8) e.cep = 'Informe um CEP válido.';
-      if (!f.numero.trim()) e.numero = 'Informe o número do endereço.';
+    // O CEP é obrigatório no cadastro; ao editar um paciente antigo (sem CEP) só é conferido se for preenchido.
+    if (!f.cep.trim()) {
+      if (!this.edicao()) e.cep = 'Informe o CEP.';
+    } else if (!cepValido(f.cep)) e.cep = 'CEP inválido.';
+    // Número e bairro: obrigatórios no cadastro; ao editar um paciente antigo (sem esses dados) não bloqueiam.
+    if (!this.edicao()) {
+      if (!f.numero.trim()) e.numero = 'Informe o número.';
       if (!f.bairro.trim()) e.bairro = 'Informe o bairro.';
     }
+    if (f.inicio && f.encerramento && f.encerramento < f.inicio) e.encerramento = 'O encerramento não pode ser antes do início.';
 
-    const possuiResponsavel = !!f.rNome.trim() || f.responsaveisExtras.some((r) => r.nome.trim());
-    if (this.menorDeIdade() && !possuiResponsavel) e.rNome = 'Paciente menor de idade: informe pelo menos um responsável.';
-    if (f.rNome.trim() && !f.rParentesco.trim()) e.rParentesco = 'Informe o grau de parentesco.';
-    if (f.rNome.trim() && (!f.rTelefone.trim() || !telefoneValido(f.rTelefone))) e.rTelefone = 'Informe um telefone válido do responsável.';
+    if (this.menorDeIdade()) {
+      if (!f.rNome.trim()) e.rNome = 'Paciente menor de idade: informe o responsável.';
+      if (!f.rParentesco.trim()) e.rParentesco = 'Informe o grau de parentesco.';
+      if (!f.rTelefone.trim()) e.rTelefone = 'Informe o telefone do responsável.';
+    }
     if (f.rEmail.trim() && !emailValido(f.rEmail)) e.rEmail = 'E-mail inválido.';
     if (f.rCpf.trim() && !cpfValido(f.rCpf)) e.rCpf = 'CPF inválido.';
     if (f.rTelefone.trim() && !telefoneValido(f.rTelefone)) e.rTelefone = 'Telefone inválido.';
-    for (const r of f.responsaveisExtras) {
-      if (!r.nome.trim() && (r.telefone.trim() || r.cpf.trim() || r.email.trim() || r.parentesco.trim())) {
-        e.rNome = 'Informe o nome de todos os responsáveis adicionados.';
-        break;
-      }
-      if (r.nome.trim() && !r.parentesco.trim()) e.rNome = 'Informe o grau de parentesco de cada responsável.';
-      if (r.nome.trim() && (!r.telefone.trim() || !telefoneValido(r.telefone))) e.rNome = 'Informe um telefone válido para cada responsável.';
-      if (r.email.trim() && !emailValido(r.email)) e.rNome = 'Informe um e-mail válido para cada responsável.';
-      if (r.cpf.trim() && !cpfValido(r.cpf)) e.rNome = 'Informe um CPF válido para cada responsável.';
-    }
-    const erroPlano = erroPlanoSaude(f.possuiPlano, f.plano);
-    if (erroPlano) e.plano = erroPlano;
     return e;
   });
 
@@ -118,20 +96,13 @@ export class PacienteForm {
       const p = this.existente();
       if (this.carregado || !p) return;
       this.carregado = true;
-      const todosResponsaveis = p.responsaveis.length
-        ? p.responsaveis
-        : (p.responsavel.nome ? [{ ...p.responsavel, id: p.responsavelId }] : []);
-      const principal = todosResponsaveis[0] ?? p.responsavel;
       this.f.set({
         nome: p.nome, nascimento: p.nascimento, email: p.email === '—' ? '' : p.email, cpf: p.cpf, telefone: p.telefone === '—' ? '' : p.telefone,
-        endereco: p.endereco ?? '', cep: p.cep ?? '', cidade: p.cidade ?? '', numero: p.numero ?? '', complemento: p.complemento ?? '', bairro: p.bairro ?? '',
-        rId: principal.id, rNome: principal.nome === '—' ? '' : principal.nome, rNascimento: principal.nascimento ?? '',
-        rEmail: principal.email ?? '', rParentesco: principal.relacao === '—' ? '' : principal.relacao,
-        rTelefone: principal.telefone === '—' ? '' : principal.telefone, rCpf: principal.cpf ?? '',
-        responsaveisExtras: todosResponsaveis.slice(1).map((r) => ({
-          id: r.id, nome: r.nome, nascimento: r.nascimento ?? '', email: r.email ?? '',
-          parentesco: r.relacao, telefone: r.telefone, cpf: r.cpf ?? '',
-        })),
+        cep: p.cep ?? '', cidade: p.cidade ?? '', endereco: p.endereco === '—' ? '' : p.endereco, numero: p.numero ?? '', complemento: p.complemento ?? '', bairro: p.bairro ?? '', inicio: p.inicio ?? '', encerramento: p.encerramento ?? '',
+        rEndereco: p.responsavel.endereco === '—' ? '' : p.responsavel.endereco,
+        rNome: p.responsavel.nome === '—' ? '' : p.responsavel.nome, rNascimento: p.responsavel.nascimento ?? '',
+        rEmail: p.responsavel.email ?? '', rParentesco: p.responsavel.relacao === '—' ? '' : p.responsavel.relacao,
+        rTelefone: p.responsavel.telefone === '—' ? '' : p.responsavel.telefone, rCpf: p.responsavel.cpf ?? '',
         possuiPlano: p.plano.possui, plano: p.plano.nome, carteirinha: p.plano.carteirinha, validade: p.plano.validade,
         ativo: p.status !== 'inativo',
       });
@@ -146,10 +117,7 @@ export class PacienteForm {
     let valor = (evento.target as HTMLInputElement).value;
     if (campo === 'cpf' || campo === 'rCpf') valor = formatarCpf(valor);
     if (campo === 'telefone' || campo === 'rTelefone') valor = formatarTelefone(valor);
-    if (campo === 'cep') {
-      const digitos = valor.replace(/\D/g, '').slice(0, 8);
-      valor = digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos;
-    }
+    if (campo === 'cep') valor = formatarCep(valor);
     this.f.update((atual) => ({ ...atual, [campo]: valor }));
     // O campo mostra a máscara mesmo se o navegador tentar guardar o texto digitado.
     (evento.target as HTMLInputElement).value = valor;
@@ -157,31 +125,6 @@ export class PacienteForm {
 
   protected definir<K extends Campo>(campo: K, valor: Formulario[K]): void {
     this.f.update((atual) => ({ ...atual, [campo]: valor }));
-  }
-
-  protected adicionarResponsavel(): void {
-    this.f.update((atual) => ({
-      ...atual,
-      responsaveisExtras: [...atual.responsaveisExtras, { nome: '', nascimento: '', email: '', parentesco: '', telefone: '', cpf: '' }],
-    }));
-  }
-
-  protected removerResponsavel(indice: number): void {
-    this.f.update((atual) => ({
-      ...atual,
-      responsaveisExtras: atual.responsaveisExtras.filter((_, i) => i !== indice),
-    }));
-  }
-
-  protected digitarExtra(indice: number, campo: 'nome' | 'nascimento' | 'email' | 'parentesco' | 'telefone' | 'cpf', evento: Event): void {
-    let valor = (evento.target as HTMLInputElement).value;
-    if (campo === 'cpf') valor = formatarCpf(valor);
-    if (campo === 'telefone') valor = formatarTelefone(valor);
-    this.f.update((atual) => ({
-      ...atual,
-      responsaveisExtras: atual.responsaveisExtras.map((r, i) => i === indice ? { ...r, [campo]: valor } : r),
-    }));
-    (evento.target as HTMLInputElement).value = valor;
   }
 
   protected cadastrar(): void {
@@ -196,23 +139,19 @@ export class PacienteForm {
   protected async confirmar(): Promise<void> {
     const f = this.f();
     try {
-    const paciente = await this.clinica.salvarPaciente(
-      {
-        nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
-        endereco: f.endereco.trim(), cep: f.cep, cidade: f.cidade.trim(), numero: f.numero.trim(), complemento: f.complemento.trim(), bairro: f.bairro.trim(),
-        responsavel: { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },
-        responsaveis: [
-          { id: f.rId, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: '' },
-          ...f.responsaveisExtras.map((r) => ({ id: r.id, nome: r.nome.trim(), nascimento: r.nascimento, email: r.email.trim(), relacao: r.parentesco.trim(), telefone: r.telefone, cpf: r.cpf, endereco: '' })),
-        ].filter((r) => r.nome),
-        plano: { possui: f.possuiPlano, nome: f.possuiPlano ? f.plano.trim() : '', carteirinha: f.possuiPlano ? f.carteirinha.trim() : '', validade: f.possuiPlano ? f.validade : '' },
-        ativo: f.ativo,
-      },
-      this.id(),
-    );
-    this.confirmando.set(false);
-    this.aviso.mostrar(this.edicao() ? `Dados de ${paciente.nome} atualizados.` : 'Paciente cadastrado com sucesso.');
-    this.router.navigateByUrl(this.voltar());
+      const paciente = await this.clinica.salvarPaciente(
+        {
+          nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
+          endereco: f.endereco.trim(), cep: f.cep, cidade: f.cidade.trim(), numero: f.numero.trim(), complemento: f.complemento.trim(), bairro: f.bairro.trim(), inicio: f.inicio, encerramento: f.encerramento,
+          responsavel: { id: this.existente()?.responsavel?.id, nome: f.rNome.trim(), nascimento: f.rNascimento, email: f.rEmail.trim(), relacao: f.rParentesco.trim(), telefone: f.rTelefone, cpf: f.rCpf, endereco: f.rEndereco.trim() },
+          plano: { possui: f.possuiPlano, nome: f.possuiPlano ? f.plano.trim() : '', carteirinha: f.possuiPlano ? f.carteirinha.trim() : '', validade: f.possuiPlano ? f.validade : '' },
+          ativo: f.ativo,
+        },
+        this.id(),
+      );
+      this.confirmando.set(false);
+      this.aviso.mostrar(this.edicao() ? `Dados de ${paciente.nome} atualizados.` : 'Paciente cadastrado com sucesso.');
+      this.router.navigateByUrl(this.voltar());
     } catch (erro) {
       console.error('Falha ao salvar paciente:', erro);
       this.aviso.mostrar('Não foi possível salvar o paciente. Verifique os dados e tente novamente.');

@@ -187,6 +187,9 @@ public class DocumentoClinicoService {
 
         documento.setSecao(request.getSecao());
         documento.setTitulo(request.getTitulo());
+        documento.setGrupo(request.getGrupo() == null || request.getGrupo().isBlank()
+                ? null
+                : request.getGrupo().trim());
         documento.setDataSessao(request.getDataSessao());
         documento.setTipoAtendimento(request.getTipoAtendimento());
         documento.setConteudo(request.getConteudo());

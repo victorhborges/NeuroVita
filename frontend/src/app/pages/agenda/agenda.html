@@ -23,23 +23,26 @@
         <div class="ag-grade" role="grid" aria-label="Agenda semanal">
           <div class="ag-canto">Hora</div>
           @for (d of dias(); track d.iso) {
-            <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2">{{ d.nome }}<br />{{ d.texto }}</div>
+            <div class="ag-dia" [class.ag-dia-hoje]="d.hoje" [style.grid-column]="$index + 2"><span class="ag-dia-nome">{{ d.nome }}</span><strong class="ag-dia-data">{{ d.texto }}</strong></div>
           }
           @for (linha of grade(); track $index; let i = $index) {
-            <div class="ag-hora" [style.grid-row]="i + 2">{{ horas()[i] }}</div>
+            <div class="ag-hora" [style.grid-row]="i + 2">{{ horas[i] }}</div>
             @for (celula of linha; track $index; let c = $index) {
               <div class="ag-celula" [class.ag-celula-hoje]="dias()[c].hoje" [style.grid-row]="i + 2" [style.grid-column]="c + 2" role="gridcell">
                 @for (e of celula; track e.id) {
                   <button
-                    type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
+                    type="button" class="ag-evento ag-{{ e.status }}" [class.ag-evento-compacto]="celula.length > 1" [class.ag-evento-apagado]="!e.destaque" [class.ag-evento-ativo]="e.selecionado"
                     [attr.aria-label]="e.nome + ', ' + e.inicio + ', ' + rotulo[e.status]"
                     [attr.title]="e.nome + ' · ' + e.inicio + ' às ' + e.fim + ' · ' + e.atendimento + ' · ' + e.profNome"
                     (click)="selecionar(e.id)"
                   >
                     <strong>{{ e.nome }}</strong>
-                    <span>{{ e.inicio }} - {{ e.fim }}</span>
-                    <span>{{ e.tipo }} · {{ e.atendimento }}</span>
-                    <small>{{ e.profNome }}</small>
+                    @if (celula.length === 1) {
+                      <span>{{ e.atendimento }}</span>
+                      <small>{{ e.profNome }}</small>
+                    } @else {
+                      <span>{{ e.inicio }} · {{ e.atendimento }}</span>
+                    }
                   </button>
                 }
               </div>
@@ -51,8 +54,8 @@
 
     <aside class="ag-lateral">
       <section class="cartao ag-caixa">
-        <h2 class="ag-caixa-titulo"><app-icone nome="calendario" /> Resumo da agenda</h2>
-        <p class="ag-caixa-sub">Hoje - {{ dataHoje }}</p>
+        <h2 class="ag-caixa-titulo">Resumo da agenda</h2>
+        <p class="ag-caixa-data"><app-icone nome="calendario" /> Hoje - {{ dataHoje }}</p>
         <ul class="ag-legenda">
           @for (r of resumo(); track r.classe) {
             <li><span class="ag-ponto ag-ponto-{{ r.classe }}"></span> {{ r.valor }} {{ r.rotulo }}</li>
@@ -65,7 +68,7 @@
         @if (proximo(); as p) {
           <ul class="ag-info">
             <li><app-icone nome="relogio" /> {{ p.inicio }}</li>
-            <li><app-icone nome="prancheta" /> {{ p.tipo }}</li>
+            <li><app-icone nome="usuario" /> {{ p.tipo }}</li>
             <li><app-icone nome="local" /> {{ p.sala }}</li>
           </ul>
         } @else {
@@ -88,7 +91,7 @@
           <ul class="ag-info ag-info-quando">
             <li>
               <app-icone nome="calendario" />
-              <span><strong>{{ secretaria() ? s.relativo : rotulo[s.a.status] }}</strong><small>{{ s.a.inicio }}</small><small>{{ s.dataBR }}</small></span>
+              <span><strong>{{ s.relativo }}</strong><small>{{ s.a.inicio }}</small><small>{{ s.dataBR }}</small></span>
             </li>
             <li><app-icone nome="usuario" /><span><strong>Profissional</strong><small>{{ s.profissional }}</small></span></li>
           </ul>
@@ -99,12 +102,12 @@
             </button>
           } @else {
             <div class="ag-status" #menuStatusRaiz>
-              <button type="button" class="ag-status-botao" aria-haspopup="menu" [attr.aria-expanded]="menuStatus()" (click)="menuStatus.set(!menuStatus())">
+              <button type="button" class="ag-status-botao" aria-haspopup="menu" [disabled]="!statusLista().length" [attr.aria-expanded]="menuStatus()" (click)="menuStatus.set(!menuStatus())">
                 <app-icone nome="calendario" /> {{ rotulo[s.a.status] }} <app-icone nome="seta-baixo" />
               </button>
               @if (menuStatus()) {
                 <div class="ag-status-menu" role="menu">
-                  @for (st of statusLista; track st) {
+                  @for (st of statusLista(); track st) {
                     <button type="button" role="menuitem" (click)="trocarStatus(st)">
                       <span class="ag-ponto ag-ponto-{{ st }}"></span> {{ rotulo[st] }}
                       @if (st === s.a.status) { <app-icone nome="check" /> }
@@ -123,11 +126,11 @@
 </div>
 
 @if (editando() && escolhido(); as s) {
-  <div class="dialogo-fundo" (mousedown)="$event.target === $event.currentTarget && editando.set(false)">
+  <div class="dialogo-fundo" (mousedown)="$event.target === $event.currentTarget && fecharEdicao()">
     <div class="dialogo dialogo-edicao" role="dialog" aria-modal="true" aria-label="Editar consulta">
       <div class="edicao-topo">
         <h2 class="edicao-titulo">Editar consulta</h2>
-        <button type="button" class="edicao-fechar" aria-label="Fechar" (click)="editando.set(false)"><app-icone nome="fechar" /></button>
+        <button type="button" class="edicao-fechar" aria-label="Fechar" (click)="fecharEdicao()"><app-icone nome="fechar" /></button>
       </div>
 
       <div class="edicao-paciente">
@@ -139,86 +142,47 @@
       </div>
 
       <div class="edicao-grade">
-        <label class="edicao-campo">Data
-          <span class="edicao-entrada"><app-icone nome="calendario" /><input type="date" [value]="editData()" (change)="alterarDataEdicao($any($event.target).value)" /></span>
-        </label>
-        <label class="edicao-campo">Horário
-          <span class="edicao-entrada"><app-icone nome="relogio" />
-            <select class="edicao-controle" [value]="editHora()" aria-label="Horário da consulta" [disabled]="carregandoDisponibilidades() || falhaDisponibilidades() || !consultasCarregadas()" (change)="alterarHorarioEdicao($any($event.target).value)">
-              @if (carregandoDisponibilidades()) { <option value="" disabled>Carregando horários…</option> }
-              @else if (falhaDisponibilidades()) { <option value="" disabled>Disponibilidade indisponível</option> }
-              @else if (falhaConsulta()) { <option value="" disabled>Agenda indisponível</option> }
-              @else if (!opcoesHorario().length) { <option value="" disabled>Sem horários disponíveis</option> }
-              @for (h of opcoesHorario(); track h) { <option [value]="h">{{ h }}</option> }
-            </select>
-          </span>
-        </label>
-        <label class="edicao-campo">Profissional
-          <span class="edicao-entrada"><app-icone nome="usuario" />
-            <select class="edicao-controle" [value]="editProf()" aria-label="Profissional da consulta" (change)="alterarProfissionalEdicao($any($event.target).value)">
-              @if (!opcoesProfissionais().length) { <option value="" disabled>Nenhum profissional disponível</option> }
-              @for (p of opcoesProfissionais(); track p.valor) { <option [value]="p.valor">{{ p.rotulo }}</option> }
-            </select>
-          </span>
-        </label>
-        <label class="edicao-campo">Sala
-          <span class="edicao-entrada"><app-icone nome="local" />
-            <select class="edicao-controle" [value]="editSala()" aria-label="Sala da consulta" [disabled]="!consultasCarregadas() || carregandoDisponibilidades() || falhaDisponibilidades()" (change)="alterarSalaEdicao($any($event.target).value)">
-              @if (!opcoesSala().length) { <option value="" disabled>Nenhuma sala disponível</option> }
-              @for (sala of opcoesSala(); track sala) { <option [value]="sala">{{ sala }}</option> }
-            </select>
-          </span>
-        </label>
+        <div class="edicao-campo">Data
+          <div class="lista-suspensa lista-compacta">
+            <button type="button" class="lista-campo" aria-haspopup="dialog" [attr.aria-expanded]="calAberto()" aria-label="Escolher a data" (click)="calAberto.set(!calAberto())">
+              <span class="lista-valor"><app-icone nome="calendario" /> {{ editDataTexto() }}</span>
+              <app-icone nome="seta-baixo" />
+            </button>
+            @if (calAberto()) {
+              <div class="edicao-cal" role="dialog" aria-label="Calendário">
+                <div class="edicao-cal-topo">
+                  <button type="button" aria-label="Mês anterior" (click)="mudarMesCal(-1)"><app-icone nome="seta-esquerda" /></button>
+                  <strong>{{ calTitulo() }}</strong>
+                  <button type="button" aria-label="Próximo mês" (click)="mudarMesCal(1)"><app-icone nome="seta-direita" /></button>
+                </div>
+                <div class="edicao-cal-grade">
+                  @for (nome of diasSemanaCal; track nome) { <span class="edicao-cal-semana">{{ nome }}</span> }
+                  @for (c of calSemanas(); track $index) {
+                    @if (c) {
+                      <button type="button" class="edicao-cal-dia" [class.edicao-cal-ativo]="c.iso === editData()" (click)="escolherDiaCal(c.iso)">{{ c.numero }}</button>
+                    } @else { <span></span> }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="edicao-campo">Horário
+          <app-lista-suspensa titulo="Horários" icone="relogio" iconeOpcao="relogio" [compacta]="true" [mostrarTitulo]="false" [opcoes]="listaHorarios()" [(valor)]="editHora" />
+        </div>
+        <div class="edicao-campo">Profissional
+          <app-lista-suspensa titulo="Profissionais" icone="usuario" [compacta]="true" [mostrarTitulo]="false" [opcoes]="listaProfissionais()" [(valor)]="editProf" />
+        </div>
+        <div class="edicao-campo">Sala
+          <app-lista-suspensa titulo="Salas" icone="local" [compacta]="true" [mostrarTitulo]="false" [opcoes]="listaSalas()" [(valor)]="editSala" />
+        </div>
       </div>
 
-      <p class="edicao-sub edicao-paciente-atual">Paciente: {{ s.nome }}</p>
-
-      @if (falhaConsulta() || falhaDisponibilidades()) {
-        <div class="edicao-alerta" role="alert">
-          <p>Não foi possível consultar a agenda ou a disponibilidade. Atualize os dados antes de alterar a consulta.</p>
-          <button type="button" class="link-botao" (click)="tentarNovamenteCarregarAgenda()">Tentar novamente</button>
-        </div>
-      }
-
-      <button type="button" class="edicao-botao edicao-confirmar" [disabled]="executandoAcao()" (click)="confirmarConsulta()"><app-icone nome="check-grande" /> Confirmar consulta</button>
-      <button type="button" class="edicao-botao edicao-remarcar" [disabled]="executandoAcao() || !consultasCarregadas() || carregandoDisponibilidades() || falhaDisponibilidades() || !opcoesHorario().includes(editHora()) || !opcoesSala().includes(editSala())" (click)="remarcarConsulta()"><app-icone nome="calendario" /> Remarcar consulta</button>
-      <button type="button" class="edicao-botao edicao-cancelar" [disabled]="executandoAcao()" (click)="cancelando.set(true)"><app-icone nome="lixeira" /> Cancelar consulta</button>
+      <button type="button" class="edicao-botao edicao-confirmar" (click)="confirmarConsulta()"><app-icone nome="check-grande" /> Confirmar consulta</button>
+      <button type="button" class="edicao-botao edicao-remarcar" (click)="remarcarConsulta()"><app-icone nome="calendario" /> Remarcar consulta</button>
+      <button type="button" class="edicao-botao edicao-cancelar" (click)="cancelando.set(true)"><app-icone nome="lixeira" /> Cancelar consulta</button>
     </div>
   </div>
 }
 
-<app-dialogo [aberto]="confirmando()" titulo="Confirmar esta consulta?" textoCancelar="Voltar" textoConfirmar="Confirmar consulta" (cancelar)="confirmando.set(false)" (confirmar)="executarConfirmacao()">
-  @if (escolhido(); as s) {
-    <p class="dialogo-texto">{{ s.nome }} · {{ s.dataBR }} às {{ s.a.inicio }} · {{ s.profissional }}</p>
-  }
-</app-dialogo>
-
-<app-dialogo [aberto]="confirmandoRemarcacao()" titulo="Revisar remarcação" textoCancelar="Voltar à edição" textoConfirmar="Salvar remarcação" (cancelar)="confirmandoRemarcacao.set(false); remarcacaoPendente.set(null)" (confirmar)="executarRemarcacao()">
-  @if (escolhido(); as s) {
-    @if (remarcacaoPendente(); as nova) {
-      <div class="remarcacao-resumo">
-        <p><strong>Paciente</strong><span>{{ s.nome }}</span></p>
-        <div class="remarcacao-colunas">
-          <section>
-            <h3>Consulta atual</h3>
-            <p>{{ s.dataBR }} às {{ s.a.inicio }}</p>
-            <p>{{ s.profissional }}</p>
-            <p>{{ s.a.local }}</p>
-          </section>
-          <section>
-            <h3>Nova consulta</h3>
-            <p>{{ dataDaRemarcacao(nova.dataHora) }}</p>
-            <p>{{ nomeProfissional(nova.profissionalId) }}</p>
-            <p>{{ nova.local }}</p>
-          </section>
-        </div>
-      </div>
-    }
-  }
-</app-dialogo>
-
-<app-dialogo [aberto]="cancelando()" titulo="Cancelar esta consulta?" textoCancelar="Voltar" textoConfirmar="Cancelar consulta" (cancelar)="cancelando.set(false)" (confirmar)="confirmarCancelamento()">
-  @if (escolhido(); as s) {
-    <p class="dialogo-texto">{{ s.nome }} · {{ s.dataBR }} às {{ s.a.inicio }} · {{ s.profissional }}. O registro será mantido no histórico.</p>
-  }
-</app-dialogo>
+<app-dialogo [aberto]="cancelando()" titulo="Cancelar esta consulta?" textoCancelar="Voltar" textoConfirmar="Cancelar consulta" (cancelar)="cancelando.set(false)" (confirmar)="confirmarCancelamento()" />

@@ -7,6 +7,7 @@ public class LoginResponse {
     private String email;
     private String perfil;
     private String categoriaProfissional;
+    private String entidadeId;
 
     public LoginResponse() {
     }
@@ -17,12 +18,23 @@ public class LoginResponse {
             String email,
             String perfil,
             String categoriaProfissional) {
+        this(token, nome, email, perfil, categoriaProfissional, null);
+    }
+
+    public LoginResponse(
+            String token,
+            String nome,
+            String email,
+            String perfil,
+            String categoriaProfissional,
+            String entidadeId) {
 
         this.token = token;
         this.nome = nome;
         this.email = email;
         this.perfil = perfil;
         this.categoriaProfissional = categoriaProfissional;
+        this.entidadeId = entidadeId;
     }
 
     public String getToken() {
@@ -63,5 +75,13 @@ public class LoginResponse {
 
     public void setCategoriaProfissional(String categoriaProfissional) {
         this.categoriaProfissional = categoriaProfissional;
+    }
+
+    public String getEntidadeId() {
+        return entidadeId;
+    }
+
+    public void setEntidadeId(String entidadeId) {
+        this.entidadeId = entidadeId;
     }
 }

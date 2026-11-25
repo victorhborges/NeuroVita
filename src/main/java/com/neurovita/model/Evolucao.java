@@ -30,6 +30,7 @@ public class Evolucao {
     private Integer versao = 1;
     private String retificadaPorId;
     private String motivoRetificacao;
+    private List<DocumentoClinico.AnexoClinico> anexos = new ArrayList<>();
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -71,4 +72,21 @@ public class Evolucao {
     public void setRetificadaPorId(String retificadaPorId) { this.retificadaPorId = retificadaPorId; }
     public String getMotivoRetificacao() { return motivoRetificacao; }
     public void setMotivoRetificacao(String motivoRetificacao) { this.motivoRetificacao = motivoRetificacao; }
+    public List<DocumentoClinico.AnexoClinico> getAnexos() { return anexos; }
+    public void setAnexos(List<DocumentoClinico.AnexoClinico> anexos) {
+        this.anexos = copiarAnexos(anexos);
+    }
+
+    private List<DocumentoClinico.AnexoClinico> copiarAnexos(
+            List<DocumentoClinico.AnexoClinico> origem) {
+        if (origem == null) return new ArrayList<>();
+        return origem.stream().map(anexo -> {
+            if (anexo == null) return null;
+            DocumentoClinico.AnexoClinico copia = new DocumentoClinico.AnexoClinico();
+            copia.setNome(anexo.getNome());
+            copia.setConteudoBase64(anexo.getConteudoBase64());
+            copia.setTipoMime(anexo.getTipoMime());
+            return copia;
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+    }
 }

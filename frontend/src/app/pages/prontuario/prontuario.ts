@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Clinica } from '../../shared/clinica/clinica';
@@ -10,7 +10,10 @@ import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
 import { formatarData, paraISO } from '../../shared/util';
 
-/** Prontuário do paciente: dados pessoais, responsável, atalhos e histórico de consultas. */
+const HOJE_DEMO = paraISO(new Date());
+const AGORA_DEMO = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+
+/** Prontuário do paciente: dados pessoais, responsável, últimas informações e as seções (galerias de documentos). */
 @Component({
   selector: 'app-prontuario',
   imports: [FaixaPaciente, Icone, RouterLink, TituloPagina],
@@ -27,50 +30,21 @@ export class Prontuario {
 
   protected readonly paciente = computed(() => this.clinica.paciente(this.id()));
   protected readonly nascimento = computed(() => formatarData(this.paciente()?.nascimento));
-  protected readonly endereco = computed(() => {
-    const paciente = this.paciente();
-    if (!paciente) return '—';
-    const partes = [paciente.endereco, paciente.numero, paciente.complemento, paciente.bairro, paciente.cidade, paciente.cep]
-      .map((parte) => parte?.trim())
-      .filter((parte): parte is string => !!parte);
-    return partes.join(', ') || '—';
-  });
   protected readonly secoes = computed(() => secoesDoPerfil(this.perfil()).map((id) => SECOES[id]));
-  protected readonly consultas = computed(() =>
-    (this.paciente()?.consultas ?? []).map((c) => {
-      const profissional = this.clinica.profissional(c.profissional);
-      return {
-        ...c,
-        profissional: profissional ? nomeProfissional(profissional) : c.profissional || '—',
-        dataBR: formatarData(c.data),
-      };
-    }),
-  );
 
+  /** Próxima consulta e última consulta do paciente, vistas na agenda. */
   protected readonly ultimas = computed(() => {
-    const agora = new Date();
-    const referencia = `${paraISO(agora)} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
-    const chave = (consulta: { data: string; inicio: string }) => `${consulta.data} ${consulta.inicio}`;
-    const consultas = this.clinica.agendamentos()
-      .filter((consulta) => consulta.pacienteId === this.id() && consulta.status !== 'cancelado');
-    const exibir = (consulta: (typeof consultas)[number] | undefined) => {
-      if (!consulta) return null;
-      const profissional = this.clinica.profissional(consulta.profissionalId);
-      return {
-        dataBR: formatarData(consulta.data),
-        profissional: profissional ? `${nomeProfissional(profissional)} - ${profissional.especialidade}` : '—',
-      };
+    const id = this.id();
+    const referencia = `${HOJE_DEMO} ${AGORA_DEMO}`;
+    const chave = (a: { data: string; inicio: string }) => `${a.data} ${a.inicio}`;
+    const consultas = this.clinica.agendamentos().filter((a) => a.pacienteId === id && a.status !== 'cancelado');
+    const mostrar = (a: (typeof consultas)[number] | undefined) => {
+      if (!a) return null;
+      const prof = this.clinica.profissional(a.profissionalId);
+      return { dataBR: formatarData(a.data), profissional: prof ? `${nomeProfissional(prof)} - ${prof.especialidade}` : '—' };
     };
-    const proxima = consultas.filter((consulta) => chave(consulta) >= referencia)
-      .sort((a, b) => chave(a).localeCompare(chave(b)))[0];
-    const ultima = consultas.filter((consulta) => chave(consulta) < referencia)
-      .sort((a, b) => chave(b).localeCompare(chave(a)))[0];
-    return { proxima: exibir(proxima), ultima: exibir(ultima) };
+    const proxima = consultas.filter((a) => chave(a) >= referencia).sort((x, y) => chave(x).localeCompare(chave(y)))[0];
+    const ultima = consultas.filter((a) => chave(a) < referencia).sort((x, y) => chave(y).localeCompare(chave(x)))[0];
+    return { proxima: mostrar(proxima), ultima: mostrar(ultima) };
   });
-
-  constructor() {
-    effect(() => this.clinica.carregarDocumentos(this.id()));
-    effect(() => this.clinica.carregarDiagnosticos(this.id()));
-  }
-
 }

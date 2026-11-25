@@ -26,15 +26,15 @@ import com.neurovita.security.JwtAuthenticationFilter;
 @Configuration
 public class SecurityConfig {
 
-        private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
@@ -48,43 +48,38 @@ public class SecurityConfig {
 
         configuration.setAllowCredentials(false);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
-        }
+    }
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(
-                HttpSecurity http,
-                JwtAuthenticationFilter jwtAuthenticationFilter)
-                throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtAuthenticationFilter)
+            throws Exception {
 
         http
-                .cors(cors ->
-                        cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(
+                        SessionCreationPolicy.STATELESS))
 
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, exception) ->
-                                escreverErro(
-                                        response,
-                                        HttpStatus.UNAUTHORIZED,
-                                        "Autenticação necessária ou token inválido."))
-                        .accessDeniedHandler((request, response, exception) ->
-                                escreverErro(
-                                        response,
-                                        HttpStatus.FORBIDDEN,
-                                        "Você não tem permissão para acessar este recurso.")))
+                        .authenticationEntryPoint((request, response, exception) -> escreverErro(
+                                response,
+                                HttpStatus.UNAUTHORIZED,
+                                "Autenticação necessária ou token inválido."))
+                        .accessDeniedHandler((request, response, exception) -> escreverErro(
+                                response,
+                                HttpStatus.FORBIDDEN,
+                                "Você não tem permissão para acessar este recurso.")))
 
                 .authorizeHttpRequests(auth -> auth
 
@@ -94,39 +89,47 @@ public class SecurityConfig {
                                 "/api/auth/recuperacao/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                                "/v3/api-docs/**")
+                        .permitAll()
 
-                        // Frontend Angular e arquivos estáticos.
-                        // Libera somente caminhos fora de /api e /api/.
+                        // Frontend Angular e arquivos estáticos
                         .requestMatchers(
                                 new RegexRequestMatcher(
                                         "^(?!/api(?:/|$)).*$",
-                                        null)
-                        ).permitAll()
+                                        null))
+                        .permitAll()
 
                         // Troca de senha no primeiro acesso
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/auth/primeiro-acesso/alterar-senha"
-                        ).hasRole("PRIMEIRO_ACESSO")
+                                "/api/auth/primeiro-acesso/alterar-senha")
+                        .hasRole("PRIMEIRO_ACESSO")
 
                         // Troca autenticada de senha
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/auth/alterar-senha"
-                        ).hasAnyRole(
+                                "/api/auth/alterar-senha")
+                        .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "SECRETARIA",
-                                "PROFISSIONAL",
-                                "PACIENTE")
+                                "PROFISSIONAL")
 
-                        .requestMatchers(HttpMethod.PUT, "/api/auth/perfil")
-                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/auth/perfil")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL")
 
-                        // Mensagem de contato: somente usuários autenticados dos perfis do sistema.
-                        .requestMatchers(HttpMethod.POST, "/api/contato")
-                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL", "PACIENTE")
+                        // Contato
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/contato")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL")
 
                         // Administração do sistema
                         .requestMatchers("/api/administradores/**")
@@ -139,35 +142,43 @@ public class SecurityConfig {
                         // Cadastro de pacientes
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/pacientes"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
-
-                        // A listagem é usada pela secretaria ao agendar consultas.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/pacientes"
-                        ).hasAnyRole(
+                                "/api/pacientes")
+                        .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "SECRETARIA",
                                 "PROFISSIONAL")
 
+                        // Listagem de pacientes
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/pacientes/*"
-                        ).hasAnyRole(
+                                "/api/pacientes")
+                        .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "SECRETARIA",
-                                "PACIENTE")
+                                "PROFISSIONAL")
 
+                        // Consulta individual de paciente
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/pacientes/*")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
+
+                        // Atualização e inativação de pacientes
                         .requestMatchers(
                                 HttpMethod.PUT,
-                                "/api/pacientes/*"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                                "/api/pacientes/*")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
                         .requestMatchers(
                                 HttpMethod.DELETE,
-                                "/api/pacientes/*"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                                "/api/pacientes/*")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
                         // Demais operações com pacientes
                         .requestMatchers("/api/pacientes/**")
@@ -176,25 +187,31 @@ public class SecurityConfig {
                         // Cadastro de profissionais
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/profissionais"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                                "/api/profissionais")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
-                        // A lista alimenta o formulário de agendamento da secretaria.
+                        // Listagem de profissionais
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/profissionais"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                                "/api/profissionais")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
-                        // A validação do próprio perfil ocorre no serviço
+                        // Consulta individual de profissional
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/profissionais/{id}"
-                        ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
+                                "/api/profissionais/{id}")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL")
 
                         // Disponibilidades vinculadas ao profissional
                         .requestMatchers(
-                                "/api/profissionais/*/disponibilidades/**"
-                        ).hasAnyRole(
+                                "/api/profissionais/*/disponibilidades/**")
+                        .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
                                 "SECRETARIA")
@@ -203,23 +220,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/profissionais/**")
                         .hasRole("ADMINISTRADOR")
 
-                        // Leitura das próprias consultas do paciente
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/consultas/paciente/*",
-                                "/api/consultas/*",
-                                "/api/agenda/paciente/*")
-                        .hasAnyRole(
-                                "ADMINISTRADOR",
-                                "PROFISSIONAL",
-                                "SECRETARIA",
-                                "PACIENTE")
-
                         // Consultas e agenda
                         .requestMatchers(
                                 "/api/consultas/**",
-                                "/api/agenda/**"
-                        ).hasAnyRole(
+                                "/api/agenda/**")
+                        .hasAnyRole(
                                 "ADMINISTRADOR",
                                 "PROFISSIONAL",
                                 "SECRETARIA")
@@ -254,7 +259,7 @@ public class SecurityConfig {
                                 "PROFISSIONAL",
                                 "SECRETARIA")
 
-                        // Outros métodos não previstos: somente administrador
+                        // Outros métodos não previstos
                         .requestMatchers("/api/disponibilidades/**")
                         .hasRole("ADMINISTRADOR")
 
@@ -266,43 +271,55 @@ public class SecurityConfig {
                                 "/api/exames/**",
                                 "/api/prescricoes/**",
                                 "/api/documentos-clinicos/**",
-                                "/api/evolucoes/**"
-                        ).hasAnyRole("ADMINISTRADOR", "PROFISSIONAL")
+                                "/api/evolucoes/**")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "PROFISSIONAL")
 
-                        // Leitura pontual no prontuário; o service valida vínculo ativo.
+                        // Leitura pontual de responsáveis
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/responsaveis/*")
-                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL")
 
-                        // Demais operações de responsáveis são gerenciamento administrativo.
+                        // Gerenciamento de responsáveis
                         .requestMatchers("/api/responsaveis/**")
-                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
                         // Vínculos profissionais ativos com pacientes
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/vinculos-profissionais-pacientes/**"
-                        ).hasAnyRole("ADMINISTRADOR", "SECRETARIA", "PROFISSIONAL")
+                                "/api/vinculos-profissionais-pacientes/**")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA",
+                                "PROFISSIONAL")
 
-                        .requestMatchers("/api/vinculos-profissionais-pacientes/**")
-                        .hasAnyRole("ADMINISTRADOR", "SECRETARIA")
+                        .requestMatchers(
+                                "/api/vinculos-profissionais-pacientes/**")
+                        .hasAnyRole(
+                                "ADMINISTRADOR",
+                                "SECRETARIA")
 
-                        // Demais endpoints da API exigem autenticação
-                        .anyRequest().authenticated()
-                )
+                        // Demais endpoints exigem autenticação
+                        .anyRequest().authenticated())
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-        }
+    }
 
-        private void escreverErro(
-                jakarta.servlet.http.HttpServletResponse response,
-                HttpStatus status,
-                String mensagem) throws java.io.IOException {
+    private void escreverErro(
+            jakarta.servlet.http.HttpServletResponse response,
+            HttpStatus status,
+            String mensagem) throws java.io.IOException {
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -313,5 +330,5 @@ public class SecurityConfig {
                 Map.of(
                         "status", status.value(),
                         "mensagem", mensagem));
-        }
+    }
 }
