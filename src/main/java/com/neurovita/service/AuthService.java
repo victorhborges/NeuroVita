@@ -2,6 +2,7 @@ package com.neurovita.service;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,11 @@ import com.neurovita.repository.UsuarioRepository;
 
 @Service
 public class AuthService {
+
+    private static final Set<String> PERFIS_COM_ACESSO = Set.of(
+            "ADMINISTRADOR",
+            "SECRETARIA",
+            "PROFISSIONAL");
 
     private final UsuarioRepository usuarioRepository;
     private final ProfissionalRepository profissionalRepository;
@@ -57,7 +63,8 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidCredentialsException(
                         "E-mail ou senha inválidos"));
 
-        if (!usuario.isAtivo()) {
+        if (!usuario.isAtivo()
+                || !possuiPerfilComAcesso(usuario)) {
             throw new InvalidCredentialsException(
                     "E-mail ou senha inválidos");
         }
@@ -76,9 +83,8 @@ public class AuthService {
         String perfil = usuario.getPerfil();
         String categoriaProfissional = null;
 
-        if (perfil != null
-                && "PROFISSIONAL".equals(
-                        perfil.toUpperCase(Locale.ROOT))) {
+        if ("PROFISSIONAL".equals(
+                perfil.toUpperCase(Locale.ROOT))) {
 
             if (usuario.getEntidadeId() != null
                     && !usuario.getEntidadeId().isBlank()) {
@@ -143,9 +149,10 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidCredentialsException(
                         "Usuário não encontrado"));
 
-        if (!usuario.isAtivo()) {
+        if (!usuario.isAtivo()
+                || !possuiPerfilComAcesso(usuario)) {
             throw new InvalidCredentialsException(
-                    "Conta inativa");
+                    "Usuário sem permissão de acesso");
         }
 
         if (!usuario.isSenhaProvisoria()) {
@@ -165,38 +172,72 @@ public class AuthService {
     public void alterarSenhaAutenticada(
             String email,
             AlterarSenhaAutenticadaRequest request) {
-        if (email == null || email.isBlank() || request == null
-                || request.getSenhaAtual() == null || request.getSenhaAtual().isBlank()
-                || request.getNovaSenha() == null || request.getNovaSenha().isBlank()
-                || request.getConfirmarSenha() == null || request.getConfirmarSenha().isBlank()) {
+
+        if (email == null || email.isBlank()
+                || request == null
+                || request.getSenhaAtual() == null
+                || request.getSenhaAtual().isBlank()
+                || request.getNovaSenha() == null
+                || request.getNovaSenha().isBlank()
+                || request.getConfirmarSenha() == null
+                || request.getConfirmarSenha().isBlank()) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Senha atual, nova senha e confirmação são obrigatórias.");
         }
-        if (request.getNovaSenha().length() < 8 || request.getNovaSenha().length() > 72) {
+
+        if (request.getNovaSenha().length() < 8
+                || request.getNovaSenha().length() > 72) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "A nova senha deve ter entre 8 e 72 caracteres.");
         }
-        if (!request.getNovaSenha().equals(request.getConfirmarSenha())) {
+
+        if (!request.getNovaSenha().equals(
+                request.getConfirmarSenha())) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "A nova senha e a confirmação devem ser iguais.");
         }
 
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email.trim())
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(email.trim())
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Credenciais inválidas."));
-        if (!usuario.isAtivo() || usuario.isSenhaProvisoria()
+                        HttpStatus.UNAUTHORIZED,
+                        "Credenciais inválidas."));
+
+        if (!usuario.isAtivo()
+                || !possuiPerfilComAcesso(usuario)
+                || usuario.isSenhaProvisoria()
                 || usuario.getSenha() == null
-                || !passwordEncoder.matches(request.getSenhaAtual(), usuario.getSenha())) {
+                || !passwordEncoder.matches(
+                        request.getSenhaAtual(),
+                        usuario.getSenha())) {
+
             throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Credenciais inválidas.");
+                    HttpStatus.UNAUTHORIZED,
+                    "Credenciais inválidas.");
         }
 
-        usuario.setSenha(passwordEncoder.encode(request.getNovaSenha()));
+        usuario.setSenha(
+                passwordEncoder.encode(request.getNovaSenha()));
+
         usuario.setSenhaAlteradaEm(Instant.now());
         usuario.incrementarTokenVersion();
+
         usuarioRepository.save(usuario);
+    }
+
+    private boolean possuiPerfilComAcesso(Usuario usuario) {
+
+        if (usuario == null || usuario.getPerfil() == null) {
+            return false;
+        }
+
+        return PERFIS_COM_ACESSO.contains(
+                usuario.getPerfil().trim().toUpperCase(Locale.ROOT));
     }
 }

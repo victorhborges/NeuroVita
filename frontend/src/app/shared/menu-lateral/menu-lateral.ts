@@ -21,6 +21,9 @@ const ITENS: Record<ItemMenu, { rotulo: string; icone: NomeIcone }> = {
 export class MenuLateral {
   readonly perfil = input.required<Perfil>();
 
+  protected readonly rotaConfiguracoes = computed(() => `${CONFIG_PERFIS[this.perfil()].rota}/configuracoes`);
+  protected readonly rotaAjuda = computed(() => `${CONFIG_PERFIS[this.perfil()].rota}/ajuda`);
+
   protected readonly itens = computed(() => {
     const config = CONFIG_PERFIS[this.perfil()];
     return config.menu.map((id) => ({ id, ...ITENS[id], rota: rotaDoMenu(this.perfil(), id) }));

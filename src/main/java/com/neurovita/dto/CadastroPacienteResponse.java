@@ -1,4 +1,3 @@
-
 package com.neurovita.dto;
 
 public class CadastroPacienteResponse {

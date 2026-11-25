@@ -3,17 +3,38 @@
     <app-icone nome="calendario" />
     <h2 class="agenda-tabela-titulo">Agenda do dia</h2>
   </header>
+
   @if (linhas().length) {
     <div class="agenda-tabela-rolagem" [class.agenda-tabela-limite]="linhas().length > 6">
       <table class="agenda-tabela-grade">
-        <thead><tr><th scope="col">Horário</th><th scope="col">Paciente</th><th scope="col">Telefone</th><th scope="col">Profissional</th><th scope="col">Status</th></tr></thead>
+        <thead>
+          <tr>
+            <th scope="col">Horário</th>
+            <th scope="col">Paciente</th>
+            <th scope="col">Telefone</th>
+            <th scope="col">Profissional</th>
+            @if (mostrarTipo()) { <th scope="col">Tipo</th> }
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
         <tbody>
           @for (linha of linhas(); track $index) {
             <tr>
               <td><span class="agenda-tabela-hora"><app-icone nome="relogio" /> {{ linha.hora }}</span></td>
-              <td><span class="agenda-tabela-paciente"><app-avatar [nome]="linha.paciente" [foto]="linha.foto" [neutro]="true" /> {{ linha.paciente }}</span></td>
-              <td>{{ linha.telefone }}</td><td>{{ linha.profissional }}</td>
-              <td><span [class]="'chip-st chip-st-icone chip-st-' + linha.status"><app-icone [nome]="icone(linha.status)" /> {{ rotulo[linha.status] }}</span></td>
+              <td>
+                <span class="agenda-tabela-paciente">
+                  <app-avatar [nome]="linha.paciente" [foto]="linha.foto" [neutro]="true" />
+                  {{ linha.paciente }}
+                </span>
+              </td>
+              <td>{{ linha.telefone }}</td>
+              <td>{{ linha.profissional }}</td>
+              @if (mostrarTipo()) { <td>{{ linha.tipo }}</td> }
+              <td>
+                <span [class]="'chip-st chip-st-icone chip-st-' + linha.status">
+                  <app-icone [nome]="icone(linha.status)" /> {{ rotulo[linha.status] }}
+                </span>
+              </td>
             </tr>
           }
         </tbody>

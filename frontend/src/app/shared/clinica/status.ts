@@ -47,6 +47,15 @@ export const HORARIOS_AGENDA: string[] = Array.from(
     },
 );
 
+/** Horários possíveis para início de consulta, na grade de meia em meia hora. */
+export const HORARIOS_CONSULTA: string[] = [...HORARIOS_AGENDA];
+
+/** Horas inteiras da grade da agenda (08:00 até 18:00). */
+export const HORAS_AGENDA: string[] = Array.from(
+    { length: 11 },
+    (_, i) => `${String(8 + i).padStart(2, '0')}:00`,
+);
+
 /** Expande a grade base para que consultas fora de 08:00–18:00 também apareçam. */
 export function horariosAgendaParaConsultas(
     consultas: { inicio: string; duracao: number }[],

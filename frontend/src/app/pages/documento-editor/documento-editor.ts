@@ -5,6 +5,7 @@ import { Aviso } from '../../shared/aviso/aviso';
 import { anexoDe } from '../../shared/clinica/arquivos';
 import { Clinica } from '../../shared/clinica/clinica';
 import { Anexo, Secao, TipoAtendimento } from '../../shared/clinica/modelos';
+import { modeloDeDocumento } from '../../shared/clinica/modelos-documento';
 import { SECOES, secaoDoPerfil } from '../../shared/clinica/secoes';
 import { Dialogo } from '../../shared/dialogo/dialogo';
 import { EditorTexto } from '../../shared/editor-texto/editor-texto';
@@ -12,7 +13,7 @@ import { FaixaPaciente } from '../../shared/faixa-paciente/faixa-paciente';
 import { Icone } from '../../shared/icone/icone';
 import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
-import { formatarData, formatarDataHora, htmlVazio, paraISO, primeiraLinha } from '../../shared/util';
+import { formatarData, formatarDataHora, htmlVazio, idadeDe, paraISO, primeiraLinha } from '../../shared/util';
 
 /**
  * Criar ou editar um documento.
@@ -41,22 +42,6 @@ export class DocumentoEditor {
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
   protected readonly cfg = computed(() => SECOES[this.secaoValida() ?? 'evolucoes']);
   protected readonly doc = computed(() => this.clinica.documentos().find((d) => d.id === this.docId()));
-  protected readonly mostraData = computed(() => {
-    const documento = this.doc();
-    if (this.secaoValida() === 'exames') return documento?.origem === 'documento-clinico';
-    return documento?.origem === 'documento-clinico' || this.secaoValida() !== 'medicamentos';
-  });
-  protected readonly mostraTipoAtendimento = computed(() => {
-    const documento = this.doc();
-    if (documento) return documento.origem === 'documento-clinico';
-    return !['evolucoes', 'medicamentos', 'exames'].includes(this.secaoValida() ?? '');
-  });
-  protected readonly permiteAnexos = computed(() => {
-    const origem = this.doc()?.origem;
-    if (origem === 'evolucao' || origem === 'prescricao' || origem === 'exame') return false;
-    if (!this.doc() && ['evolucoes', 'medicamentos', 'exames'].includes(this.secaoValida() ?? '')) return false;
-    return true;
-  });
 
   protected readonly conteudo = signal('');
   protected readonly dataSessao = signal(this.hoje);
@@ -81,8 +66,9 @@ export class DocumentoEditor {
     this.clinica.documentosDe(this.id(), this.secaoValida() ?? undefined).map((d) => ({
       doc: d,
       dataBR: formatarData(d.dataSessao),
-      sub: d.subtitulo || (d.secao === 'evolucoes'
-        ? `Sessão ${(d.tipoAtendimento ?? '').toLowerCase()}` : d.titulo),
+      sub: d.secao === 'evolucoes'
+        ? `Sessão ${d.tipoAtendimento?.toLowerCase() ?? 'sem modalidade informada'}`
+        : d.titulo,
     })),
   );
 
@@ -93,7 +79,13 @@ export class DocumentoEditor {
   });
 
   constructor() {
-    effect(() => this.clinica.carregarDocumentos(this.id()));
+    effect(() => {
+      const pacienteId = this.id();
+      if (!pacienteId) return;
+      this.clinica.carregarDocumentos(pacienteId);
+      this.clinica.carregarDiagnosticos(pacienteId);
+    });
+
     // Ao abrir um documento existente, copia os dados dele para o formulário (uma vez).
     effect(() => {
       const d = this.doc();
@@ -101,9 +93,22 @@ export class DocumentoEditor {
       this.carregado = true;
       this.conteudo.set(d.conteudo);
       this.dataSessao.set(d.dataSessao);
-      this.tipo.set(d.tipoAtendimento === 'Online' ? 'Online' : 'Presencial');
+      const tipo = d.tipoAtendimento ?? 'Presencial';
+      this.tipo.set(tipo);
       this.anexos.set(d.anexos);
-      this.inicial.set({ conteudo: d.conteudo, dataSessao: d.dataSessao, tipo: this.tipo(), anexos: d.anexos.length });
+      this.inicial.set({ conteudo: d.conteudo, dataSessao: d.dataSessao, tipo, anexos: d.anexos.length });
+    });
+
+    // Documento novo do psicólogo: já abre com o texto-modelo da seção, com os dados do paciente preenchidos.
+    effect(() => {
+      const p = this.paciente();
+      const secao = this.secaoValida();
+      if (this.carregado || this.docId() || !p || !secao || this.perfil() !== 'psicologo') return;
+      const modelo = modeloDeDocumento(secao, { nome: p.nome, idade: idadeDe(p.nascimento), data: formatarData(this.hoje) });
+      if (!modelo) return;
+      this.carregado = true;
+      this.conteudo.set(modelo);
+      this.inicial.set({ conteudo: modelo, dataSessao: this.hoje, tipo: 'Presencial', anexos: 0 });
     });
   }
 
@@ -115,7 +120,19 @@ export class DocumentoEditor {
   }
 
   protected removerAnexo(indice: number): void {
+    const anexo = this.anexos()[indice];
+    if (anexo && !this.podeRemoverAnexo(anexo)) {
+      this.aviso.mostrar('Anexos vinculados a este registro não podem ser removidos.');
+      return;
+    }
     this.anexos.update((l) => l.filter((_, i) => i !== indice));
+  }
+
+  protected podeRemoverAnexo(anexo: Anexo): boolean {
+    const documento = this.doc();
+    if (documento?.origem !== 'evolucao' && documento?.origem !== 'prescricao') return true;
+    return !documento.anexos.some((existente) =>
+      existente.nome === anexo.nome && existente.url === anexo.url);
   }
 
   /** Pergunta antes de sair para outra tela se houver texto não salvo. */
@@ -134,18 +151,22 @@ export class DocumentoEditor {
   protected async confirmar(): Promise<void> {
     const existente = this.doc();
     const cfg = this.cfg();
+    if (existente?.origem === 'evolucao') {
+      this.aviso.mostrar('Evoluções registradas não podem ser alteradas. Registre uma nova evolução.');
+      return;
+    }
     const dataBR = formatarData(this.dataSessao());
     const titulo =
       existente?.titulo ??
-      (cfg.id === 'evolucoes' ? `Evolução ${dataBR}` : primeiraLinha(this.conteudo()) || `${cfg.singular} ${dataBR}`);
+      (cfg.id === 'evolucoes' ? 'Evolução' : primeiraLinha(this.conteudo()) || `${cfg.singular} ${dataBR}`);
 
     try {
       const salvo = await this.clinica.salvarDocumento({
-        id: existente?.id, origem: existente?.origem, profissionalId: existente?.profissionalId,
-        medicamentos: existente?.medicamentos, tipoExame: existente?.tipoExame,
-        resultado: existente?.resultado, observacoes: existente?.observacoes,
-        pacienteId: this.id(), secao: cfg.id, titulo, dataSessao: this.dataSessao(),
+        id: existente?.id, origem: existente?.origem, pacienteId: this.id(), secao: cfg.id, titulo, dataSessao: this.dataSessao(),
         tipoAtendimento: this.tipo(), conteudo: this.conteudo(), anexos: this.anexos(), arquivo: existente?.arquivo,
+        medicamentos: existente?.medicamentos, tipoExame: existente?.tipoExame,
+        profissionalId: existente?.profissionalId, dataRealizacao: existente?.dataRealizacao,
+        resultado: existente?.resultado, observacoes: existente?.observacoes,
       });
 
       this.confirmando.set(false);
@@ -154,12 +175,8 @@ export class DocumentoEditor {
       this.aviso.mostrar('Alterações salvas com sucesso.');
       this.router.navigate([this.raiz(), 'pacientes', this.id(), cfg.id, salvo.id]);
     } catch (erro) {
-      console.error('Falha ao salvar registro clínico:', erro);
-      this.confirmando.set(false);
-      const erroDaApi = typeof erro === 'object' && erro !== null && 'status' in erro;
-      this.aviso.mostrar(erro instanceof Error && !erroDaApi
-        ? erro.message
-        : 'Não foi possível salvar o registro clínico. Verifique os dados e tente novamente.');
+      console.error('Falha ao salvar documento:', erro);
+      this.aviso.mostrar('Não foi possível salvar o documento. Tente novamente.');
     }
   }
 }

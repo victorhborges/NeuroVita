@@ -10,13 +10,15 @@ import { ListaSuspensa, OpcaoLista } from '../../shared/lista-suspensa/lista-sus
 import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
 import {
-    cpfValido, deISO, emailValido, formatarCpf, formatarTelefone, gerarSenhaTemporaria, idadeDe, paraISO, telefoneValido,
+    cepValido, cpfValido, deISO, emailValido, formatarCep, formatarCpf, formatarTelefone, gerarSenhaTemporaria, idadeDe, paraISO,
+    telefoneValido,
 } from '../../shared/util';
 
 interface Faixa { inicio: string; fim: string }
 
 interface Formulario {
-    nome: string; nascimento: string; email: string; cpf: string; telefone: string;
+    nome: string; nascimento: string; cpf: string; telefone: string;
+    cep: string; cidade: string; endereco: string; numero: string; complemento: string; bairro: string; inicio: string; encerramento: string;
     tipo: string; registro: string; anoConclusao: string;
     dias: number[]; online: boolean; presencial: boolean; ativo: boolean;
     emailAcesso: string; senha: string; boasVindas: boolean;
@@ -24,7 +26,8 @@ interface Formulario {
 type Campo = keyof Formulario;
 
 const VAZIO: Formulario = {
-    nome: '', nascimento: '', email: '', cpf: '', telefone: '', tipo: '', registro: '', anoConclusao: '',
+    nome: '', nascimento: '', cpf: '', telefone: '', cep: '', cidade: '', endereco: '', numero: '', complemento: '', bairro: '', inicio: '', encerramento: '',
+    tipo: '', registro: '', anoConclusao: '',
     dias: [], online: false, presencial: false, ativo: true, emailAcesso: '', senha: '', boasVindas: true,
 };
 
@@ -72,28 +75,63 @@ export class ProfissionalForm {
         const f = this.f();
         const e: Partial<Record<Campo | 'faixas', string>> = {};
         const ano = Number(f.anoConclusao);
+
         if (f.nome.trim().length < 3) e.nome = 'Informe o nome completo.';
+
         if (!f.nascimento) e.nascimento = 'Informe a data de nascimento.';
-        else if (idadeDe(f.nascimento) < 18 || deISO(f.nascimento) > new Date()) e.nascimento = 'O profissional precisa ter 18 anos ou mais.';
-        if (!f.email.trim()) e.email = 'Informe o e-mail.';
-        else if (!emailValido(f.email)) e.email = 'E-mail inválido.';
+        else if (idadeDe(f.nascimento) < 18 || deISO(f.nascimento) > new Date()) {
+            e.nascimento = 'O profissional precisa ter 18 anos ou mais.';
+        }
+
         if (!f.cpf.trim()) e.cpf = 'Informe o CPF.';
         else if (!cpfValido(f.cpf)) e.cpf = 'CPF inválido.';
-        if (!f.telefone.trim()) e.telefone = 'Informe o telefone.';
-        else if (!telefoneValido(f.telefone)) e.telefone = 'Telefone inválido.';
+
+        if (f.telefone.trim() && !telefoneValido(f.telefone)) e.telefone = 'Telefone inválido.';
+
+        if (!f.cep.trim()) e.cep = 'Informe o CEP.';
+        else if (!cepValido(f.cep)) e.cep = 'CEP inválido.';
+
+        // Número e bairro: obrigatórios no cadastro; ao editar um profissional antigo (sem esses dados) não bloqueiam.
+        if (!this.edicao()) {
+            if (!f.numero.trim()) e.numero = 'Informe o número.';
+            if (!f.bairro.trim()) e.bairro = 'Informe o bairro.';
+        }
+
+        if (f.inicio && f.encerramento && f.encerramento < f.inicio) {
+            e.encerramento = 'O encerramento não pode ser antes do início.';
+        }
+
         if (!f.tipo) e.tipo = 'Escolha a categoria profissional.';
+
         if (!f.registro.trim()) e.registro = 'Informe o número de registro.';
         else if (!/^[\w./-]{3,}$/.test(f.registro.trim())) e.registro = 'Número de registro inválido.';
+
         if (!f.anoConclusao) e.anoConclusao = 'Informe o ano de conclusão.';
-        else if (!Number.isInteger(ano) || ano < 1950 || ano > new Date().getFullYear()) e.anoConclusao = 'Ano de conclusão inválido.';
+        else if (!Number.isInteger(ano) || ano < 1950 || ano > new Date().getFullYear()) {
+            e.anoConclusao = 'Ano de conclusão inválido.';
+        }
+
         if (!f.dias.length) e.dias = 'Marque pelo menos um dia de atendimento.';
         if (!this.faixas().length) e.faixas = 'Adicione pelo menos um horário de atendimento.';
         if (!f.online && !f.presencial) e.presencial = 'Marque online, presencial ou os dois.';
+
         if (!f.emailAcesso.trim()) e.emailAcesso = 'Informe o e-mail de acesso.';
         else if (!emailValido(f.emailAcesso)) e.emailAcesso = 'E-mail inválido.';
-        else if (this.clinica.emailDeAcessoEmUso(f.emailAcesso, this.id())) e.emailAcesso = 'Esse e-mail de acesso já está em uso.';
-        if (!this.edicao() && f.senha.length < 8) e.senha = 'A senha temporária precisa ter 8 caracteres ou mais.';
-        else if (this.edicao() && f.senha && f.senha.length < 8) e.senha = 'A senha temporária precisa ter 8 caracteres ou mais.';
+        else if (this.clinica.emailDeAcessoEmUso(f.emailAcesso, this.id())) {
+            e.emailAcesso = 'Esse e-mail de acesso já está em uso.';
+        }
+
+        // A validação precisa acompanhar o contrato do backend: entre 8 e 72 caracteres.
+        if (!this.edicao() && f.senha.length < 8) {
+            e.senha = 'A senha temporária precisa ter pelo menos 8 caracteres.';
+        } else if (this.edicao() && f.senha && f.senha.length < 8) {
+            e.senha = 'A nova senha precisa ter pelo menos 8 caracteres.';
+        }
+
+        if (f.senha.length > 72) {
+            e.senha = 'A senha temporária deve ter no máximo 72 caracteres.';
+        }
+
         return e;
     });
 
@@ -101,13 +139,33 @@ export class ProfissionalForm {
         effect(() => {
             const p = this.existente();
             if (this.carregado || !p) return;
+
             this.carregado = true;
             this.f.set({
-                nome: p.nome, nascimento: p.nascimento, email: p.email, cpf: p.cpf, telefone: p.telefone, tipo: p.tipo,
-                registro: p.registro.replace(/^CR[PM]\s*/i, ''), anoConclusao: p.anoConclusao ? String(p.anoConclusao) : '',
-                dias: [...p.disponibilidade.dias], online: p.disponibilidade.online, presencial: p.disponibilidade.presencial,
-                ativo: p.ativo, emailAcesso: p.emailAcesso, senha: '', boasVindas: false,
+                nome: p.nome,
+                nascimento: p.nascimento,
+                cpf: p.cpf,
+                telefone: p.telefone,
+                tipo: p.tipo,
+                cep: p.cep ?? '',
+                cidade: p.cidade ?? '',
+                endereco: p.endereco ?? '',
+                numero: p.numero ?? '',
+                complemento: p.complemento ?? '',
+                bairro: p.bairro ?? '',
+                inicio: p.inicio ?? '',
+                encerramento: p.encerramento ?? '',
+                registro: p.registro.replace(/^CR[PM]\s*/i, ''),
+                anoConclusao: p.anoConclusao ? String(p.anoConclusao) : '',
+                dias: [...p.disponibilidade.dias],
+                online: p.disponibilidade.online,
+                presencial: p.disponibilidade.presencial,
+                ativo: p.ativo,
+                emailAcesso: p.emailAcesso,
+                senha: '',
+                boasVindas: false,
             });
+
             this.faixas.set(p.disponibilidade.faixas.map((x) => ({ ...x })));
         });
     }
@@ -118,9 +176,13 @@ export class ProfissionalForm {
 
     protected digitar(campo: Campo, evento: Event): void {
         let valor = (evento.target as HTMLInputElement).value;
+
         if (campo === 'cpf') valor = formatarCpf(valor);
         if (campo === 'telefone') valor = formatarTelefone(valor);
+        if (campo === 'cep') valor = formatarCep(valor);
         if (campo === 'anoConclusao') valor = valor.replace(/\D/g, '').slice(0, 4);
+        if (campo === 'senha') valor = valor.slice(0, 72);
+
         this.f.update((atual) => ({ ...atual, [campo]: valor }));
         (evento.target as HTMLInputElement).value = valor;
     }
@@ -132,7 +194,9 @@ export class ProfissionalForm {
     protected alternarDia(indice: number): void {
         this.f.update((atual) => ({
             ...atual,
-            dias: atual.dias.includes(indice) ? atual.dias.filter((d) => d !== indice) : [...atual.dias, indice].sort((a, b) => a - b),
+            dias: atual.dias.includes(indice)
+                ? atual.dias.filter((d) => d !== indice)
+                : [...atual.dias, indice].sort((a, b) => a - b),
         }));
     }
 
@@ -142,19 +206,24 @@ export class ProfissionalForm {
         const inicio = this.faixaInicio();
         const fim = this.faixaFim();
         const editando = this.faixaEditando();
+
         if (!inicio || !fim || minutosDe(inicio) >= minutosDe(fim)) {
             this.erroFaixa.set('O horário final precisa ser depois do inicial.');
             return;
         }
+
         const sobrepoe = this.faixas().some(
             (x, i) => i !== editando && minutosDe(inicio) < minutosDe(x.fim) && minutosDe(x.inicio) < minutosDe(fim),
         );
+
         if (sobrepoe) {
             this.erroFaixa.set('Esse horário se sobrepõe a outro já cadastrado.');
             return;
         }
+
         this.erroFaixa.set('');
         const nova = { inicio, fim };
+
         this.faixas.update((l) => (editando === null ? [...l, nova] : l.map((x, i) => (i === editando ? nova : x))));
         this.faixas.update((l) => [...l].sort((a, b) => minutosDe(a.inicio) - minutosDe(b.inicio)));
         this.faixaEditando.set(null);
@@ -182,35 +251,67 @@ export class ProfissionalForm {
 
     protected cadastrar(): void {
         this.tentou.set(true);
+
         if (Object.keys(this.erros()).length) {
             this.aviso.mostrar('Corrija os campos destacados para continuar.');
             return;
         }
+
         this.confirmando.set(true);
     }
 
     protected async confirmar(): Promise<void> {
         const f = this.f();
+
         try {
             const profissional = await this.clinica.salvarProfissional(
                 {
-                    nome: f.nome.trim(), nascimento: f.nascimento, email: f.email.trim(), cpf: f.cpf, telefone: f.telefone,
-                    tipo: f.tipo === 'psiquiatra' ? 'psiquiatra' : 'psicologo', registro: f.registro.trim(), anoConclusao: Number(f.anoConclusao),
-                    disponibilidade: { dias: f.dias, faixas: this.faixas(), online: f.online, presencial: f.presencial },
-                    ativo: f.ativo, emailAcesso: f.emailAcesso.trim(), senhaProvisoria: f.senha,
-                    enviarEmailBoasVindas: f.boasVindas,
+                    nome: f.nome.trim(),
+                    nascimento: f.nascimento,
+                    email: f.emailAcesso.trim(),
+                    cpf: f.cpf,
+                    telefone: f.telefone,
+                    cep: f.cep,
+                    cidade: f.cidade.trim(),
+                    endereco: f.endereco.trim(),
+                    numero: f.numero.trim(),
+                    complemento: f.complemento.trim(),
+                    bairro: f.bairro.trim(),
+                    inicio: f.inicio,
+                    encerramento: f.encerramento,
+                    tipo: f.tipo === 'psiquiatra' ? 'psiquiatra' : 'psicologo',
+                    registro: f.registro.trim(),
+                    anoConclusao: Number(f.anoConclusao),
+                    disponibilidade: {
+                        dias: f.dias,
+                        faixas: this.faixas(),
+                        online: f.online,
+                        presencial: f.presencial,
+                    },
+                    ativo: f.ativo,
+                    emailAcesso: f.emailAcesso.trim(),
+                    senhaProvisoria: f.senha || undefined,
+                    enviarEmailBoasVindas: !this.edicao() && f.boasVindas,
                 },
                 this.id(),
             );
+
             this.confirmando.set(false);
-            if (this.edicao()) this.aviso.mostrar(`Dados de ${profissional.nome} atualizados.`);
-            else if (profissional.emailBoasVindasEnviado) this.aviso.mostrar('Profissional cadastrado e e-mail de boas-vindas enviado.');
-            else if (f.boasVindas) this.aviso.mostrar(`Profissional cadastrado, mas o e-mail não foi enviado. Senha temporária: ${profissional.senhaProvisoria ?? ''}`, 9000);
-            else this.aviso.mostrar(`Profissional cadastrado. Senha temporária: ${profissional.senhaProvisoria ?? ''}`, 9000);
+
+            if (this.edicao()) {
+                this.aviso.mostrar(`Dados de ${profissional.nome} atualizados.`);
+            } else if (profissional.emailBoasVindasEnviado) {
+                this.aviso.mostrar('Profissional cadastrado. E-mail de boas-vindas enviado com as instruções de acesso.');
+            } else if (profissional.senhaProvisoria) {
+                this.aviso.mostrar(`Profissional cadastrado. Senha temporária: ${profissional.senhaProvisoria}`, 9000);
+            } else {
+                this.aviso.mostrar('Profissional cadastrado. Verifique os dados de acesso antes de orientar o usuário.');
+            }
+
             this.router.navigateByUrl(this.voltar());
         } catch (erro) {
-            console.error('Falha ao salvar profissional:', erro);
             this.confirmando.set(false);
+            console.error('Falha ao salvar profissional:', erro);
             this.aviso.mostrar('Não foi possível salvar o profissional. Verifique os dados e tente novamente.');
         }
     }

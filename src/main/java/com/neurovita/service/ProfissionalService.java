@@ -139,6 +139,11 @@ public class ProfissionalService {
             boolean estadoContaAnterior = usuario.isAtivo();
             usuario.setNome(profissional.getNome());
             usuario.setEmail(profissional.getEmail());
+            if (request.getSenhaProvisoria() != null
+                    && !request.getSenhaProvisoria().isBlank()) {
+                usuario.setSenha(passwordEncoder.encode(request.getSenhaProvisoria()));
+                usuario.setSenhaProvisoria(true);
+            }
             if (request.getAtivo() == null) {
                 profissionalRepository.save(profissional);
                 usuarioRepository.save(usuario);
@@ -266,6 +271,29 @@ public class ProfissionalService {
             profissional.setCpf(request.getCpf());
         if (!atualizacaoParcial || request.getTelefone() != null)
             profissional.setTelefone(request.getTelefone());
+        if (!atualizacaoParcial || request.getCep() != null)
+            profissional.setCep(request.getCep());
+        if (!atualizacaoParcial || request.getCidade() != null)
+            profissional.setCidade(request.getCidade());
+        if (!atualizacaoParcial || request.getEndereco() != null)
+            profissional.setEndereco(request.getEndereco());
+        if (!atualizacaoParcial || request.getNumero() != null)
+            profissional.setNumero(request.getNumero());
+        if (!atualizacaoParcial || request.getComplemento() != null)
+            profissional.setComplemento(request.getComplemento());
+        if (!atualizacaoParcial || request.getBairro() != null)
+            profissional.setBairro(request.getBairro());
+        if (!atualizacaoParcial || request.getAdmissao() != null)
+            profissional.setAdmissao(request.getAdmissao());
+        if (!atualizacaoParcial || request.getEncerramento() != null)
+            profissional.setEncerramento(request.getEncerramento());
+        if (profissional.getAdmissao() != null
+                && profissional.getEncerramento() != null
+                && profissional.getEncerramento().isBefore(profissional.getAdmissao())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A data de encerramento não pode ser anterior à data de início.");
+        }
 
         profissional.setCategoria(request.getCategoria());
         if (!atualizacaoParcial || request.getFormacaoAcademica() != null)

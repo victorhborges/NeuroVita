@@ -16,8 +16,6 @@ import { formatarData, idadeDe, normalizar } from '../../shared/util';
   selector: 'app-gestao-pacientes',
   imports: [Avatar, Dialogo, Icone, RouterLink, TituloPagina],
   templateUrl: './gestao-pacientes.html',
-  styleUrl: './gestao-pacientes.css',
-  host: { '[class.gestao-pacientes-secretaria]': "perfil() === 'secretaria'" },
 })
 export class GestaoPacientes {
   private readonly clinica = inject(Clinica);
@@ -50,11 +48,11 @@ export class GestaoPacientes {
 
   protected readonly cards = computed<{ valor: number; rotulo: string; icone: NomeIcone }[]>(() => {
     const pacientes = this.clinica.pacientes();
-    const avaliacoes = this.clinica.documentos().filter((d) => d.secao === 'avaliacoes').length;
+    const ativos = pacientes.filter((p) => p.status !== 'inativo').length;
+    // Figma: só 2 cards. A secretária vê "Ativos" e o administrador vê "em tratamento".
     return [
       { valor: pacientes.length, rotulo: 'Pacientes\nCadastrados', icone: 'usuarios' },
-      { valor: pacientes.filter((p) => p.status !== 'inativo').length, rotulo: 'Pacientes\nem tratamento', icone: 'check-grande' },
-      { valor: avaliacoes, rotulo: 'Avaliações\nrealizadas', icone: 'prancheta' },
+      { valor: ativos, rotulo: this.edita() ? 'Pacientes\nAtivos' : 'Pacientes\nem tratamento', icone: 'check-grande' },
     ];
   });
 
@@ -62,9 +60,9 @@ export class GestaoPacientes {
     const paciente = this.excluindo();
     if (!paciente) return;
     try {
-    await this.clinica.removerPaciente(paciente.id);
-    this.excluindo.set(null);
-    this.aviso.mostrar('Paciente inativado. O prontuário e o histórico foram preservados.');
+      await this.clinica.removerPaciente(paciente.id);
+      this.excluindo.set(null);
+      this.aviso.mostrar('Paciente inativado. O prontuário e o histórico foram preservados.');
     } catch (erro) {
       console.error('Falha ao excluir paciente:', erro);
       this.aviso.mostrar('Não foi possível excluir o paciente.');

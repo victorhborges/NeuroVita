@@ -199,6 +199,31 @@ class ExameServiceTest {
     }
 
     @Test
+    void permiteAnexarResultadoSemInventarDataDeRealizacao() {
+        autenticarProfissional("prof1@neurovita.test", "prof-1");
+        Exame exame = new Exame();
+        exame.setId("e1");
+        exame.setPacienteId("pac-1");
+        exame.setProfissionalId("prof-1");
+        when(exameRepository.findById("e1")).thenReturn(Optional.of(exame));
+        when(vinculoRepository.findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                "pac-1", "prof-1")).thenReturn(Optional.of(new VinculoProfissionalPaciente()));
+        when(exameRepository.save(any(Exame.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var anexo = new com.neurovita.model.DocumentoClinico.AnexoClinico();
+        anexo.setNome("resultado.pdf");
+        anexo.setConteudoBase64("cGRm");
+        anexo.setTipoMime("application/pdf");
+        ExameResultadoRequest request = new ExameResultadoRequest();
+        request.setAnexos(List.of(anexo));
+
+        var resposta = service.registrarResultado("e1", request);
+
+        assertNull(resposta.getDataRealizacao());
+        assertEquals("resultado.pdf", resposta.getAnexosResultado().get(0).getNome());
+        verify(exameRepository).save(exame);
+    }
+
+    @Test
     void novaSolicitacaoArmazenaDescricaoSemPreencherDataOuAtualizacaoDeResultado() {
         autenticarProfissional("prof1@neurovita.test", "prof-1");
         when(pacienteRepository.existsById("pac-1")).thenReturn(true);

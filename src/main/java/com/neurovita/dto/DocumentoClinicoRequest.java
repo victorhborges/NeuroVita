@@ -21,6 +21,8 @@ public class DocumentoClinicoRequest {
     @NotBlank
     private String titulo;
 
+    private String grupo;
+
     @NotNull
     private LocalDate dataSessao;
 
@@ -66,6 +68,14 @@ public class DocumentoClinicoRequest {
 
     public void setTitulo(String value) {
         titulo = value;
+    }
+
+    public String getGrupo() {
+        return grupo;
+    }
+
+    public void setGrupo(String value) {
+        grupo = value;
     }
 
     public LocalDate getDataSessao() {

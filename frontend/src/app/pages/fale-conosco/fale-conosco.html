@@ -1,22 +1,32 @@
 <div class="pg">
   <app-titulo-pagina titulo="Fale conosco" subtitulo="Ainda com dúvidas? Nossa equipe está pronta para ajudar!" [voltarPara]="raiz() + '/ajuda'" />
-  <section class="cartao fale-cartao" aria-labelledby="fale-titulo">
-    <app-imagem-ajuda class="fale-figura" src="img/ajuda/atendente.png" alt="Atendimento NeuroVita" [ocultarSeFalhar]="true" />
-    <h2 id="fale-titulo" class="fale-titulo">Envie sua mensagem</h2>
-    <form class="fale-form" (submit)="enviar($event)">
-      <label class="campo-form"><span class="campo-rotulo">Nome completo *</span>
-        <input name="nome" autocomplete="name" maxlength="120" required placeholder="Digite seu nome" [value]="nome()" (input)="nome.set($any($event.target).value)" />
-      </label>
-      <label class="campo-form"><span class="campo-rotulo">E-mail</span>
-        <input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Digite seu e-mail" [value]="email()" (input)="email.set($any($event.target).value)" />
-      </label>
-      <label class="campo-form"><span class="campo-rotulo">Mensagem *</span>
-        <textarea name="mensagem" maxlength="5000" required placeholder="Digite sua mensagem..." [value]="mensagem()" (input)="mensagem.set($any($event.target).value)"></textarea>
-      </label>
-      <p class="fale-nota" role="note">O envio depende do canal institucional de contato configurado para o sistema. A mensagem não é armazenada no prontuário.</p>
-      @if (erro()) { <p class="campo-msg" role="alert">{{ erro() }}</p> }
-      @if (enviado()) { <p class="campo-msg campo-msg-sucesso" role="status">Mensagem enviada com sucesso.</p> }
-      <button class="botao-escuro fale-enviar" type="submit" [disabled]="enviando()"><app-icone nome="enviar" />{{ enviando() ? 'Enviando…' : 'Enviar mensagem' }}</button>
-    </form>
-  </section>
+
+  <form class="cartao fale-cartao" novalidate (submit)="enviar($event)">
+    <app-imagem-ajuda class="fale-figura" src="img/ajuda/atendente.png" alt="Atendente do NeuroVita" [ocultarSeFalhar]="true" />
+    <h2 class="fale-titulo">Envie sua mensagem</h2>
+
+    <label class="campo-form" [class.campo-form-erro]="mostrarErro('nome')">
+      <span class="campo-rotulo">Nome completo *</span>
+      <input type="text" placeholder="Digite seu nome" autocomplete="name" [value]="f().nome" (input)="digitar('nome', $event)" />
+      @if (mostrarErro('nome'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+    </label>
+
+    <label class="campo-form" [class.campo-form-erro]="mostrarErro('email')">
+      <span class="campo-rotulo">E-mail</span>
+      <input type="email" placeholder="Digite seu e-mail" autocomplete="email" [value]="f().email" (input)="digitar('email', $event)" />
+      @if (mostrarErro('email'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+    </label>
+
+    <label class="campo-form" [class.campo-form-erro]="mostrarErro('mensagem')">
+      <span class="campo-rotulo">Mensagem</span>
+      <textarea rows="4" placeholder="Digite sua mensagem..." [value]="f().mensagem" (input)="digitar('mensagem', $event)"></textarea>
+      @if (mostrarErro('mensagem'); as m) { <small class="campo-msg" role="alert">{{ m }}</small> }
+    </label>
+
+    @if (erro()) { <p class="campo-msg" role="alert">{{ erro() }}</p> }
+    @if (enviado()) { <p role="status">Mensagem enviada.</p> }
+    <button type="submit" class="botao-escuro ajuda-botao fale-enviar" [disabled]="enviando()">
+      <app-icone nome="aviao" /> {{ enviando() ? 'Enviando...' : 'Enviar mensagem' }}
+    </button>
+  </form>
 </div>

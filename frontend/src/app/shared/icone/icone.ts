@@ -6,7 +6,8 @@ export type NomeIcone =
   | 'relogio' | 'usuario' | 'usuario-x' | 'usuario-mais' | 'info' | 'mais' | 'sair'
   | 'busca' | 'olho' | 'compartilhar' | 'baixar' | 'prancheta' | 'check-grande' | 'nuvem-upload'
   | 'salvar' | 'voltar' | 'alinhar-esq' | 'alinhar-centro' | 'alinhar-dir' | 'link' | 'imagem'
-  | 'tela-cheia' | 'arquivo-mais' | 'arquivo-texto' | 'fechar' | 'check' | 'local' | 'email' | 'telefone' | 'editar' | 'lixeira' | 'atualizar' | 'enviar';
+  | 'tela-cheia' | 'arquivo-mais' | 'arquivo-texto' | 'fechar' | 'check' | 'local' | 'email' | 'telefone' | 'editar' | 'lixeira' | 'atualizar' | 'nuvem-baixar'
+  | 'escudo' | 'paleta' | 'ajustes' | 'globo' | 'sol' | 'lua' | 'fone' | 'balao' | 'aviao' | 'desfazer';
 
 /**
  * Ícones do painel (traçado no estilo Lucide).
@@ -198,10 +199,6 @@ export type NomeIcone =
           <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
           <rect x="2" y="4" width="20" height="16" rx="2" />
         }
-        @case ('enviar') {
-          <path d="m22 2-7 20-4-9-9-4Z" />
-          <path d="M22 2 11 13" />
-        }
         @case ('telefone') {
           <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
         }
@@ -221,6 +218,61 @@ export type NomeIcone =
           <path d="M21 3v5h-5" />
           <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
           <path d="M8 16H3v5" />
+        }
+        @case ('nuvem-baixar') {
+          <path d="M12 13v8l-4-4" />
+          <path d="m12 21 4-4" />
+          <path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284" />
+        }
+        @case ('escudo') {
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+        }
+        @case ('paleta') {
+          <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+        }
+        @case ('ajustes') {
+          <path d="M21 4h-7" />
+          <path d="M10 4H3" />
+          <path d="M21 12h-9" />
+          <path d="M8 12H3" />
+          <path d="M21 20h-5" />
+          <path d="M12 20H3" />
+          <path d="M14 2v4" />
+          <path d="M8 10v4" />
+          <path d="M16 18v4" />
+        }
+        @case ('globo') {
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+          <path d="M2 12h20" />
+        }
+        @case ('sol') {
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        }
+        @case ('lua') { <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /> }
+        @case ('fone') {
+          <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
+        }
+        @case ('balao') { <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /> }
+        @case ('aviao') {
+          <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+          <path d="m21.854 2.147-10.94 10.939" />
+        }
+        @case ('desfazer') {
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
         }
       }
     </svg>

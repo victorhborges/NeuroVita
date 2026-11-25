@@ -9,12 +9,12 @@ import com.neurovita.model.DocumentoClinico.AnexoClinico;
 
 public record DocumentoClinicoResponse(
         String id, String pacienteId, String profissionalId, String secao,
-        String titulo, LocalDate dataSessao, String tipoAtendimento,
+        String titulo, String grupo, LocalDate dataSessao, String tipoAtendimento,
         String conteudo, LocalDateTime criadoEm, LocalDateTime atualizadoEm,
         List<AnexoClinico> anexos, boolean ativo, LocalDateTime arquivadoEm) {
     public DocumentoClinicoResponse(DocumentoClinico d) {
         this(d.getId(), d.getPacienteId(), d.getProfissionalId(), d.getSecao(),
-                d.getTitulo(), d.getDataSessao(), d.getTipoAtendimento(),
+                d.getTitulo(), d.getGrupo(), d.getDataSessao(), d.getTipoAtendimento(),
                 d.getConteudo(), d.getCriadoEm(), d.getAtualizadoEm(), d.getAnexos(),
                 d.isAtivo(), d.getArquivadoEm());
     }

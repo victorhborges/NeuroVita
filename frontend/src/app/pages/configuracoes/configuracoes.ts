@@ -7,10 +7,12 @@ import { Aviso } from '../../shared/aviso/aviso';
 import { PreferenciasUsuarioApi, PreferenciasUsuarioPatchApi } from '../../shared/clinica/preferencias-api.service';
 import { PreferenciasGlobaisService } from '../../shared/clinica/preferencias-globais.service';
 import { Dialogo } from '../../shared/dialogo/dialogo';
-import { Icone } from '../../shared/icone/icone';
+import { Icone, NomeIcone } from '../../shared/icone/icone';
 import { ListaSuspensa, OpcaoLista } from '../../shared/lista-suspensa/lista-suspensa';
 import { Perfil } from '../../shared/perfil';
 import { TituloPagina } from '../../shared/titulo-pagina/titulo-pagina';
+import { emailValido } from '../../shared/util';
+import { validarNovaSenha } from '../../shared/validacao-senha';
 
 type Tema = 'claro' | 'escuro';
 type FormatoData = 'dd/mm/aaaa' | 'mm/dd/aaaa' | 'aaaa/mm/dd';
@@ -32,6 +34,8 @@ const PADRAO: PreferenciasTela = {
 const DIAS = [
   { valor: 1 as const, nome: 'Segunda-feira' }, { valor: 0 as const, nome: 'Domingo' },
 ];
+type ChaveNotificacao = 'lembreteEmail' | 'alertaPendentes' | 'notificacaoSistema';
+type ChaveTexto = 'idioma' | 'formatoData' | 'duracaoConsulta';
 
 @Component({
   selector: 'app-configuracoes',
@@ -63,12 +67,56 @@ export class Configuracoes {
   protected readonly emailPerfil = signal('');
   protected readonly salvandoPerfil = signal(false);
   protected readonly erroPerfil = signal('');
+  protected readonly mesCalendario = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   protected readonly nome = computed(() => this.auth.obterNome() ?? '—');
   protected readonly email = computed(() => this.auth.obterEmail() ?? '—');
   protected readonly cargo = computed(() => ({ psicologo: 'Psicólogo', psiquiatra: 'Psiquiatra', secretaria: 'Secretaria', admin: 'Administrador' })[this.perfil()]);
   protected readonly dias = DIAS;
   protected readonly nomeInicioSemana = computed(() => DIAS.find((d) => d.valor === this.preferencias().inicioSemana)?.nome ?? 'Segunda-feira');
+  protected readonly rascunho = computed(() => this.preferencias());
+  protected readonly editando = this.editandoPerfil;
+  protected readonly conta = computed(() => ({
+    nome: this.editandoPerfil() ? this.nomePerfil() : this.nome(),
+    email: this.editandoPerfil() ? this.emailPerfil() : this.email(),
+    especialidade: this.cargo(),
+  }));
+  protected readonly erroNome = computed(() => this.nomePerfil().trim() ? '' : 'Informe seu nome.');
+  protected readonly erroEmail = computed(() => {
+    const valor = this.emailPerfil().trim();
+    return !valor ? 'Informe seu e-mail.' : !emailValido(valor) ? 'Informe um e-mail válido.' : '';
+  });
+  protected readonly notificacoes: { chave: ChaveNotificacao; texto: string; icone: NomeIcone }[] = [
+    { chave: 'lembreteEmail', texto: 'Receber lembretes de consultas por e-mail', icone: 'sino' },
+    { chave: 'alertaPendentes', texto: 'Alertas de consultas pendentes', icone: 'sino' },
+    { chave: 'notificacaoSistema', texto: 'Notificações do sistema', icone: 'sino' },
+  ];
+  protected readonly semanaEscolhida = signal<0 | 1>(1);
+  protected readonly cabecalhoSemana = computed(() => {
+    const dias = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+    const inicio = this.semanaEscolhida();
+    return Array.from({ length: 7 }, (_, indice) => dias[(inicio + indice) % 7]);
+  });
+  protected readonly nomeMes = computed(() => this.mesCalendario().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }));
+  protected readonly diasDoMes = computed(() => {
+    const data = this.mesCalendario();
+    const primeiroDia = new Date(data.getFullYear(), data.getMonth(), 1).getDay();
+    const deslocamento = (primeiroDia - this.semanaEscolhida() + 7) % 7;
+    const total = new Date(data.getFullYear(), data.getMonth() + 1, 0).getDate();
+    const dias: (number | null)[] = [
+      ...Array.from({ length: deslocamento }, () => null),
+      ...Array.from({ length: total }, (_, indice) => indice + 1),
+    ];
+    while (dias.length % 7) dias.push(null);
+    return dias;
+  });
+  protected readonly diaDestaque = computed(() => {
+    const agora = new Date();
+    const mes = this.mesCalendario();
+    return agora.getFullYear() === mes.getFullYear() && agora.getMonth() === mes.getMonth()
+      ? agora.getDate()
+      : -1;
+  });
   protected readonly idiomas: OpcaoLista[] = [
     { valor: 'pt', rotulo: '🇧🇷 Português' },
     { valor: 'en', rotulo: '🇺🇸 English (em breve)', desabilitada: true },
@@ -103,12 +151,48 @@ export class Configuracoes {
     this.aplicarRascunhoGlobal();
   }
 
+  protected definirTexto(chave: ChaveTexto, valor: string): void {
+    if (chave === 'idioma') {
+      if (valor === 'pt') this.definir('idioma', 'pt');
+      return;
+    }
+    if (chave === 'formatoData') {
+      this.definirFormatoData(valor);
+      return;
+    }
+    if (['30', '40', '50', '60'].includes(valor)) this.definir('duracaoConsulta', valor);
+  }
+
+  protected definirTema(valor: Tema): void {
+    this.definir('tema', valor);
+  }
+
   protected definirFormatoData(valor: string): void {
     if (valor === 'dd/mm/aaaa' || valor === 'mm/dd/aaaa' || valor === 'aaaa/mm/dd') this.definir('formatoData', valor);
   }
 
-  protected alternar(chave: 'lembreteEmail' | 'alertaPendentes' | 'notificacaoSistema'): void {
+  protected alternar(chave: ChaveNotificacao): void {
     this.definir(chave, !this.preferencias()[chave]);
+  }
+
+  protected abrirSemana(): void {
+    this.semanaEscolhida.set(this.preferencias().inicioSemana);
+    this.mesCalendario.set(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    this.semanaAberta.set(true);
+  }
+
+  protected mudarMes(deslocamento: number): void {
+    const atual = this.mesCalendario();
+    this.mesCalendario.set(new Date(atual.getFullYear(), atual.getMonth() + deslocamento, 1));
+  }
+
+  protected salvarSemana(): void {
+    this.definir('inicioSemana', this.semanaEscolhida());
+    this.semanaAberta.set(false);
+  }
+
+  protected pedirSalvar(): void {
+    if (!this.carregando() && !this.erroCarga() && !this.salvando()) this.confirmarSalvar.set(true);
   }
 
   protected salvar(): void {
@@ -143,14 +227,33 @@ export class Configuracoes {
     });
   }
 
-  protected async alterarSenha(): Promise<void> {
+  protected abrirAlteracaoSenha(): void {
     this.erroSenha.set('');
-    if (this.senhaNova().length < 8) {
-      this.erroSenha.set('A nova senha deve ter pelo menos 8 caracteres.');
+    this.senhaAtual.set('');
+    this.senhaNova.set('');
+    this.senhaConfirmacao.set('');
+    this.alterandoSenha.set(true);
+  }
+
+  protected cancelarAlteracaoSenha(): void {
+    this.alterandoSenha.set(false);
+    this.erroSenha.set('');
+    this.senhaAtual.set('');
+    this.senhaNova.set('');
+    this.senhaConfirmacao.set('');
+  }
+
+  protected async alterarSenha(evento?: Event): Promise<void> {
+    evento?.preventDefault();
+    if (this.salvandoSenha()) return;
+    this.erroSenha.set('');
+    const erro = validarNovaSenha(this.senhaNova(), this.senhaConfirmacao());
+    if (erro) {
+      this.erroSenha.set(erro);
       return;
     }
-    if (this.senhaNova() !== this.senhaConfirmacao()) {
-      this.erroSenha.set('A confirmação não corresponde à nova senha.');
+    if (!this.senhaAtual()) {
+      this.erroSenha.set('Informe sua senha atual.');
       return;
     }
     this.salvandoSenha.set(true);
@@ -158,8 +261,7 @@ export class Configuracoes {
       .pipe(finalize(() => this.salvandoSenha.set(false)))
       .subscribe({
         next: () => {
-          this.alterandoSenha.set(false);
-          this.senhaAtual.set(''); this.senhaNova.set(''); this.senhaConfirmacao.set('');
+          this.cancelarAlteracaoSenha();
           this.aviso.mostrar('Senha alterada. Entre novamente com a nova senha.');
         },
         error: (erro) => this.erroSenha.set(erro?.error?.message ?? 'Não foi possível alterar a senha. Confira a senha atual.'),
@@ -173,13 +275,24 @@ export class Configuracoes {
     this.editandoPerfil.set(true);
   }
 
-  protected salvarPerfil(evento: Event): void {
-    evento.preventDefault();
+  protected concluirEdicaoPerfil(): void {
+    if (this.editandoPerfil()) this.salvarPerfil();
+    else this.abrirEdicaoPerfil();
+  }
+
+  protected digitarConta(campo: 'nome' | 'email', evento: Event): void {
+    const valor = (evento.target as HTMLInputElement).value;
+    if (campo === 'nome') this.nomePerfil.set(valor);
+    else this.emailPerfil.set(valor);
+  }
+
+  protected salvarPerfil(evento?: Event): void {
+    evento?.preventDefault();
     if (this.salvandoPerfil()) return;
     const nome = this.nomePerfil().trim();
     const email = this.emailPerfil().trim();
-    if (!nome || !email) {
-      this.erroPerfil.set('Informe nome e e-mail.');
+    if (this.erroNome() || this.erroEmail()) {
+      this.erroPerfil.set(this.erroNome() || this.erroEmail());
       return;
     }
     this.salvandoPerfil.set(true);
@@ -189,6 +302,7 @@ export class Configuracoes {
       .subscribe({
         next: () => {
           this.editandoPerfil.set(false);
+          this.editando.set(false);
           this.aviso.mostrar('Perfil atualizado.');
         },
         error: (erro) => this.erroPerfil.set(erro?.error?.mensagem ?? erro?.error?.message

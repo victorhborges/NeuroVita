@@ -1,6 +1,7 @@
 package com.neurovita.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,7 +14,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.PrescricaoRequest;
 import com.neurovita.dto.PrescricaoResponse;
+import com.neurovita.dto.AnexosClinicosRequest;
 import com.neurovita.exception.ResourceNotFoundException;
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Prescricao;
 import com.neurovita.model.Usuario;
 import com.neurovita.repository.PacienteRepository;
@@ -101,6 +104,22 @@ public class PrescricaoService {
             atual.setMedicamentos(request.getMedicamentos());
         }
         atual.setAtualizadaEm(agora);
+        return new PrescricaoResponse(prescricoes.save(atual));
+    }
+
+    public PrescricaoResponse anexar(String id, AnexosClinicosRequest request) {
+        if (request == null || request.getAnexos() == null || request.getAnexos().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe ao menos um anexo.");
+        }
+        Prescricao atual = buscarPrescricao(id);
+        validarAcessoEdicao(atual);
+        List<AnexoClinico> anexos = atual.getAnexos() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(atual.getAnexos());
+        anexos.addAll(request.getAnexos());
+        AnexoClinicoValidator.validar(anexos);
+        atual.setAnexos(anexos);
+        atual.setAtualizadaEm(LocalDateTime.now());
         return new PrescricaoResponse(prescricoes.save(atual));
     }
 

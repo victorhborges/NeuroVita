@@ -14,25 +14,62 @@
   </section>
 
   <section class="cartao ajuda-painel" aria-label="Tópicos de ajuda">
-    <div class="ajuda-topicos">
-      @for (t of topicos(); track t.id) {
-        <a class="ajuda-topico" [routerLink]="[raiz(), 'ajuda', t.id]">
-          <app-icone class="ajuda-topico-icone" [nome]="t.cartao.icone" />
-          <span class="ajuda-topico-texto">
-            <span class="ajuda-topico-titulo">{{ t.cartao.titulo }}</span>
-            <span class="ajuda-topico-desc">{{ t.cartao.descricao }}</span>
-          </span>
-          <app-icone nome="seta-direita" />
-        </a>
-      } @empty {
-        <p class="ajuda-vazio">Nenhum tópico encontrado para "{{ busca() }}".</p>
-      }
-    </div>
+    @if (comCartoesAbertos()) {
+      <div class="ajuda-topicos" [class.ajuda-topicos-unico]="cartaoUnico()">
+        @for (item of itensCartoes(); track item.tipo + item.t.id) {
+          @if (item.tipo === 'cartao') {
+            <button type="button" class="ajuda-topico ajuda-topico-botao" [attr.aria-expanded]="aberto() === item.t.id" (click)="alternar(item.t.id)">
+              <app-icone class="ajuda-topico-icone" [nome]="item.t.icone" />
+              <span class="ajuda-topico-texto">
+                <span class="ajuda-topico-titulo">{{ item.t.titulo }}</span>
+                <span class="ajuda-topico-desc">{{ item.t.descricao }}</span>
+              </span>
+              <app-icone [nome]="aberto() === item.t.id ? 'seta-baixo' : 'seta-direita'" />
+            </button>
+          } @else {
+            <section class="ajuda-bloco ajuda-aberto" [class.ajuda-bloco-invertido]="item.t.imagemAEsquerda" [attr.aria-label]="item.t.titulo">
+              <div class="cartao ajuda-passos">
+                <ol class="ajuda-lista">
+                  @for (p of item.t.passos; track $index) {
+                    <li class="ajuda-passo">
+                      <span class="ajuda-numero" aria-hidden="true">{{ $index + 1 }}</span>
+                      <span class="ajuda-passo-texto">
+                        @for (parte of partes(p); track $index) {<span [class.ajuda-negrito]="parte.negrito">{{ parte.texto }}</span>}
+                      </span>
+                    </li>
+                  }
+                </ol>
+              </div>
+              <div class="cartao ajuda-figura">
+                <app-imagem-ajuda [src]="item.t.imagem" [alt]="item.t.descricaoImagem" />
+              </div>
+            </section>
+          }
+        } @empty {
+          <p class="ajuda-vazio">Nenhum tópico encontrado para "{{ busca() }}".</p>
+        }
+      </div>
+    } @else {
+      <div class="ajuda-topicos">
+        @for (t of topicos(); track t.id) {
+          <a class="ajuda-topico" [routerLink]="[raiz(), 'ajuda', t.id]">
+            <app-icone class="ajuda-topico-icone" [nome]="t.cartao.icone" />
+            <span class="ajuda-topico-texto">
+              <span class="ajuda-topico-titulo">{{ t.cartao.titulo }}</span>
+              <span class="ajuda-topico-desc">{{ t.cartao.descricao }}</span>
+            </span>
+            <app-icone nome="seta-direita" />
+          </a>
+        } @empty {
+          <p class="ajuda-vazio">Nenhum tópico encontrado para "{{ busca() }}".</p>
+        }
+      </div>
+    }
 
     <div class="ajuda-contato">
       <section class="ajuda-contato-cartao" aria-labelledby="aj-fale">
         <div class="ajuda-contato-topo">
-          <app-icone nome="telefone" />
+          <app-icone nome="fone" />
           <div>
             <h3 id="aj-fale" class="ajuda-topico-titulo">Fale conosco</h3>
             <p class="ajuda-topico-desc">Ainda com dúvidas? Nossa equipe está pronta para ajudar!</p>
@@ -44,9 +81,10 @@
           <app-icone nome="seta-direita" />
         </a>
       </section>
+
       <section class="ajuda-contato-cartao" aria-labelledby="aj-suporte">
         <div class="ajuda-contato-topo">
-          <app-icone nome="telefone" />
+          <app-icone nome="balao" />
           <div>
             <h3 id="aj-suporte" class="ajuda-topico-titulo">Suporte</h3>
             <p class="ajuda-topico-desc">Atendimento de segunda a sexta, das 08h às 18h.</p>
@@ -55,7 +93,6 @@
         <a class="botao-escuro ajuda-botao" href="tel:+551140028922">
           <app-icone nome="telefone" />
           <span>(11) 4002-8922</span>
-          <app-icone nome="seta-direita" />
         </a>
       </section>
     </div>

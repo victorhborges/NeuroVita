@@ -3,7 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": "06298ae0-767d-4e0e-bcc8-993a6b555bb2"
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -29,11 +29,6 @@
           },
           "configurations": {
             "production": {
-              "optimization": {
-                "fonts": {
-                  "inline": false
-                }
-              },
               "budgets": [
                 {
                   "type": "initial",

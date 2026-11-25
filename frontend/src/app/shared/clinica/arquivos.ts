@@ -47,6 +47,10 @@ export function semExtensao(nome: string): string {
   return nome.replace(/\.[^.]+$/, '');
 }
 
+export function ehImagem(nome: string): boolean {
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(nome);
+}
+
 /** Compartilha o endereço do documento (menu do celular) ou copia o link. */
 export async function compartilharLink(titulo: string, url: string): Promise<'compartilhado' | 'copiado' | 'erro'> {
   try {

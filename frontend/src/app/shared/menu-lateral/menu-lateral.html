@@ -22,11 +22,11 @@
   </nav>
 
   <div class="menu-rodape">
-    <a class="menu-item menu-item-rodape" [routerLink]="'/' + perfil() + '/configuracoes'" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
+    <a class="menu-item menu-item-rodape" [routerLink]="rotaConfiguracoes()" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
       <app-icone nome="engrenagem" />
       <span>Configurações</span>
     </a>
-    <a class="menu-item menu-item-rodape" [routerLink]="'/' + perfil() + '/ajuda'" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
+    <a class="menu-item menu-item-rodape" [routerLink]="rotaAjuda()" routerLinkActive="menu-item-ativo" ariaCurrentWhenActive="page">
       <app-icone nome="ajuda" />
       <span>Ajuda</span>
     </a>
