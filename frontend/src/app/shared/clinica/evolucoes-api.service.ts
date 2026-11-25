@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AnexoClinicoApi } from './documentos-api.service';
 
 export interface EvolucaoApi {
   id: string;
@@ -21,6 +22,7 @@ export interface EvolucaoApi {
   criadoEm: string;
   atualizadoEm: string;
   versao: number;
+  anexos: AnexoClinicoApi[];
 }
 
 export interface EvolucaoRequestApi {
@@ -50,5 +52,9 @@ export class EvolucoesApiService {
 
   criar(dados: EvolucaoRequestApi): Observable<EvolucaoApi> {
     return this.http.post<EvolucaoApi>(this.api, dados);
+  }
+
+  anexar(id: string, anexos: AnexoClinicoApi[]): Observable<EvolucaoApi> {
+    return this.http.post<EvolucaoApi>(`${this.api}/${encodeURIComponent(id)}/anexos`, { anexos });
   }
 }

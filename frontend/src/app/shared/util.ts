@@ -13,25 +13,38 @@ export function deISO(iso: string): Date {
   return new Date(a, m - 1, d);
 }
 
-/** '2026-09-15' -> '15/09/2026' */
+export type FormatoDataSistema = 'dd/mm/aaaa' | 'mm/dd/aaaa' | 'aaaa/mm/dd';
+
+/** Formato escolhido em Configurações (quem define é o ConfigSistema). */
+let formatoDataAtual: FormatoDataSistema = 'dd/mm/aaaa';
+
+export function definirFormatoData(formato: FormatoDataSistema): void {
+  formatoDataAtual = formato;
+}
+
+function montarData(ano: string | number, mes: string | number, dia: string | number): string {
+  if (formatoDataAtual === 'mm/dd/aaaa') return `${mes}/${dia}/${ano}`;
+  if (formatoDataAtual === 'aaaa/mm/dd') return `${ano}/${mes}/${dia}`;
+  return `${dia}/${mes}/${ano}`;
+}
+
+/** '2026-09-15' -> '15/09/2026' (ou no formato escolhido nas Configurações) */
 export function formatarData(iso?: string | null): string {
   if (!iso) return '—';
   const [a, m, d] = iso.slice(0, 10).split('-');
-  const formato = typeof document === 'undefined' ? 'DD/MM/AAAA' : document.documentElement.dataset['formatoData'];
-  if (formato === 'MM/DD/AAAA') return `${m}/${d}/${a}`;
-  if (formato === 'AAAA/MM/DD') return `${a}/${m}/${d}`;
-  return `${d}/${m}/${a}`;
+  return montarData(a, m, d);
+}
+
+/** '2026-09-15' -> '15/09' (só dia e mês, na ordem do formato escolhido) */
+export function formatarDiaMes(iso: string): string {
+  const [, m, d] = iso.slice(0, 10).split('-');
+  return formatoDataAtual === 'dd/mm/aaaa' ? `${d}/${m}` : `${m}/${d}`;
 }
 
 /** '2026-10-20T10:33:00' -> '20/10/2026 - 10:33' */
 export function formatarDataHora(isoDataHora: string): string {
   const d = new Date(isoDataHora);
-  const ano = String(d.getFullYear());
-  const mes = dois(d.getMonth() + 1);
-  const dia = dois(d.getDate());
-  const formato = typeof document === 'undefined' ? 'DD/MM/AAAA' : document.documentElement.dataset['formatoData'];
-  const data = formato === 'MM/DD/AAAA' ? `${mes}/${dia}/${ano}` : formato === 'AAAA/MM/DD' ? `${ano}/${mes}/${dia}` : `${dia}/${mes}/${ano}`;
-  return `${data} - ${dois(d.getHours())}:${dois(d.getMinutes())}`;
+  return `${montarData(d.getFullYear(), dois(d.getMonth() + 1), dois(d.getDate()))} - ${dois(d.getHours())}:${dois(d.getMinutes())}`;
 }
 
 export function idadeDe(nascimentoISO: string, referencia = new Date()): number {
@@ -134,6 +147,15 @@ export function formatarCpf(valor: string): string {
     .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
+export function formatarCep(valor: string): string {
+  const n = soNumeros(valor).slice(0, 8);
+  return n.length > 5 ? `${n.slice(0, 5)}-${n.slice(5)}` : n;
+}
+
+export function cepValido(valor: string): boolean {
+  return soNumeros(valor).length === 8;
+}
+
 export function formatarTelefone(valor: string): string {
   const n = soNumeros(valor).slice(0, 11);
   if (n.length <= 2) return n.length ? `(${n}` : '';
@@ -179,4 +201,10 @@ export function gerarSenhaTemporaria(): string {
   const sorteio = crypto.getRandomValues(new Uint32Array(10));
   const texto = Array.from(sorteio, (n) => letras[n % letras.length]).join('');
   return `${texto.slice(0, 4)}-${texto.slice(4)}`;
+}
+
+/** Trecho do texto formatado, com espaços entre as linhas (para miniaturas). */
+export function resumoTexto(html: string, limite = 650): string {
+  const comEspacos = (html || '').replace(/<\/?(?:br|p|div|h[1-6]|li|ul|ol)\b[^>]*>/gi, ' ');
+  return textoPuro(comEspacos).replace(/\s+/g, ' ').slice(0, limite);
 }

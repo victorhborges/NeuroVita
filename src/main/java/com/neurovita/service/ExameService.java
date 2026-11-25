@@ -127,7 +127,8 @@ public class ExameService {
         }
 
         exame.setNome(request.getNome());
-        if (request.getTipo() != null) exame.setTipo(request.getTipo());
+        if (request.getTipo() != null)
+            exame.setTipo(request.getTipo());
         if (request.getDescricaoSolicitacao() != null) {
             exame.setDescricaoSolicitacao(request.getDescricaoSolicitacao());
         }
@@ -157,7 +158,7 @@ public class ExameService {
                 ? exame.getObservacoes()
                 : request.getObservacoes();
 
-        if (dataRealizacao == null) {
+        if (dataRealizacao == null && resultado != null && !resultado.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "A data de realização do exame é obrigatória.");
         }
@@ -185,14 +186,19 @@ public class ExameService {
     }
 
     private boolean anexosIguais(List<AnexoClinico> existentes, List<AnexoClinico> recebidos) {
-        if (existentes == null) existentes = List.of();
-        if (recebidos == null) recebidos = List.of();
-        if (existentes == recebidos) return true;
-        if (existentes.size() != recebidos.size()) return false;
+        if (existentes == null)
+            existentes = List.of();
+        if (recebidos == null)
+            recebidos = List.of();
+        if (existentes == recebidos)
+            return true;
+        if (existentes.size() != recebidos.size())
+            return false;
         for (int i = 0; i < existentes.size(); i++) {
             AnexoClinico a = existentes.get(i);
             AnexoClinico b = recebidos.get(i);
-            if (a == b) continue;
+            if (a == b)
+                continue;
             if (a == null || b == null
                     || !Objects.equals(a.getNome(), b.getNome())
                     || !Objects.equals(a.getConteudoBase64(), b.getConteudoBase64())
@@ -249,31 +255,12 @@ public class ExameService {
     }
 
     private void validarAnexos(List<AnexoClinico> anexos) {
-        if (anexos == null) {
-            return;
-        }
-        if (anexos.stream().anyMatch(a -> a == null
-                || (a.getConteudoBase64() != null && a.getConteudoBase64().length() > 7_000_000))) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Cada anexo deve ser válido e ter no máximo 5 MB.");
-        }
-        if (anexos.stream().mapToLong(a -> a.getConteudoBase64() == null
-                ? 0 : a.getConteudoBase64().length()).sum() > 14_000_000) {
-            throw new ResponseStatusException(
-                    HttpStatus.PAYLOAD_TOO_LARGE, "O tamanho total dos anexos excede o limite permitido.");
-        }
-        if (anexos.stream().anyMatch(a -> a.getTipoMime() != null
-                && Set.of("text/html", "application/xhtml+xml", "image/svg+xml")
-                        .contains(a.getTipoMime().toLowerCase(java.util.Locale.ROOT)))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Este tipo de arquivo não é permitido como anexo.");
-        }
+        AnexoClinicoValidator.validar(anexos);
     }
 
     private Exame buscarExame(String id) {
         return exameRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Exame não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Exame não encontrado"));
     }
 
     private void exigirAtivo(Exame exame) {
@@ -328,20 +315,18 @@ public class ExameService {
                 && !obterProfissionalId().equals(profissionalId)) {
             throw new AccessDeniedException(
                     "Não é permitido registrar exames em nome de "
-                    + "outro profissional");
+                            + "outro profissional");
         }
     }
 
     private boolean ehProfissional() {
         return obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_PROFISSIONAL"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
     }
 
     private boolean ehAdministrador() {
         return obterAutenticacao().getAuthorities().stream()
-                .anyMatch(a ->
-                        a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
     }
 
     private void exigirAdministrador() {
@@ -356,8 +341,7 @@ public class ExameService {
 
         Usuario usuario = usuarioRepository
                 .findByEmailIgnoreCase(autenticacao.getName())
-                .orElseThrow(() ->
-                        new AccessDeniedException("Usuário não encontrado"));
+                .orElseThrow(() -> new AccessDeniedException("Usuário não encontrado"));
 
         if (usuario.getEntidadeId() == null
                 || usuario.getEntidadeId().isBlank()) {

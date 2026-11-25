@@ -1,7 +1,10 @@
 import { NomeIcone } from './icone/icone';
+import { Perfil } from './perfil';
 
 /**
- * Texto da central de ajuda (igual para os quatro perfis).
+ * Central de ajuda da SECRETÁRIA: uma página por tópico (/secretaria/ajuda/:topico).
+ * Cada perfil tem a sua ajuda (psicólogo, psiquiatra e administrador estão mais abaixo);
+ * só o "Fale conosco" e o "Suporte" são iguais para todos.
  * Nos passos, o que fica entre ** ** aparece em negrito.
  *
  * As capturas de tela ficam em public/img/ajuda/ (nomes abaixo). Enquanto o arquivo não existir,
@@ -115,6 +118,177 @@ export const TOPICOS_AJUDA: TopicoAjuda[] = [
     ],
   },
 ];
+
+/**
+ * Ajuda dos perfis com cartões que se abrem na própria tela (PSIQUIATRA, PSICÓLOGO e ADMINISTRADOR):
+ * passos + captura de tela, como no Figma. As capturas ficam em public/img/ajuda/<perfil>/.
+ */
+export interface TopicoAjudaCartao {
+  id: string;
+  titulo: string;
+  descricao: string;
+  icone: NomeIcone;
+  passos: string[];
+  imagem: string;
+  descricaoImagem: string;
+  /** Captura de tela à esquerda e passos à direita. */
+  imagemAEsquerda: boolean;
+  /** Em qual linha de cartões (1 ou 2) o conteúdo se abre, como no Figma. */
+  linhaDoConteudo: 1 | 2;
+}
+
+export const TOPICOS_AJUDA_PSIQUIATRA: TopicoAjudaCartao[] = [
+  {
+    id: 'pagina-de-inicio',
+    titulo: 'Página de início',
+    descricao: 'Como cadastrar pacientes, profissionais e secretárias.',
+    icone: 'usuario',
+    passos: [
+      'Na página de início ficam os campos de **Horário e Paciente**: você visualiza os horários agendados e identifica quem será atendido ao longo do dia.',
+      'Na **Agenda do dia** estão todas as informações da consulta, como telefone, profissional responsável e status (confirmada ou pendente).',
+    ],
+    imagem: 'img/ajuda/psiquiatra/inicio.png',
+    descricaoImagem: 'Tela de início do psiquiatra',
+    imagemAEsquerda: false,
+    linhaDoConteudo: 1,
+  },
+  {
+    id: 'prontuario-do-paciente',
+    titulo: 'Prontuário do paciente',
+    descricao: 'Visualizar todo o histórico do paciente.',
+    icone: 'arquivo-texto',
+    passos: [
+      'No **prontuário** de cada paciente estão o histórico, as informações pessoais e as do responsável.',
+      'Nos campos ao lado é possível consultar as **Evoluções**, os **Laudos**, os **Medicamentos e prescrições**, os **Atestados médicos** e os pedidos de **exames** do paciente.',
+    ],
+    imagem: 'img/ajuda/psiquiatra/prontuario.png',
+    descricaoImagem: 'Tela Prontuário do paciente',
+    imagemAEsquerda: false,
+    linhaDoConteudo: 2,
+  },
+  {
+    id: 'pacientes',
+    titulo: 'Pacientes',
+    descricao: 'Como visualizar e exportar relatórios de avaliações.',
+    icone: 'arquivo-texto',
+    passos: [
+      'Na página de **Pacientes** ficam o total de pacientes cadastrados na clínica e um resumo dos pacientes em tratamento.',
+      'Na lista, veja a **última consulta** e o **status** de cada paciente. Use a busca no topo para localizar um paciente pelo nome.',
+      'Clique em **Ver prontuário** para abrir o histórico completo do paciente.',
+    ],
+    imagem: 'img/ajuda/psiquiatra/pacientes.png',
+    descricaoImagem: 'Tela Pacientes',
+    imagemAEsquerda: true,
+    linhaDoConteudo: 2,
+  },
+  {
+    id: 'agendamentos',
+    titulo: 'Agendamentos',
+    descricao: 'Como marcar e visualizar as consultas.',
+    icone: 'calendario',
+    passos: [
+      'A **agenda** permite visualizar e organizar os atendimentos por dias e horários, além de consultar informações dos pacientes e profissionais.',
+      'Use o botão **Hoje** e as setas para trocar o período. A cor de cada quadro mostra se a consulta está confirmada, a confirmar, cancelada ou remarcada.',
+      'O **Resumo da agenda** mostra o total por situação e o **Próximo atendimento**.',
+    ],
+    imagem: 'img/ajuda/psiquiatra/agenda.png',
+    descricaoImagem: 'Tela Agenda',
+    imagemAEsquerda: true,
+    linhaDoConteudo: 2,
+  },
+];
+
+/**
+ * Ajuda do PSICÓLOGO. Mesmo formato do psiquiatra, com o texto das telas do psicólogo.
+ * As capturas em public/img/ajuda/psicologo/ foram recortadas do Figma; se tiver prints das telas em 1280x800, é só substituir mantendo os nomes.
+ */
+export const TOPICOS_AJUDA_PSICOLOGO: TopicoAjudaCartao[] = [
+  {
+    id: 'pagina-de-inicio',
+    titulo: 'Página de início',
+    descricao: 'Como cadastrar pacientes, profissionais e secretárias.',
+    icone: 'usuario',
+    passos: [
+      'Na página de início tem os campos de **Horário e Paciente**: você pode visualizar os horários agendados e identificar quem será atendido ao longo do dia.',
+      '**Na agenda do dia** tem todas as informações da consulta, como telefone, profissional responsável, tipo (presencial ou online) e status (confirmada ou pendente).',
+    ],
+    imagem: 'img/ajuda/psicologo/inicio.png',
+    descricaoImagem: 'Tela de início do psicólogo',
+    imagemAEsquerda: false,
+    linhaDoConteudo: 1,
+  },
+  {
+    id: 'prontuario-do-paciente',
+    titulo: 'Prontuário do paciente',
+    descricao: 'Visualizar todo o histórico do paciente.',
+    icone: 'arquivo-texto',
+    passos: [
+      'No **prontuário** de cada paciente terá seu histórico, suas informações pessoais e as do responsável.',
+      'Nessa seção, você poderá acessar a **Documentação**, as **Evoluções**, os **Laudos**, os **Encaminhamentos**, as **Avaliações** e os **Atestados** do paciente.',
+    ],
+    imagem: 'img/ajuda/psicologo/prontuario.png',
+    descricaoImagem: 'Tela Prontuário do paciente',
+    imagemAEsquerda: false,
+    linhaDoConteudo: 2,
+  },
+  {
+    id: 'pacientes',
+    titulo: 'Pacientes',
+    descricao: 'Como visualizar e exportar relatórios de avaliações.',
+    icone: 'arquivo-texto',
+    passos: [
+      'Na página de **Pacientes** tem os campos de total de pacientes cadastrados na clínica e um resumo de pacientes em tratamento.',
+      'Na lista, veja a **última consulta** e o **status** de cada paciente. Use a busca no topo para localizar um paciente pelo nome.',
+      'Clique em **Ver prontuário** para abrir o histórico completo do paciente.',
+    ],
+    imagem: 'img/ajuda/psicologo/pacientes.png',
+    descricaoImagem: 'Tela Pacientes',
+    imagemAEsquerda: true,
+    linhaDoConteudo: 2,
+  },
+  {
+    id: 'agendamentos',
+    titulo: 'Agendamentos',
+    descricao: 'Como marcar e visualizar as consultas.',
+    icone: 'calendario',
+    passos: [
+      'A **agenda** permite visualizar e organizar os atendimentos por dias e horários, consultar informações dos pacientes e profissionais.',
+      'Use o botão **Hoje** e as setas para trocar o período. A cor de cada quadro mostra se a consulta está confirmada, a confirmar, cancelada ou remarcada.',
+      'O **Resumo da agenda** mostra o total por situação e o **Próximo atendimento**.',
+    ],
+    imagem: 'img/ajuda/psicologo/agenda.png',
+    descricaoImagem: 'Tela Agenda',
+    imagemAEsquerda: true,
+    linhaDoConteudo: 2,
+  },
+];
+
+/**
+ * Ajuda do ADMINISTRADOR: um cartão só, que se abre na própria tela.
+ * Captura em public/img/ajuda/admin/ (recortada do Figma).
+ */
+export const TOPICOS_AJUDA_ADMIN: TopicoAjudaCartao[] = [
+  {
+    id: 'inicio-cadastros-e-agenda',
+    titulo: 'Inicio, Cadastros e Agenda',
+    descricao: 'Como cadastrar pacientes, profissionais e secretárias.',
+    icone: 'usuario',
+    passos: [
+      'Acessando o **Gerenciar Profissional:** permite acessar o cadastro de novos profissionais, editar informações e gerenciar os profissionais já registrados na clínica. **Gerenciar Secretária:** permite cadastrar novas secretárias, editar seus dados e gerenciar os acessos ao sistema. A agenda do dia também apresenta os horários, pacientes, profissionais responsáveis e status das consultas.',
+    ],
+    imagem: 'img/ajuda/admin/inicio.png',
+    descricaoImagem: 'Tela de início do administrador',
+    imagemAEsquerda: false,
+    linhaDoConteudo: 1,
+  },
+];
+
+/** Perfis que usam cartões que se abrem na própria tela. A secretária usa uma página por tópico (TOPICOS_AJUDA). */
+export const AJUDA_CARTOES_POR_PERFIL: Partial<Record<Perfil, TopicoAjudaCartao[]>> = {
+  psiquiatra: TOPICOS_AJUDA_PSIQUIATRA,
+  psicologo: TOPICOS_AJUDA_PSICOLOGO,
+  admin: TOPICOS_AJUDA_ADMIN,
+};
 
 /** Divide o texto nos trechos em negrito (entre **). */
 export function partesComNegrito(texto: string): { texto: string; negrito: boolean }[] {

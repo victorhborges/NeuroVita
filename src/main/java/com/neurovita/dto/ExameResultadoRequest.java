@@ -10,7 +10,7 @@ import jakarta.validation.Valid;
 
 public class ExameResultadoRequest {
 
-    @Schema(description = "Data real da realização. Obrigatória para o primeiro resultado; omitida em atualizações pode preservar a data registrada.")
+    @Schema(description = "Data real da realização. Obrigatória ao registrar resultado textual; pode ser omitida ao anexar somente um documento ou preservar a data já registrada.")
     private LocalDate dataRealizacao;
     @Schema(description = "Resultado; quando omitido, mantém o valor atual.")
     private String resultado;

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.neurovita.dto.PrescricaoRequest;
 import com.neurovita.dto.PrescricaoResponse;
+import com.neurovita.dto.AnexosClinicosRequest;
 import com.neurovita.service.PrescricaoService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,5 +55,13 @@ public class PrescricaoController {
     public PrescricaoResponse atualizar(@PathVariable String id,
             @Valid @RequestBody PrescricaoRequest request) {
         return service.atualizar(id, request);
+    }
+
+    @PostMapping("/{id}/anexos")
+    @Operation(summary = "Anexar arquivos a uma prescrição",
+            description = "Acrescenta anexos à prescrição preservando o conteúdo e seus medicamentos.")
+    public PrescricaoResponse anexar(@PathVariable String id,
+            @Valid @RequestBody AnexosClinicosRequest request) {
+        return service.anexar(id, request);
     }
 }

@@ -17,78 +17,74 @@ import { formatarData, idadeDe, normalizar } from '../../shared/util';
  * - Administrador: cadastra, edita, inativa e exclui.
  */
 @Component({
-    selector: 'app-profissionais',
-    imports: [Avatar, Dialogo, Icone, RouterLink, TituloPagina],
-    templateUrl: './profissionais.html',
+  selector: 'app-profissionais',
+  imports: [Avatar, Dialogo, Icone, RouterLink, TituloPagina],
+  templateUrl: './profissionais.html',
 })
 export class Profissionais {
-    private readonly clinica = inject(Clinica);
-    private readonly aviso = inject(Aviso);
+  private readonly clinica = inject(Clinica);
+  private readonly aviso = inject(Aviso);
 
-    /** Vem do `data` da rota. */
-    readonly perfil = input<Perfil>('secretaria');
+  /** Vem do `data` da rota. */
+  readonly perfil = input<Perfil>('secretaria');
 
-    protected readonly busca = signal('');
-    protected readonly gerencia = computed(() => this.perfil() === 'admin');
-    protected readonly base = computed(() => `/${this.perfil()}/profissionais`);
+  protected readonly busca = signal('');
+  protected readonly gerencia = computed(() => this.perfil() === 'admin');
+  protected readonly base = computed(() => `/${this.perfil()}/profissionais`);
 
-    // Exclusão
-    protected readonly excluindo = signal<Profissional | null>(null);
-    protected readonly bloqueado = signal<{ prof: Profissional; consultas: number } | null>(null);
+  // Exclusão
+  protected readonly excluindo = signal<Profissional | null>(null);
+  protected readonly bloqueado = signal<{ prof: Profissional; consultas: number } | null>(null);
 
-    protected readonly cards = computed(() => {
-        const lista = this.clinica.profissionais();
-        const psicologos = lista.filter((p) => p.tipo === 'psicologo').length;
-        const psiquiatras = lista.filter((p) => p.tipo === 'psiquiatra').length;
-        if (this.gerencia()) {
-            return [
-                { rotulo: 'Psicólogos\ncadastrados', valor: psicologos, legenda: '' },
-                { rotulo: 'Psiquiatras\ncadastrados', valor: psiquiatras, legenda: '' },
-            ];
-        }
-        return [
-            { rotulo: 'Total de profissionais', valor: lista.length, legenda: 'Cadastrados na clínica' },
-            { rotulo: 'Total de psiquiatras', valor: psiquiatras, legenda: 'Cadastrados na clínica' },
-        ];
-    });
+  protected readonly cards = computed(() => {
+    const lista = this.clinica.profissionais();
+    const psicologos = lista.filter((p) => p.tipo === 'psicologo').length;
+    const psiquiatras = lista.filter((p) => p.tipo === 'psiquiatra').length;
+    return [
+      { rotulo: 'Psicólogos\ncadastrados', valor: psicologos },
+      { rotulo: 'Psiquiatras\ncadastrados', valor: psiquiatras },
+    ];
+  });
 
-    protected readonly lista = computed(() => {
-        const termo = normalizar(this.busca());
-        return this.clinica
-            .profissionais()
-            .filter((p) => !termo || normalizar(p.nome).includes(termo) || normalizar(p.especialidade).includes(termo))
-            .map((p) => ({ p, idade: idadeDe(p.nascimento), nascimento: formatarData(p.nascimento) }));
-    });
+  protected readonly lista = computed(() => {
+    const termo = normalizar(this.busca());
+    return this.clinica
+      .profissionais()
+      .filter((p) => !termo || normalizar(p.nome).includes(termo) || normalizar(p.especialidade).includes(termo))
+      .map((p) => ({ p, idade: idadeDe(p.nascimento), nascimento: formatarData(p.nascimento) }));
+  });
 
-    /** Clique na lixeira: se houver consultas marcadas, o sistema não deixa excluir. */
-    protected pedirExclusao(p: Profissional): void {
-        this.excluindo.set(p);
+  /** Clique na lixeira: se houver consultas marcadas, o sistema não deixa excluir. */
+  protected pedirExclusao(p: Profissional): void {
+    const consultas = this.clinica.consultasDoProfissional(p.id);
+    if (consultas > 0) this.bloqueado.set({ prof: p, consultas });
+    else this.excluindo.set(p);
+  }
+
+  protected async confirmarExclusao(): Promise<void> {
+    const p = this.excluindo();
+    if (!p) return;
+    try {
+      await this.clinica.removerProfissional(p.id);
+      this.excluindo.set(null);
+      this.aviso.mostrar('Profissional excluído com sucesso.');
+    } catch (erro) {
+      console.error('Falha ao excluir profissional:', erro);
+      this.aviso.mostrar('Não foi possível excluir o profissional.');
     }
+  }
 
-    protected async confirmarExclusao(): Promise<void> {
-        const p = this.excluindo();
-        if (!p) return;
-        try {
-            await this.clinica.removerProfissional(p.id);
-            this.excluindo.set(null);
-            this.aviso.mostrar('Profissional inativado. O histórico foi preservado.');
-        } catch (erro) {
-            console.error('Falha ao excluir profissional:', erro);
-            this.aviso.mostrar('Não foi possível excluir o profissional.');
-        }
+  protected async inativarBloqueado(): Promise<void> {
+    const b = this.bloqueado();
+    if (b?.prof.ativo) {
+      try {
+        await this.clinica.alterarAtivoProfissional(b.prof.id, false);
+        this.aviso.mostrar(`${b.prof.nome} foi inativado.`);
+      } catch (erro) {
+        console.error('Falha ao inativar profissional:', erro);
+        this.aviso.mostrar('Não foi possível inativar o profissional.');
+      }
     }
-
-    protected async inativarBloqueado(): Promise<void> {
-        const b = this.bloqueado();
-        if (b?.prof.ativo) {
-            try {
-                await this.clinica.alterarAtivoProfissional(b.prof.id, false);
-                this.aviso.mostrar(`${b.prof.nome} foi inativado.`);
-            } catch (erro) {
-                console.error('Falha ao inativar profissional:', erro);
-                this.aviso.mostrar('Não foi possível inativar o profissional.');
-            }
-        }
-        this.bloqueado.set(null);
-    }
+    this.bloqueado.set(null);
+  }
 }

@@ -3,6 +3,7 @@ package com.neurovita.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Prescricao;
 import com.neurovita.model.Prescricao.MedicamentoPrescrito;
 import com.neurovita.model.Prescricao.Revisao;
@@ -13,6 +14,7 @@ public record PrescricaoResponse(
         String profissionalId,
         String conteudo,
         List<MedicamentoPrescrito> medicamentos,
+        List<AnexoClinico> anexos,
         LocalDateTime criadaEm,
         LocalDateTime atualizadaEm,
         List<Revisao> historico) {
@@ -22,6 +24,8 @@ public record PrescricaoResponse(
                 prescricao.getConteudo(),
                 prescricao.getMedicamentos() == null
                         ? List.of() : List.copyOf(prescricao.getMedicamentos()),
+                prescricao.getAnexos() == null
+                        ? List.of() : List.copyOf(prescricao.getAnexos()),
                 prescricao.getCriadaEm(), prescricao.getAtualizadaEm(),
                 prescricao.getHistorico() == null ? List.of() : List.copyOf(prescricao.getHistorico()));
     }

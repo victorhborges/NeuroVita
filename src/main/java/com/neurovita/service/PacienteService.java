@@ -277,6 +277,15 @@ public class PacienteService {
         if (request.getNumero() != null) paciente.setNumero(valorOpcional(request.getNumero()));
         if (request.getComplemento() != null) paciente.setComplemento(valorOpcional(request.getComplemento()));
         if (request.getBairro() != null) paciente.setBairro(valorOpcional(request.getBairro()));
+        if (request.getDataInicioAcompanhamento() != null) paciente.setDataInicioAcompanhamento(request.getDataInicioAcompanhamento());
+        if (request.getDataEncerramentoAcompanhamento() != null) paciente.setDataEncerramentoAcompanhamento(request.getDataEncerramentoAcompanhamento());
+        if (paciente.getDataInicioAcompanhamento() != null
+                && paciente.getDataEncerramentoAcompanhamento() != null
+                && paciente.getDataEncerramentoAcompanhamento().isBefore(paciente.getDataInicioAcompanhamento())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A data de encerramento do acompanhamento não pode ser anterior à data de início.");
+        }
         if (request.getAtivo() != null) paciente.setAtivo(request.getAtivo());
         else if (novoCadastro && paciente.getAtivo() == null) paciente.setAtivo(true);
     }

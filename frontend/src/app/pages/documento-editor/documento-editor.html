@@ -10,46 +10,42 @@
       </button>
     </app-titulo-pagina>
 
-    <app-faixa-paciente [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()" />
+    <app-faixa-paciente [paciente]="paciente()!" [secao]="perfil() === 'psicologo' ? undefined : cfg().id" [perfil]="perfil()" />
 
     <div class="doc-grade doc-grade-lista" [class.doc-grade-solo]="!cfg().listaNoEditor">
       <section class="cartao doc-principal doc-editor">
         @if (cfg().camposNoEditor) {
           <h2 class="doc-titulo"><app-icone nome="usuario" /> {{ cfg().tituloCartao }}</h2>
           <div class="doc-campos cartao">
-            @if (mostraData()) {
-              <label class="campo-mini">{{ cfg().id === 'exames' ? 'Data de realização' : 'Data da sessão' }}
-                <input type="date" [max]="hoje" [value]="dataSessao()" (input)="dataSessao.set($any($event.target).value)" />
+            <label class="campo-mini">Data da sessão
+              <input type="date" [max]="hoje" [value]="dataSessao()" (input)="dataSessao.set($any($event.target).value)" />
+            </label>
+            <label class="campo-mini">Tipo de atendimento
+              <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
+                <option value="Presencial" [selected]="tipo() === 'Presencial'">Presencial</option>
+                <option value="Online" [selected]="tipo() === 'Online'">Online</option>
+              </select>
+            </label>
+            <div class="campo-mini">Anexar arquivos
+              <label class="botao-upload">Fazer Upload de arquivos
+                <input type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
               </label>
-            }
-            @if (mostraTipoAtendimento()) {
-              <label class="campo-mini">Tipo de atendimento
-                <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
-                  <option value="Presencial" [selected]="tipo() === 'Presencial'">Presencial</option>
-                  <option value="Online" [selected]="tipo() === 'Online'">Online</option>
-                </select>
-              </label>
-            }
-            @if (permiteAnexos()) {
-              <div class="campo-mini">Anexar arquivos
-                <label class="botao-upload">Fazer Upload de arquivos
-                  <input type="file" multiple class="oculto" aria-label="Anexar arquivos" (change)="anexar($event)" />
-                </label>
-              </div>
-            }
+            </div>
           </div>
-          @if (permiteAnexos() && anexos().length) {
+          @if (anexos().length) {
             <ul class="anexos" aria-label="Arquivos anexados">
               @for (a of anexos(); track a.url) {
                 <li><app-icone nome="arquivo-texto" /> {{ a.nome }}
-                  <button type="button" [attr.aria-label]="'Remover ' + a.nome" (click)="removerAnexo($index)"><app-icone nome="fechar" /></button>
+                  @if (podeRemoverAnexo(a)) {
+                    <button type="button" [attr.aria-label]="'Remover ' + a.nome" (click)="removerAnexo($index)"><app-icone nome="fechar" /></button>
+                  }
                 </li>
               }
             </ul>
           }
         } @else {
           <div class="doc-editor-topo">
-            <h2 class="doc-titulo">Editar Laudos</h2>
+            <h2 class="doc-titulo">{{ cfg().tituloEditor ?? 'Editar ' + cfg().rotulo }}</h2>
             <span class="doc-alteracao">Última alteração- {{ alteradoEm() }}</span>
           </div>
         }

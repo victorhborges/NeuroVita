@@ -1,55 +1,113 @@
+<div align="center">
+
+<img src="public/img/logo.png" alt="Logo do NeuroVita" width="150" />
+
 # NeuroVita
 
-Front-end do **NeuroVita**, um sistema web para clínicas de psicologia e psiquiatria, com foco em agendamento de consultas e acompanhamento de pacientes. Projeto da faculdade, feito em **Angular**.
+**Agendamento de consultas e acompanhamento de pacientes para clínicas de psicologia e psiquiatria.**
 
-> **Status:** em desenvolvimento. Login, agenda, cadastros e fluxos clínicos descritos na seção de integração consomem o backend com JWT. As telas Configurações e Ajuda e a atualização do painel foram incorporadas da referência FBR. Fale Conosco está visível, mas o projeto ainda não possui um canal/endereço de envio configurado.
+![Angular](https://img.shields.io/badge/Angular-21-DD0031?logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS-puro-1572B6?logo=css3&logoColor=white)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-orange)
+![Projeto](https://img.shields.io/badge/projeto-acad%C3%AAmico-6b4fa0)
 
-## Perfis de usuário
+[Sobre](#-sobre-o-projeto) ·
+[Funcionalidades](#-funcionalidades-por-perfil) ·
+[Como rodar](#-como-rodar) ·
+[Acesso](#-acesso-ao-sistema) ·
+[Back-end](#-ligando-ao-back-end)
 
-O sistema tem 4 perfis. As telas são parecidas, mas o menu, os botões e as funções mudam de acordo com quem entrou.
+</div>
 
-| Perfil | O que tem hoje |
+---
+
+## 📖 Sobre o projeto
+
+O **NeuroVita** é um sistema web para clínicas que atendem pacientes de neurodesenvolvimento (como TEA e TDAH). Ele organiza a agenda, o cadastro de pacientes e profissionais e o prontuário, com um painel diferente para cada tipo de usuário.
+
+`frontend final/` é o frontend oficial do NeuroVita. A interface Angular preserva o protótipo atualizado e usa os serviços HTTP para autenticação, preferências e operações clínicas disponibilizadas pelo backend Spring Boot na raiz do repositório. `frontend/` permanece apenas como referência funcional e não deve substituir esta interface.
+
+Os dados exibidos nas telas logadas vêm da API. Dados demonstrativos só devem ser usados em exemplos e não substituem operações persistidas.
+
+## ✨ Funcionalidades por perfil
+
+O sistema tem **4 perfis**. As telas são parecidas, mas o menu, os botões e as permissões mudam conforme quem entrou.
+
+| Perfil | O que faz |
 | --- | --- |
-| **Psicólogo** | Início, Pacientes, Prontuário (evoluções, laudos, encaminhamentos, avaliações e atestados) e Agenda |
-| **Psiquiatra** | Início, Pacientes, Prontuário (evoluções, laudos, medicamentos e prescrições, atestados médicos e solicitação de exames) e Agenda |
-| **Secretária** | Início, Pacientes (cadastrar, editar e excluir), Profissionais, Gerenciamento de consultas e Agenda |
-| **Administrador** | Início, Pacientes (só consulta), Profissionais e Secretárias (cadastrar, editar, inativar e excluir) e Agenda |
+| 🧠 **Psicólogo** | Vê a agenda do dia e o calendário. Consulta pacientes e abre o **prontuário** com evoluções, laudos, encaminhamentos, avaliações psicológicas e atestados. Acompanha a **agenda semanal** e altera o status das consultas. |
+| 🩺 **Psiquiatra** | Mesmo fluxo do psicólogo, com as seções do prontuário próprias da psiquiatria: evoluções, laudos, **medicamentos e prescrições**, **atestados médicos** e **solicitação de exames**. |
+| 🗂️ **Secretária** | Acompanha os números do dia. **Cadastra, edita e exclui pacientes**, **agenda consultas** vendo só os horários livres e, na agenda, **confirma, remarca ou cancela** consultas. |
+| 🛠️ **Administrador** | Visão geral da clínica. Só consulta pacientes. **Cadastra, edita, inativa e exclui profissionais** (com dias, horários e tipo de atendimento) e **secretárias**, e acompanha a agenda. |
 
-Todos os 4 perfis possuem telas iniciais, agenda e fluxos clínicos conforme sua autorização. Configurações e Ajuda ficam disponíveis nos quatro perfis. As notificações persistem como preferência, mas não há serviço de entrega; 2FA aguarda definição funcional e não é ativado pela interface.
+### Destaques
 
-## Tecnologias
+- **Editor de texto** para os documentos do prontuário, com estilos, tamanho, negrito, itálico, sublinhado, cor, alinhamento, links, imagens, listas e tela cheia.
+- **Disponibilidade do profissional valendo de verdade:** ao agendar, só aparecem os horários dos dias, faixas e tipo de atendimento (online ou presencial) que o profissional atende, sem choque com outras consultas.
+- **Sem dados sensíveis na tela inicial:** a agenda do dia e as próximas consultas mostram só o status (Confirmado, Pendente, Cancelada), nunca o diagnóstico. O diagnóstico só aparece dentro do prontuário.
+- **Horários de 1 em 1 hora, das 08:00 às 18:00** na agenda, na janela "Editar consulta" e no agendamento (a pausa do almoço e os horários já ocupados aparecem indisponíveis, conforme a disponibilidade de cada profissional).
+- **Agenda organizada:** linhas de 1 hora, e cada consulta fica dentro do quadrado da hora em que começa, com o horário exato (ex.: 08:00 - 09:00), o nome, o tipo de atendimento (presencial ou online) e o profissional.
+- **Dados compartilhados entre os perfis:** o que a secretária agenda aparece na agenda do psicólogo, e o que o administrador cadastra aparece nas listas dos outros.
+- **Proteção ao excluir:** um profissional com consultas marcadas não pode ser excluído, apenas inativado.
+- **Tela inicial dos 4 perfis:** a "Agenda do dia" é uma tabela (horário, paciente, telefone, profissional e status) com as consultas de hoje vindas da agenda. Psicólogo e psiquiatra têm o banner no topo; secretária e administrador têm os 4 cards de números (do dia, confirmadas, pendentes e canceladas) e os botões de gerenciar.
+- **Cadastro e edição de paciente (um só formulário para todos os perfis):** dados pessoais (nome, nascimento, CPF, CEP, cidade, endereço, datas de início e encerramento, status) e responsável (nome, CPF, telefone, e-mail, endereço, parentesco), como no Figma. O CEP é obrigatório no cadastro; o responsável é obrigatório para menores de 18 anos.
+- **Formulários validados:** CPF (com dígito verificador), telefone, e-mail, datas e responsável obrigatório para menores de 18 anos, com máscaras de CPF e telefone.
+- **Prontuário e galeria de documentos:** o prontuário mostra os dados do paciente, as últimas informações (próxima e última consulta, vindas da agenda) e um cartão para cada seção (evoluções, laudos, encaminhamentos, avaliação psicológica e atestados; no psiquiatra, também medicamentos, atestados médicos e exames). Cada seção é uma galeria de documentos organizada em **grupos** (ex.: "Relatório escolar"), com miniatura, nome, data e botão de baixar. "+ Adicionar documentos" permite enviar arquivos (escolhendo o grupo) ou escrever no editor de texto.
+- **Upload, download e compartilhamento** de documentos.
+- **Janelas de confirmação** em todas as ações importantes, como no protótipo.
+- **Abertura animada** antes do login (cápsulas coloridas, cérebro e nome), feita só com CSS e SVG.
+- **Layout responsivo** e rótulos de acessibilidade nos botões, campos e janelas.
+- **Configurações:** tema, formato de data, duração padrão, início da semana e notificações são carregados e persistidos pelo serviço de preferências da API; o rascunho visual é aplicado enquanto o usuário edita. Inglês permanece indisponível e a autenticação em duas etapas aparece desabilitada como **“Em breve”**.
 
-- [Angular](https://angular.dev) 21 (componentes standalone e signals)
+## 🎬 Abertura animada
+
+Ao acessar o site, antes do login, toca uma animação de abertura: duas colunas coloridas descem pela borda de cima, viram ganchos, o cérebro nasce no meio, vira a logo e o nome **NeuroVita** aparece ao lado.
+
+- **Feita só com CSS e SVG**, sem biblioteca de animação. O Angular apenas controla quando ela começa e termina (`shared/abertura`).
+- **Toca uma vez por sessão do navegador.** Para rever, feche a aba e abra de novo, ou acesse o site com `?abertura` no endereço (ex.: `http://localhost:4200/?abertura`).
+- **Dá para pular** com clique, Enter, Espaço, Esc ou o botão "Pular".
+- **Acessibilidade:** com "reduzir movimento" ligado no sistema, aparece só a logo parada. Enquanto ela toca, o resto da página fica inativo.
+- **Velocidade:** o número `RITMO` em `src/app/shared/abertura/abertura.ts` controla tudo (1 = devagar, menor = mais rápido). As cores, formas e tempos de cada etapa estão em `src/styles.css`, na seção "Abertura animada".
+
+### Perfil do psicólogo (telas conforme o Figma)
+
+- **Pacientes:** 2 cards (Cadastrados e Ativos), status Ativo/Inativo, botão "Ver prontuário" e coluna Ação (editar e excluir). O cadastro de novo paciente não fica nessa tela.
+- **Prontuário:** seis seções, na ordem Documentação, Evoluções, Laudos, Encaminhamentos, Avaliação Psicológica e Atestados. Cada uma é uma galeria organizada em grupos (`gruposPadrao` em `shared/clinica/secoes.ts`), com a legenda opcional `subtituloGrupos`. A foto do paciente fica em `public/img/pacientes/`.
+- **"+ Adicionar documentos":** menu com "+ Novo Documento" (abre o editor) e "Dispositivo" (envia arquivos do computador).
+- **Editor:** sem os campos de data e tipo de atendimento, com o título "Escreva o ... do paciente" e a "Última alteração". Um documento novo já abre com o texto-modelo da seção, preenchido com os dados do paciente (`shared/clinica/modelos-documento.ts`).
+- **Galerias clínicas:** exibem documentos e anexos retornados pela API, agrupados pelo campo persistido `grupo`.
+
+## 🛠️ Tecnologias
+
+- [Angular](https://angular.dev) 21 com componentes standalone, *signals* e controle de fluxo nativo (`@if`, `@for`)
 - TypeScript
-- CSS puro (arquivo único `src/styles.css`)
+- CSS puro, em um único arquivo (`src/styles.css`), sem bibliotecas de interface (inclusive a animação de abertura, com `@keyframes` e SVG)
 - Fonte [Poppins](https://fonts.google.com/specimen/Poppins)
+- Ícones em SVG próprios (componente `app-icone`)
 
-O visual segue o protótipo do Figma da equipe de design.
+## 🚀 Como rodar
 
-## Como rodar
-
-**Requisitos:** [Node.js](https://nodejs.org) (recomendado a versão LTS atual) e o Angular CLI (`npm install -g @angular/cli`).
+**Requisitos:** [Node.js](https://nodejs.org) (versão LTS atual) e o Angular CLI.
 
 ```bash
 # 1. Clonar o repositório
 git clone https://github.com/SEU-USUARIO/NOME-DO-REPOSITORIO.git
 
-# 2. Entrar na pasta do projeto (a que tem o package.json)
-cd NOME-DO-REPOSITORIO
+# 2. Entrar na pasta oficial do frontend
+cd "NOME-DO-REPOSITORIO/frontend final"
 
 # 3. Instalar as dependências
-npm install
+npm ci
 
 # 4. Rodar
 npm start
 ```
 
-Depois abra **http://localhost:4200** no navegador.
+Depois abra **http://localhost:4200** no navegador. As chamadas `/api/**` usam o proxy em `proxy.conf.json`; ajuste o `target` desse arquivo para apontar ao backend local ou ao ambiente autorizado da equipe.
 
 > **Windows / PowerShell:** se aparecer o erro de "execução de scripts desabilitada", rode uma vez
 > `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` e abra o terminal de novo.
-
-### Outros comandos
 
 | Comando | Para que serve |
 | --- | --- |
@@ -57,130 +115,95 @@ Depois abra **http://localhost:4200** no navegador.
 | `npm run build` | Gera a versão de produção em `dist/` |
 | `npm test` | Roda os testes |
 
-## Contas de demonstração
+## 🔑 Acesso ao sistema
 
-Na tela de login, a lista de contas de demonstração auxilia a preencher o formulário. O login é validado pelo endpoint real `/api/auth/login`; essas contas precisam existir no ambiente configurado e a senha não é aceita por uma autenticação local simulada.
+O login e a recuperação de senha usam os endpoints de autenticação do backend; não há credenciais de demonstração fixas no frontend oficial. Utilize uma conta provisionada pela equipe do ambiente. O JWT é enviado nas chamadas protegidas e as rotas também verificam o perfil autorizado.
 
-| E-mail | Vai para |
-| --- | --- |
-| `psicologo@neurovita.com` | `/psicologo` |
-| `psiquiatra@neurovita.com` | `/psiquiatra` |
-| `secretaria@neurovita.com` | `/secretaria` |
-| `admin@neurovita.com` | `/admin` |
-
-O e-mail não diferencia maiúsculas de minúsculas. Também dá para abrir cada tela direto pelo endereço.
-
-## Rotas
+## 🧭 Rotas
 
 | Endereço | Tela |
 | --- | --- |
 | `/` | Login |
 | `/esqueci-senha`, `/codigo`, `/redefinir-senha` | Recuperação de senha |
-| `/psicologo`, `/psiquiatra`, `/secretaria`, `/admin` | Tela inicial de cada perfil |
-| `/psicologo/pacientes` | Lista de pacientes |
-| `/psicologo/pacientes/:id` | Prontuário do paciente |
-| `/psicologo/pacientes/:id/:secao` | Evoluções, laudos, encaminhamentos, avaliações ou atestados |
-| `/psicologo/pacientes/:id/:secao/novo` | Novo documento |
-| `/psicologo/pacientes/:id/:secao/:docId` | Ler um documento |
-| `/psicologo/pacientes/:id/:secao/:docId/editar` | Editar um documento |
-| `/psicologo/agenda` | Agenda semanal |
-| `/psiquiatra/pacientes`, `/psiquiatra/pacientes/:id` e `/psiquiatra/agenda` | Mesmas telas do psicólogo, com outras seções no prontuário |
-| `/secretaria/pacientes` | Lista de pacientes (editar e excluir) |
-| `/secretaria/pacientes/novo` | Cadastrar novo paciente |
-| `/secretaria/pacientes/:id/editar` | Editar paciente |
-| `/secretaria/profissionais` | Lista de profissionais |
+| `/psicologo` · `/psiquiatra` · `/secretaria` · `/admin` | Tela inicial de cada perfil |
+| `/psicologo/pacientes` · `/psiquiatra/pacientes` | Lista de pacientes |
+| `/{perfil}/pacientes/:id` | Prontuário do paciente |
+| `/{perfil}/pacientes/:id/:secao` | Seção do prontuário (lista ou texto) |
+| `/{perfil}/pacientes/:id/:secao/novo` | Novo documento |
+| `/{perfil}/pacientes/:id/:secao/:docId` | Ler um documento |
+| `/{perfil}/pacientes/:id/:secao/:docId/editar` | Editar um documento |
+| `/psicologo/agenda` · `/psiquiatra/agenda` · `/secretaria/agenda` · `/admin/agenda` | Agenda semanal |
+| `/secretaria/pacientes` · `/secretaria/pacientes/novo` · `/secretaria/pacientes/:id/editar` | Pacientes (cadastrar, editar, excluir) |
 | `/secretaria/consultas` | Gerenciamento de consultas (agendar) |
-| `/secretaria/agenda` | Agenda semanal (confirmar, remarcar e cancelar) |
-| `/admin/pacientes` | Lista de pacientes (só consulta) |
-| `/admin/profissionais` | Lista de profissionais (editar, inativar e excluir) |
-| `/admin/profissionais/novo` | Cadastrar novo profissional |
-| `/admin/profissionais/:id/editar` | Editar profissional |
-| `/admin/secretarias` | Lista de secretárias |
-| `/admin/secretarias/novo` | Cadastrar nova secretária |
-| `/admin/secretarias/:id/editar` | Editar secretária |
-| `/admin/agenda` | Agenda semanal (igual à da secretária) |
-| `/:perfil/configuracoes` | Preferências persistidas, informações da sessão e alteração de senha autenticada |
-| `/:perfil/ajuda` | Central de ajuda com busca de tópicos |
-| `/:perfil/ajuda/:topico` | Instruções estáticas para os fluxos cobertos |
-| `/:perfil/ajuda/fale-conosco` | Informação de que o canal de contato ainda precisa ser configurado |
+| `/admin/pacientes` | Pacientes (só consulta) |
+| `/admin/profissionais` · `/admin/profissionais/novo` · `/admin/profissionais/:id/editar` | Profissionais |
+| `/admin/secretarias` · `/admin/secretarias/novo` · `/admin/secretarias/:id/editar` | Secretárias |
 | qualquer outro | Página não encontrada |
 
 `:secao` no psicólogo: `evolucoes`, `laudos`, `encaminhamentos`, `avaliacoes` ou `atestados`.
 No psiquiatra: `evolucoes`, `laudos`, `medicamentos`, `atestadosMedicos` ou `exames`.
 
-## Estrutura do projeto
+## 🗂️ Estrutura do projeto
 
 ```
 src/
-  styles.css                 -> todo o visual do projeto
+  styles.css                  → todo o visual do projeto
   app/
-    app.routes.ts            -> rotas
-    pages/                   -> uma pasta por tela
+    app.routes.ts             → rotas de todos os perfis
+    pages/                    → uma pasta por tela
       login/  esqueci-senha/  codigo/  redefinir-senha/  nao-encontrada/
-      painel-shell/          -> moldura com o menu lateral
-      painel-inicio/         -> tela inicial dos 4 perfis
-      pacientes/  prontuario/  secao-paciente/
-      documento-leitura/  documento-editor/  agenda/
-    shared/                  -> o que é usado em mais de uma tela
-      auth.ts                -> login JWT e gestão da sessão
-      perfil.ts              -> os 4 perfis e o que muda em cada um
-      dados-demo.ts          -> dados fictícios das telas iniciais
-      dados-agenda.ts        -> dados fictícios da agenda
-      clinica/               -> fachada e serviços Angular para APIs clínicas, com alguns dados de demonstração legados
-      editor-texto/  menu-lateral/  cabecalho/  agenda-do-dia/  calendario/ ...
-public/
-  img/                       -> logo e imagens
+      painel-shell/           → moldura com o menu lateral
+      painel-inicio/          → tela inicial dos 4 perfis
+      pacientes/  prontuario/  secao-paciente/  documento-leitura/  documento-editor/  agenda/
+      gestao-pacientes/  paciente-form/  consulta-form/        → secretária
+      profissionais/  profissional-form/  secretarias/  secretaria-form/   → administrador
+    shared/                   → o que é usado em mais de uma tela
+      auth.ts                 → sessão, JWT e operações de autenticação
+      perfil.ts               → os 4 perfis e o que muda em cada um
+      clinica/                → pacientes, profissionais, consultas e documentos (dados + serviço)
+      editor-texto/  menu-lateral/  cabecalho/  lista-suspensa/  dialogo/  abertura/  ...
+public/img/                   → logo e imagens
 ```
 
-## Telas do psiquiatra
+## 🧩 Como funciona por dentro
 
-São as mesmas páginas do psicólogo (`pages/pacientes`, `prontuario`, `secao-paciente`, `documento-leitura`, `documento-editor` e `agenda`). O perfil chega pela rota e define o endereço-base e as seções do prontuário (`secoesDoPerfil`, em `shared/clinica/secoes.ts`). Os dados são os mesmos da clínica.
+- **Uma tela, vários perfis:** páginas como pacientes, prontuário e agenda são as mesmas para vários perfis. O perfil chega pela rota e define o endereço-base, o menu, as seções e o que aparece (`shared/perfil.ts`).
+- **Estado clínico da sessão:** o serviço `Clinica` (`shared/clinica/clinica.ts`) carrega e sincroniza os registros por meio dos serviços HTTP; a persistência autoritativa permanece no backend.
+- **Disponibilidade:** `Clinica.disponivel` e `Clinica.horarioLivre` decidem se um horário pode ser marcado.
+- **Editor de texto:** `shared/editor-texto`. O conteúdo é HTML, limpo por `limparHtml` (`shared/util.ts`) antes de ser exibido.
 
-## Telas da secretária
+## 🔌 Integração com o back-end
 
-- **Dados compartilhados com o psicólogo:** quem cadastra um paciente ou agenda uma consulta aparece nas telas dos dois perfis (tudo vem de `shared/clinica/clinica.ts`).
-- **Agendar:** `pages/consulta-form`. Os horários livres consideram as consultas já marcadas do profissional e do paciente. A consulta nasce como *pendente*.
-- **Agenda:** `pages/agenda` é a mesma tela dos dois perfis. O psicólogo troca o status por um menu e a secretária usa a janela "Editar consulta".
-- **Cadastro de paciente:** `pages/paciente-form` valida CPF, telefone, e-mail e exige o responsável para menores de 18 anos.
-- **Datas de demonstração:** "hoje" é 15/09/2026 (`shared/dados-agenda.ts`).
+Os serviços em `shared/clinica/*-api.service.ts` usam os endpoints REST existentes sob `/api`. O interceptor envia o JWT; o guard Angular complementa as verificações de perfil, vínculo profissional-paciente e autorização que continuam sendo aplicadas pelo backend.
 
-## Telas do administrador
+- **Configuração do destino:** `proxy.conf.json` encaminha `/api/**` ao ambiente definido em `target`. Para desenvolvimento local, configure-o para a URL local do Spring Boot.
+- **Dados clínicos:** pacientes, profissionais, secretárias, consultas e registros clínicos são carregados e gravados pelos serviços da API; o estado Angular em memória é apenas cache de sessão.
+- **Campos de cadastro:** datas de acompanhamento do paciente, endereço e datas de vínculo de profissionais, além de endereço e dados funcionais das secretárias, têm campos persistidos nos modelos e DTOs da API.
+- **Documentos:** documentos clínicos suportam seção, grupo, conteúdo e anexos Base64. O backend valida o tamanho e os tipos MIME bloqueados; documentos formais assinados digitalmente e PDFs oficiais não fazem parte deste fluxo.
+- **Senhas e acesso:** contas criadas para profissionais e secretárias recebem senhas provisórias tratadas pelo backend; o envio de boas-vindas depende da configuração de e-mail do ambiente. A alteração de senha autenticada exige a senha atual.
+- **Preferências:** são persistidas pela API. Idioma inglês permanece indisponível e autenticação em duas etapas continua desabilitada, identificada como **“Em breve”**.
 
-- **Disponibilidade do profissional:** o que o administrador cadastra (dias, faixas de horário, online e/ou presencial) vale na hora de agendar. A tela de consultas só mostra os horários em que o profissional atende (`Clinica.disponivel`).
-- **Excluir profissional:** se ele tiver consultas na agenda, o sistema não deixa excluir e sugere inativar. Sem consultas, a exclusão é permitida.
-- **Acesso ao sistema:** cadastros de profissionais e secretarias podem persistir no backend; envio de boas-vindas depende de configuração de e-mail. A lista exibida no login é apenas um auxílio visual e não substitui a autenticação JWT.
-- **Pacientes:** o administrador só consulta; cadastrar, editar e excluir é da secretária.
+## 🗺️ Roadmap
 
-## Integração com o back-end
+- [x] Login e recuperação de senha (visual)
+- [x] Telas dos 4 perfis seguindo o protótipo do Figma
+- [x] Prontuário com editor de texto e upload de arquivos
+- [x] Agenda, agendamento com horários livres e edição de consultas
+- [x] Cadastro, edição e exclusão de pacientes, profissionais e secretárias
+- [x] Abertura animada antes do login
+- [x] Configurações persistidas, ajuda e preferências de notificação
+- [ ] Revisão e validação final dos fluxos integrados com o back-end
+- [x] Proteção de rotas por perfil, complementada pela autorização do backend
+- [ ] Autenticação em duas etapas (desabilitada como “Em breve”)
+- [ ] Testes automatizados das telas principais
 
-O frontend usa JWT por meio do interceptor HTTP e a fachada `shared/clinica/clinica.ts` para carregar e atualizar os dados consumidos pelas telas existentes.
-
-- **Evoluções:** `evolucoes-api.service.ts` usa `GET /api/evolucoes/paciente/{pacienteId}` e `POST /api/evolucoes`. Novas evoluções são append-only; documentos antigos da seção continuam no endpoint genérico e não são convertidos.
-- **Prescrições:** `prescricoes-api.service.ts` usa `GET /api/prescricoes/paciente/{pacienteId}`, `POST /api/prescricoes` e `PUT /api/prescricoes/{id}`. Os medicamentos estruturados já retornados pela API são preservados nas atualizações, mesmo sem campos próprios para editá-los no formulário atual.
-- **Exames:** `exames-api.service.ts` integra a tela de solicitação com `/api/exames`; o texto da solicitação é persistido em `descricaoSolicitacao`, sem preencher data de realização ou histórico de resultado. A tela atual não registra resultados; `PUT /{id}/resultado` permanece disponível na API. Uploads genéricos do prontuário continuam em `documentos_clinicos` e não são convertidos em anexos de resultado.
-- **Vínculos profissionais-pacientes:** `vinculos-profissionais-pacientes-api.service.ts` consulta o histórico em `GET /api/vinculos-profissionais-pacientes/paciente/{pacienteId}`. A criação automática após salvar ou remarcar uma consulta é responsabilidade do backend.
-- **Responsáveis no prontuário:** profissionais consultam responsáveis individualmente por `GET /api/responsaveis/{id}` apenas quando possuem vínculo ativo com algum paciente relacionado. Listagem e escrita permanecem restritas a administrador/secretaria.
-- **Preferências:** `preferencias-api.service.ts` lê e atualiza `/api/preferencias`. Configurações salva tema, idioma, formato de data, duração padrão, início da semana e flags de notificação após confirmação. O tema e o formato de data são aplicados no frontend. O idioma é persistido, mas as traduções completas ainda não estão implementadas; início da semana é salvo, porém a grade de referência continua de segunda a sábado; as flags não enviam notificações. A própria versão de referência guarda estas opções sem aplicá-las às telas.
-- **Senha autenticada:** Configurações chama `POST /api/auth/alterar-senha` por `Auth.alterarSenhaAutenticada` e encerra a sessão local após sucesso. Nome e e-mail do perfil são somente leitura, pois o login não fornece ID da entidade nem há uma API de atualização do perfil autenticado.
-- **Autenticação em duas etapas:** não há toggle funcional. Fator, ativação, verificação e recuperação dependem de definição do MVP.
-- **Painel inicial:** a tabela da agenda é alimentada por consultas e pacientes da API; administradores e secretarias também carregam os profissionais para apresentar seus nomes. Falhas de carregamento são exibidas sem apresentar os dados como completos.
-- **Agenda semanal:** a grade atual mostra consultas reais agrupadas por faixa horária com horário, duração, modalidade e profissional. A referência mantém seis dias (segunda a sábado); a preferência de início da semana é salva na API, mas o protótipo não define comportamento para reorganizar essa grade.
-- **Prontuário:** segue os cartões e atalhos da referência atual, mantendo dados pessoais, responsáveis múltiplos, informações da última/próxima consulta e histórico. A criação de evolução permanece na seção correspondente e consome o fluxo clínico específico.
-- **Ajuda e contato:** Ajuda é conteúdo estático e usa as capturas da referência. Fale Conosco não simula envio; depende de definição do endereço/canal e do backend correspondente.
-- **Acesso por perfil:** a listagem de pacientes do profissional é somente para consulta e prontuário; cadastro permanece nos fluxos de secretaria/admin conforme os endpoints e permissões existentes. As rotas Angular das telas são carregadas sob demanda para reduzir o bundle inicial.
-- **Prontuários:** `prontuarios-api.service.ts` disponibiliza consulta por paciente/ID, criação e atualização do contrato existente. O prontuário visual atual é uma composição de paciente, consultas e documentos clínicos e não possui campos de edição para os campos centrais da entidade; conectar esses campos depende da interface correspondente.
-- **Administradores:** `administradores-api.service.ts` disponibiliza CRUD para `/api/administradores`, protegido no backend para o perfil administrador. Não há tela de gerenciamento de administradores no frontend atual.
-- **Tratamentos:** `tratamentos-api.service.ts` oferece consulta por paciente, consulta por ID, criação, atualização e arquivamento em `/api/tratamentos`. A API também expõe listagem autorizada. Não há formulário ou tela de tratamento existente para conectar; nenhuma tela foi criada. Operações e regras de acesso estão descritas no Swagger.
-- **Compatibilidade:** documentos clínicos antigos permanecem acessíveis pelo endpoint `/api/documentos-clinicos`; não há migração ou conversão automática.
-
-Os serviços usam as respostas reais da API. Falhas HTTP são informadas pelas telas e não são tratadas como sucesso. A validação de autorização continua no backend, independentemente dos guards Angular.
-
-## Equipe
+## 👥 Equipe
 
 - _Nome 1_ — front-end
 - _Nome 2_ — front-end
-- _Nome(s) do design e do back-end_
+- _Nome(s)_ — design (protótipo no Figma)
+- _Nome(s)_ — back-end
 
-## Licença
+## 📄 Licença
 
 Projeto acadêmico, sem licença definida.

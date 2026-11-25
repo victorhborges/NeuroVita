@@ -1,19 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { catchError, firstValueFrom, forkJoin, of, Subject, takeUntil } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, map, of, Subject, takeUntil } from 'rxjs';
 
 import { diaDaSemana, paraISO } from '../util';
 import {
-  Agendamento, Consulta, DadosPaciente, DadosProfissional, DadosSecretaria, Documento, Paciente, Profissional,
+  Agendamento, Anexo, Consulta, DadosPaciente, DadosProfissional, DadosSecretaria, Documento, Paciente, Profissional,
   Secao, Secretaria, StatusConsulta, TipoAtendimento,
 } from './modelos';
 import { minutosDe } from './status';
-import { DocumentosApiService, DocumentoClinicoApi } from './documentos-api.service';
+import { AnexoClinicoApi, DocumentosApiService, DocumentoClinicoApi } from './documentos-api.service';
 import { Auth } from '../auth';
 import { ConsultasApiService, ConsultaApi } from './consultas-api.service';
 import { PacientesApiService, PacienteApi } from './pacientes-api.service';
 import { ProfissionaisApiService, ProfissionalApi } from './profissionais-api.service';
 import { ResponsaveisApiService, ResponsavelApi } from './responsaveis-api.service';
-import { SecretariasApiService } from './secretarias-api.service';
+import { SecretariaApi, SecretariasApiService } from './secretarias-api.service';
 import { DisponibilidadesApiService } from './disponibilidades-api.service';
 import { DiagnosticosApiService } from './diagnosticos-api.service';
 import { Aviso } from '../aviso/aviso';
@@ -84,11 +84,21 @@ export class Clinica {
     const podeListarProfissionais = perfil === 'admin' || perfil === 'secretaria';
     const podeListarSecretarias = perfil === 'admin';
     const podeListarResponsaveis = perfil === 'admin' || perfil === 'secretaria';
+    const ehProfissional = perfil === 'psicologo' || perfil === 'psiquiatra';
+    const profissionalId = this.auth.obterEntidadeId();
+    const profissionais = podeListarProfissionais
+      ? this.profissionaisApi.listarTodos().pipe(catchError(() => of(null)))
+      : ehProfissional && profissionalId
+        ? this.profissionaisApi.buscarPorId(profissionalId).pipe(
+          map((profissional) => [profissional]),
+          catchError(() => of(null)),
+        )
+        : ehProfissional
+          ? of(null)
+          : of([] as ProfissionalApi[]);
     forkJoin({
       pacientes: this.pacientesApi.listarTodos().pipe(catchError(() => of(null))),
-      profissionais: podeListarProfissionais
-        ? this.profissionaisApi.listarTodos().pipe(catchError(() => of(null)))
-        : of([] as ProfissionalApi[]),
+      profissionais,
       responsaveis: podeListarResponsaveis
         ? this.responsaveisApi.listarTodos().pipe(catchError(() => of(null)))
         : of([] as ResponsavelApi[]),
@@ -101,10 +111,9 @@ export class Clinica {
         this.aviso.mostrar('Não foi possível atualizar todos os dados clínicos. Os dados já carregados foram preservados.');
         return;
       }
-      const profissionaisMap = new Map(profissionais.map((p) => [p.id, p]));
       this._agendamentos.set(consultas.map((c) => this.agendamentoDaApi(c)));
       this._pacientes.set(pacientes.map((p) => this.pacienteDaApi(p, responsaveis, consultas)));
-      if (perfil === 'psicologo' || perfil === 'psiquiatra') {
+      if (ehProfissional) {
         this.carregarResponsaveisVinculados(pacientes);
       }
       const disponibilidadeAnteriorPorId = new Map(
@@ -119,12 +128,7 @@ export class Clinica {
         };
       }));
       profissionais.forEach((p) => this.carregarDisponibilidade(p.id));
-      this._secretarias.set(secretarias.map((s) => ({
-        id: s.id, codigo: s.id.slice(-5).toUpperCase(), nome: s.nome, nascimento: s.dataNascimento ?? '', telefone: s.telefone ?? '', email: s.emailContato ?? s.email,
-        cpf: s.cpf ?? '', endereco: s.endereco ?? '', cargo: s.cargo ?? 'Secretária', admissao: s.admissao ?? '', ativo: s.ativo ?? true, emailAcesso: s.email,
-      })));
-      // Associa consultas aos profissionais para que a interface use nomes vindos da API.
-      this._agendamentos.update((lista) => lista.map((a) => ({ ...a, local: a.local || profissionaisMap.get(a.profissionalId)?.nome || '' })));
+      this._secretarias.set(secretarias.map((secretaria) => this.secretariaDaApi(secretaria)));
     });
   }
 
@@ -194,6 +198,7 @@ export class Clinica {
       id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, nascimento: p.dataNascimento,
       telefone: p.telefone ?? '', email: p.email ?? '', cpf: p.cpf ?? '', endereco: p.endereco ?? '',
       cep: p.cep ?? '', cidade: p.cidade ?? '', numero: p.numero ?? '', complemento: p.complemento ?? '', bairro: p.bairro ?? '',
+      inicio: p.dataInicioAcompanhamento ?? '', encerramento: p.dataEncerramentoAcompanhamento ?? '',
       status: p.ativo === false ? 'inativo' : 'acompanhamento', situacao: p.ativo === false ? 'Inativo' : 'Em acompanhamento', ultimaConsulta: ultima?.dataHora.slice(0, 10) ?? null,
       profissionalId: profissionalAtual,
       responsavelId: vinculo?.responsavelId,
@@ -211,8 +216,35 @@ export class Clinica {
     return {
       id: p.id, codigo: p.id.slice(-5).toUpperCase(), nome: p.nome, tratamento: '', especialidade: p.categoria,
       tipo, registro: p.numeroRegistro ?? '', nascimento: p.dataNascimento ?? '', telefone: p.telefone ?? '', ativo: !!p.ativo,
+      cep: p.cep ?? '', cidade: p.cidade ?? '', endereco: p.endereco ?? '', numero: p.numero ?? '',
+      complemento: p.complemento ?? '', bairro: p.bairro ?? '', inicio: p.admissao ?? '', encerramento: p.encerramento ?? '',
       cpf: p.cpf ?? '', email: p.emailContato ?? p.email ?? '', anoConclusao: p.anoConclusao,
       disponibilidade: { dias: [], faixas: [], online: !!p.atendeOnline, presencial: p.atendePresencial !== false }, emailAcesso: p.email,
+    };
+  }
+
+  private secretariaDaApi(s: SecretariaApi): Secretaria {
+    return {
+      id: s.id,
+      codigo: s.id.slice(-5).toUpperCase(),
+      nome: s.nome,
+      nascimento: s.dataNascimento ?? '',
+      telefone: s.telefone ?? '',
+      email: s.emailContato ?? s.email,
+      emailAcesso: s.email,
+      cpf: s.cpf ?? '',
+      endereco: s.endereco ?? '',
+      cep: s.cep ?? '',
+      cidade: s.cidade ?? '',
+      numero: s.numero ?? '',
+      complemento: s.complemento ?? '',
+      bairro: s.bairro ?? '',
+      cargo: s.cargo ?? 'Secretária',
+      admissao: s.admissao ?? '',
+      encerramento: s.encerramento ?? '',
+      cbo: s.cbo ?? '',
+      cargaHoraria: s.cargaHoraria ?? '',
+      ativo: s.ativo ?? true,
     };
   }
 
@@ -369,7 +401,7 @@ export class Clinica {
       tipoAtendimento: null,
       conteudo: item.conteudo,
       atualizadoEm: item.atualizadoEm || item.criadoEm,
-      anexos: [],
+      anexos: this.anexosDaApi(item.anexos),
     };
   }
 
@@ -386,16 +418,13 @@ export class Clinica {
       tipoAtendimento: null,
       conteudo: item.conteudo,
       atualizadoEm: item.atualizadaEm,
-      anexos: [],
+      anexos: this.anexosDaApi(item.anexos),
       medicamentos: item.medicamentos ?? [],
     };
   }
 
   private exameComoDocumento(item: ExameApi): Documento {
-    const anexos = (item.anexosResultado ?? []).map((anexo) => ({
-      nome: anexo.nome,
-      url: `data:${anexo.tipoMime};base64,${anexo.conteudoBase64}`,
-    }));
+    const anexos = this.anexosDaApi(item.anexosResultado);
     return {
       id: `exame:${item.id}`,
       origem: 'exame',
@@ -416,6 +445,29 @@ export class Clinica {
       observacoes: item.observacoes,
       ativo: item.ativo,
     };
+  }
+
+  private anexosDaApi(anexos: AnexoClinicoApi[] | null | undefined): Anexo[] {
+    return (anexos ?? []).map((anexo) => ({
+      nome: anexo.nome,
+      url: `data:${anexo.tipoMime};base64,${anexo.conteudoBase64}`,
+    }));
+  }
+
+  private async anexosParaApi(anexos: Anexo[]): Promise<AnexoClinicoApi[]> {
+    return Promise.all(anexos.map(async (anexo) => {
+      const resposta = await fetch(anexo.url);
+      if (!resposta.ok) throw new Error(`Não foi possível ler o arquivo ${anexo.nome}.`);
+      const blob = await resposta.blob();
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binario = '';
+      bytes.forEach((byte) => binario += String.fromCharCode(byte));
+      return {
+        nome: anexo.nome,
+        conteudoBase64: btoa(binario),
+        tipoMime: blob.type || 'application/octet-stream',
+      };
+    }));
   }
 
   carregarDiagnosticos(pacienteId: string): void {
@@ -545,6 +597,7 @@ export class Clinica {
     return {
       nome: dados.nome, dataNascimento: dados.nascimento, email: dados.email || '', cpf: dados.cpf || '', telefone: dados.telefone || '', endereco: dados.endereco || '', ativo: dados.ativo,
       cep: dados.cep, cidade: dados.cidade, numero: dados.numero, complemento: dados.complemento, bairro: dados.bairro,
+      dataInicioAcompanhamento: dados.inicio || null, dataEncerramentoAcompanhamento: dados.encerramento || null,
       responsaveis,
       possuiPlanoSaude: dados.plano.possui, planoSaude: dados.plano.nome, numeroCarteirinha: dados.plano.carteirinha,
       validadePlano: dados.plano.validade || null,
@@ -579,8 +632,11 @@ export class Clinica {
     if (id) {
       const salvo = await firstValueFrom(this.profissionaisApi.atualizar(id!, {
         nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
+        cep: dados.cep, cidade: dados.cidade, endereco: dados.endereco, numero: dados.numero, complemento: dados.complemento, bairro: dados.bairro,
+        admissao: dados.inicio || undefined, encerramento: dados.encerramento || undefined,
         categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
-        numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria,
+        numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo,
+        ...(dados.senhaProvisoria ? { senhaProvisoria: dados.senhaProvisoria } : {}),
       }));
       await this.sincronizarDisponibilidade(id!, dados.disponibilidade);
       const atualizado = { ...this.profissionalDaApi(salvo), disponibilidade: dados.disponibilidade };
@@ -589,6 +645,8 @@ export class Clinica {
     }
     const cadastro = await firstValueFrom(this.profissionaisApi.criar({
       nome: dados.nome, email: dados.emailAcesso, emailContato: dados.email, dataNascimento: dados.nascimento, cpf: dados.cpf, telefone: dados.telefone,
+      cep: dados.cep, cidade: dados.cidade, endereco: dados.endereco, numero: dados.numero, complemento: dados.complemento, bairro: dados.bairro,
+      admissao: dados.inicio || undefined, encerramento: dados.encerramento || undefined,
       categoria: dados.tipo === 'psiquiatra' ? 'PSIQUIATRA' : 'PSICOLOGO', formacaoAcademica: '',
       numeroRegistro: dados.registro, anoConclusao: dados.anoConclusao, atendeOnline: dados.disponibilidade.online, atendePresencial: dados.disponibilidade.presencial, ativo: dados.ativo, senhaProvisoria: dados.senhaProvisoria, enviarEmailBoasVindas: dados.enviarEmailBoasVindas,
     }));
@@ -645,12 +703,15 @@ export class Clinica {
     const request = {
       nome: dados.nome, email: dados.emailAcesso || dados.email, emailContato: dados.email,
       dataNascimento: dados.nascimento || undefined, cpf: dados.cpf, telefone: dados.telefone,
-      endereco: dados.endereco, cargo: dados.cargo, admissao: dados.admissao || undefined, ativo: dados.ativo,
-      senhaProvisoria: dados.senhaProvisoria,
+      endereco: dados.endereco, cep: dados.cep, cidade: dados.cidade, numero: dados.numero,
+      complemento: dados.complemento, bairro: dados.bairro, cargo: dados.cargo,
+      admissao: dados.admissao || undefined, encerramento: dados.encerramento || undefined,
+      cbo: dados.cbo, cargaHoraria: dados.cargaHoraria, ativo: dados.ativo,
+      ...(dados.senhaProvisoria ? { senhaProvisoria: dados.senhaProvisoria } : {}),
     };
     if (id) {
       const salva = await firstValueFrom(this.secretariasApi.atualizar(id, request));
-      const editada = { ...dados, id, codigo: id.slice(-5).toUpperCase(), email: salva.emailContato ?? salva.email, emailAcesso: salva.email };
+      const editada = this.secretariaDaApi(salva);
       this._secretarias.update((l) => l.map((s) => s.id === id ? editada : s));
       return editada;
     }
@@ -659,8 +720,7 @@ export class Clinica {
       enviarEmailBoasVindas: dados.enviarEmailBoasVindas,
     }));
     const nova: Secretaria & { senhaProvisoria: string | null; emailBoasVindasEnviado: boolean } = {
-      ...dados, id: cadastro.secretaria.id, codigo: cadastro.secretaria.id.slice(-5).toUpperCase(),
-      email: cadastro.secretaria.emailContato ?? cadastro.secretaria.email, emailAcesso: cadastro.secretaria.email,
+      ...this.secretariaDaApi(cadastro.secretaria),
       senhaProvisoria: cadastro.senhaProvisoria,
       emailBoasVindasEnviado: cadastro.emailBoasVindasEnviado,
     };
@@ -731,12 +791,18 @@ export class Clinica {
       dataHora: `${atualizado.data}T${atualizado.inicio}:00`, tipoAtendimento: atualizado.tipo,
       local: atualizado.local, modalidade: atualizado.atendimento.toUpperCase(), duracao: atualizado.duracao,
     };
-    if (atualizado.status === 'cancelado') await firstValueFrom(this.consultasApi.cancelar(atualizado.id));
-    else {
-      await firstValueFrom(this.consultasApi.atualizar(atualizado.id, payload));
-      if (atualizado.status === 'confirmado') await firstValueFrom(this.consultasApi.confirmar(atualizado.id));
+    let resposta: ConsultaApi;
+    if (atualizado.status === 'cancelado') {
+      resposta = await firstValueFrom(this.consultasApi.cancelar(atualizado.id));
     }
-    this._agendamentos.update((l) => l.map((a) => a.id === atualizado.id ? atualizado : a));
+    else {
+      resposta = await firstValueFrom(this.consultasApi.atualizar(atualizado.id, payload));
+      if (atualizado.status === 'confirmado') {
+        resposta = await firstValueFrom(this.consultasApi.confirmar(atualizado.id));
+      }
+    }
+    const salvo = this.agendamentoDaApi(resposta);
+    this._agendamentos.update((l) => l.map((a) => a.id === salvo.id ? salvo : a));
   }
 
   /* ---------- Documentos do prontuário ---------- */
@@ -746,6 +812,65 @@ export class Clinica {
     return this._documentos()
       .filter((d) => d.pacienteId === pacienteId && d.secao === secao)
       .sort((a, b) => b.dataSessao.localeCompare(a.dataSessao) || b.atualizadoEm.localeCompare(a.atualizadoEm));
+  }
+
+  async anexarAnexos(documento: Documento, novosAnexos: Anexo[]): Promise<Documento> {
+    if (!novosAnexos.length) return documento;
+    const anexosNovosApi = await this.anexosParaApi(novosAnexos);
+
+    if (documento.origem === 'evolucao') {
+      const id = documento.id.slice('evolucao:'.length);
+      const salvo = await firstValueFrom(this.evolucoesApi.anexar(id, anexosNovosApi));
+      const atualizado = this.evolucaoComoDocumento(salvo);
+      this.substituirOrigemDocumento(documento.pacienteId, 'evolucao', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === documento.pacienteId && item.origem === 'evolucao'
+          && item.id !== atualizado.id),
+        atualizado,
+      ]);
+      return atualizado;
+    }
+
+    if (documento.origem === 'prescricao') {
+      const id = documento.id.slice('prescricao:'.length);
+      const salvo = await firstValueFrom(this.prescricoesApi.anexar(id, anexosNovosApi));
+      const atualizado = this.prescricaoComoDocumento(salvo);
+      this.substituirOrigemDocumento(documento.pacienteId, 'prescricao', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === documento.pacienteId && item.origem === 'prescricao'
+          && item.id !== atualizado.id),
+        atualizado,
+      ]);
+      return atualizado;
+    }
+
+    if (documento.origem === 'exame') {
+      const id = documento.id.slice('exame:'.length);
+      const anexosExistentesApi = await this.anexosParaApi(documento.anexos);
+      const salvo = await firstValueFrom(this.examesApi.registrarResultado(id, {
+        ...(documento.dataRealizacao ? { dataRealizacao: documento.dataRealizacao } : {}),
+        ...(documento.resultado ? { resultado: documento.resultado } : {}),
+        ...(documento.observacoes ? { observacoes: documento.observacoes } : {}),
+        anexos: [...anexosExistentesApi, ...anexosNovosApi],
+      }));
+      const atualizado = this.exameComoDocumento(salvo);
+      this.substituirOrigemDocumento(documento.pacienteId, 'exame', [
+        ...this._documentos().filter((item) =>
+          item.pacienteId === documento.pacienteId && item.origem === 'exame'
+          && item.id !== atualizado.id),
+        atualizado,
+      ]);
+      return atualizado;
+    }
+
+    if (documento.origem === 'documento-clinico') {
+      return this.salvarDocumento({
+        ...documento,
+        anexos: [...documento.anexos, ...novosAnexos],
+      });
+    }
+
+    throw new Error('A origem deste documento não permite anexar arquivos.');
   }
 
   async salvarDocumento(dados: DadosDocumento): Promise<Documento> {
@@ -761,9 +886,6 @@ export class Clinica {
       if (dados.id && dados.origem === 'evolucao') {
         throw new Error('Evoluções registradas são imutáveis. Registre uma nova evolução para acrescentar informações.');
       }
-      if (completo.anexos.length) {
-        throw new Error('A API de evoluções não aceita anexos. Remova os arquivos antes de registrar a evolução.');
-      }
       const perfil = this.auth.obterPerfil();
       const request = {
         pacienteId: completo.pacienteId,
@@ -776,7 +898,13 @@ export class Clinica {
         dataAtendimento: `${completo.dataSessao}T00:00:00`,
         conteudo: completo.conteudo,
       };
-      const salvo = await firstValueFrom(this.evolucoesApi.criar(request));
+      let salvo = await firstValueFrom(this.evolucoesApi.criar(request));
+      if (completo.anexos.length) {
+        salvo = await firstValueFrom(this.evolucoesApi.anexar(
+          salvo.id,
+          await this.anexosParaApi(completo.anexos),
+        ));
+      }
       const documento = this.evolucaoComoDocumento(salvo);
       this.substituirOrigemDocumento(completo.pacienteId, 'evolucao', [
         ...this._documentos().filter((item) =>
@@ -789,13 +917,15 @@ export class Clinica {
     if (completo.secao === 'medicamentos'
       && (dados.origem === 'prescricao'
         || (!dados.id && dados.origem !== 'documento-clinico'))) {
-      if (completo.anexos.length) {
-        throw new Error('A API de prescrições não aceita anexos. Remova os arquivos antes de salvar.');
-      }
       const perfil = this.auth.obterPerfil();
       const id = dados.id?.startsWith('prescricao:')
         ? dados.id.slice('prescricao:'.length)
         : undefined;
+      const anexosAtuais = dados.id
+        ? this._documentos().find((item) => item.id === dados.id)?.anexos ?? []
+        : [];
+      const anexosNovos = completo.anexos.filter((anexo) =>
+        !anexosAtuais.some((atual) => atual.nome === anexo.nome && atual.url === anexo.url));
       const request = {
         pacienteId: completo.pacienteId,
         ...(perfil === 'admin'
@@ -807,9 +937,15 @@ export class Clinica {
           ? { medicamentos: dados.medicamentos }
           : {}),
       };
-      const salvo = await firstValueFrom(id
+      let salvo = await firstValueFrom(id
         ? this.prescricoesApi.atualizar(id, request)
         : this.prescricoesApi.criar(request));
+      if (anexosNovos.length) {
+        salvo = await firstValueFrom(this.prescricoesApi.anexar(
+          salvo.id,
+          await this.anexosParaApi(anexosNovos),
+        ));
+      }
       const documento = this.prescricaoComoDocumento(salvo);
       this.substituirOrigemDocumento(completo.pacienteId, 'prescricao', [
         ...this._documentos().filter((item) =>
@@ -826,14 +962,12 @@ export class Clinica {
       const id = dados.id?.startsWith('exame:')
         ? dados.id.slice('exame:'.length)
         : undefined;
-      const anexosExistentes = id
-        ? this._documentos().find((documento) => documento.id === dados.id)?.anexos ?? []
-        : [];
+      const documentoExistente = id
+        ? this._documentos().find((documento) => documento.id === dados.id)
+        : undefined;
+      const anexosExistentes = documentoExistente?.anexos ?? [];
       const alterouAnexos = completo.anexos.length !== anexosExistentes.length
         || completo.anexos.some((anexo, indice) => anexo.url !== anexosExistentes[indice]?.url);
-      if (alterouAnexos) {
-        throw new Error('Arquivos enviados pela seção do prontuário são documentos clínicos; não podem ser registrados como resultado de exame.');
-      }
       const profissionalId = dados.profissionalId
         ?? await this.profissionalUnicoDoPaciente(completo.pacienteId);
       const request = {
@@ -849,6 +983,14 @@ export class Clinica {
       } else {
         salvo = await firstValueFrom(this.examesApi.criar(request));
       }
+      if (alterouAnexos) {
+        salvo = await firstValueFrom(this.examesApi.registrarResultado(salvo.id, {
+          ...(completo.dataRealizacao ? { dataRealizacao: completo.dataRealizacao } : {}),
+          ...(completo.resultado ? { resultado: completo.resultado } : {}),
+          ...(completo.observacoes ? { observacoes: completo.observacoes } : {}),
+          anexos: await this.anexosParaApi(completo.anexos),
+        }));
+      }
       const documento = this.exameComoDocumento(salvo);
       this.substituirOrigemDocumento(completo.pacienteId, 'exame', [
         ...this._documentos().filter((item) =>
@@ -859,16 +1001,15 @@ export class Clinica {
       return documento;
     }
 
-    const anexos = await Promise.all(completo.anexos.map(async (anexo) => {
-      const resposta = await fetch(anexo.url);
-      const blob = await resposta.blob();
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binario = '';
-      bytes.forEach((byte) => binario += String.fromCharCode(byte));
-      return { nome: anexo.nome, conteudoBase64: btoa(binario), tipoMime: blob.type || 'application/octet-stream' };
-    }));
+    const anexosLocal = completo.arquivo
+      && !completo.anexos.some((anexo) => anexo.nome === completo.arquivo?.nome
+        && anexo.url === completo.arquivo?.url)
+      ? [...completo.anexos, completo.arquivo]
+      : completo.anexos;
+    const anexos = await this.anexosParaApi(anexosLocal);
     const request = {
       pacienteId: completo.pacienteId, secao: completo.secao, titulo: completo.titulo,
+      grupo: completo.grupo || null,
       dataSessao: completo.dataSessao, tipoAtendimento: completo.tipoAtendimento ?? 'Presencial',
       conteudo: completo.conteudo || `Arquivo anexado: ${completo.titulo}`, anexos,
     };
@@ -885,6 +1026,7 @@ export class Clinica {
     return {
       id: item.id, origem: 'documento-clinico', pacienteId: item.pacienteId, profissionalId: item.profissionalId,
       secao: item.secao as Secao, titulo: item.titulo,
+      grupo: item.grupo ?? undefined,
       dataSessao: item.dataSessao, tipoAtendimento: item.tipoAtendimento as TipoAtendimento,
       conteudo: item.conteudo, atualizadoEm: item.atualizadoEm,
       anexos, arquivo: item.conteudo.startsWith('Arquivo anexado:') ? anexos[0] : undefined,

@@ -1,4 +1,8 @@
-/** Contratos visuais usados pelos componentes de agenda, calendário e resumo. */
+/**
+ * DADOS FICTÍCIOS (iguais aos do protótipo do Figma).
+ * TODO (back-end): trocar tudo daqui por chamadas à API. As telas só recebem os dados
+ * pelos tipos abaixo, então basta devolver o mesmo formato.
+ */
 import { StatusConsulta } from './clinica/modelos';
 
 export type CorTag = 'azul' | 'vermelho' | 'verde' | 'roxo';
@@ -45,30 +49,47 @@ export interface DiaCalendario {
   selecionado?: boolean;
 }
 
+export const DATA_AGENDA = '01 de Setembro';
+
+export const AGENDA_DO_DIA: ItemAgenda[] = [
+  { hora: '08:00', paciente: 'Ana Beatriz Silva', tipo: 'Avaliação Psicológica', status: 'confirmado' },
+  { hora: '09:00', paciente: 'João Pedro Lima', tipo: 'Acompanhamento', status: 'confirmado' },
+  { hora: '10:00', paciente: 'Maria Clara Santos', tipo: 'Devolutiva', status: 'pendente' },
+  { hora: '11:00', paciente: 'Lucas Martins', tipo: 'Acompanhamento', status: 'confirmado' },
+  { hora: '13:00', paciente: 'Júlia Fernandes', tipo: 'Acompanhamento', status: 'cancelado' },
+  { hora: '14:00', paciente: 'Mateus Santos', tipo: 'Avaliação psicológica', status: 'confirmado' },
+  { hora: '15:00', paciente: 'Higor silva', tipo: 'Devolutiva', status: 'confirmado' },
+];
+
+export const PROXIMAS_CONSULTAS: ConsultaProxima[] = [
+  { paciente: 'Maria Clara Santos', tipo: 'Avaliação psicológica', data: '01/09/2026', hora: '9:00', status: 'confirmado' },
+  { paciente: 'Lucas dos Santos', tipo: 'Devolutiva', data: '01/09/2026', hora: '9:00', status: 'pendente' },
+  { paciente: 'Miguel Soares', tipo: 'Acompanhamento', data: '01/09/2026', hora: '9:00', status: 'confirmado' },
+  { paciente: 'Ana Clara Rodrigues', tipo: 'Avaliação psicológica', data: '01/09/2026', hora: '9:00', status: 'cancelado' },
+];
+
+export const CARDS_RESUMO: CardResumo[] = [
+  { valor: 150, rotulo: 'Total de pacientes', icone: 'usuario' },
+  { valor: 10, rotulo: 'Consultas Hoje', icone: 'calendario' },
+  { valor: 3, rotulo: 'Consultas Pendentes', icone: 'info' },
+  { valor: 1, rotulo: 'Consultas Canceladas', icone: 'usuario-x' },
+];
+
+export const MES_CALENDARIO = 'Setembro de 2026';
 export const DIAS_DA_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function calendarioDoMes(
-  data: Date,
-  datasComConsulta: Set<string>,
-  dataSelecionada?: string,
-): DiaCalendario[][] {
-  const ano = data.getFullYear();
-  const mes = data.getMonth();
-  const primeiro = new Date(ano, mes, 1);
-  const inicio = new Date(ano, mes, 1 - primeiro.getDay());
-  const hoje = dataSelecionada
-    ?? `${ano}-${String(mes + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-  const semanas: DiaCalendario[][] = [];
-  for (let semana = 0; semana < 6; semana++) {
-    const dias: DiaCalendario[] = [];
-    for (let coluna = 0; coluna < 7; coluna++) {
-      const atual = new Date(inicio);
-      atual.setDate(inicio.getDate() + semana * 7 + coluna);
-      const iso = `${atual.getFullYear()}-${String(atual.getMonth() + 1).padStart(2, '0')}-${String(atual.getDate()).padStart(2, '0')}`;
-      dias.push({ numero: atual.getDate(), foraDoMes: atual.getMonth() !== mes, selecionado: iso === hoje, comConsulta: datasComConsulta.has(iso) });
-    }
-    semanas.push(dias);
-    if (semana >= 4 && dias.every((dia) => dia.foraDoMes)) break;
-  }
-  return semanas;
-}
+const fora = (numero: number): DiaCalendario => ({ numero, foraDoMes: true });
+const dia = (numero: number, extra: Partial<DiaCalendario> = {}): DiaCalendario => ({ numero, ...extra });
+
+/**
+ * Calendário igual ao do protótipo (semana a semana).
+ * TODO: gerar de verdade a partir da data atual e das consultas vindas do back-end.
+ */
+export const SEMANAS_CALENDARIO: DiaCalendario[][] = [
+  [fora(26), fora(27), fora(28), fora(29), fora(30), dia(1), dia(2)],
+  [dia(3), dia(4, { comConsulta: true }), dia(5), dia(6), dia(7), dia(8), dia(9)],
+  [dia(10), dia(11, { comConsulta: true }), dia(12, { comConsulta: true }), dia(13), dia(14), dia(15), dia(16)],
+  [dia(17), dia(18), dia(19), dia(20), dia(21), dia(22), dia(23)],
+  [dia(24), dia(25), dia(26), dia(27), dia(28), dia(29), dia(30)],
+  [dia(31, { selecionado: true }), fora(1), fora(2), fora(3), fora(4), fora(5), fora(6)],
+];

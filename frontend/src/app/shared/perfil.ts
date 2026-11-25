@@ -21,19 +21,21 @@ export interface ConfigPerfil {
     neutro?: boolean;
   };
   menu: ItemMenu[];
-  /** Mostra a setinha ao lado do usuário (abre o menu "Sair"). */
+  /** Mostra a setinha ao lado do usuário (abre o menu "Sair"). Ligada nos 4 perfis. */
   setaUsuario: boolean;
   /** Mostra os 3 pontinhos nas linhas da agenda e das próximas consultas. */
   menuAcoes: boolean;
   /**
-   * 'profissional' = calendário + banner azul (psicólogo e psiquiatra)
-   * 'gestao'       = cards de números + botões de gerenciar + banner roxo (secretária e admin)
+   * 'agendaClinica' = banner azul + agenda do dia em tabela (psicólogo e psiquiatra)
+   * 'gestao'        = cards de números + botões de gerenciar + agenda do dia em tabela (secretária e admin)
    */
-  layout: 'profissional' | 'gestao';
+  layout: 'agendaClinica' | 'gestao';
   /** Só no layout 'gestao': os dois botões grandes (`rota` = para onde levam, quando a tela já existe). */
   acoes: { texto: string; icone: IconeAcao; rota?: string }[];
   /** Mostra o sino de notificações no topo. */
   sino: boolean;
+  /** Mostra a coluna "Tipo" (Presencial/Online) na agenda do dia. */
+  colunaTipo: boolean;
   banner: { variante: 'azul' | 'roxo'; titulo: string; texto?: string };
 }
 
@@ -56,10 +58,11 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
     usuario: { nome: 'Dra. Maria', cargo: 'Psicóloga' },
     menu: ['inicio', 'pacientes', 'agenda'],
     setaUsuario: true,
-    menuAcoes: true,
-    layout: 'profissional',
+    menuAcoes: false,
+    layout: 'agendaClinica',
     acoes: [],
-    sino: true,
+    sino: false,
+    colunaTipo: true,
     banner: BANNER_PROFISSIONAL,
   },
   psiquiatra: {
@@ -71,9 +74,10 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
     menu: ['inicio', 'pacientes', 'agenda'],
     setaUsuario: true,
     menuAcoes: false,
-    layout: 'profissional',
+    layout: 'agendaClinica',
     acoes: [],
-    sino: true,
+    sino: false,
+    colunaTipo: false,
     banner: BANNER_PROFISSIONAL,
   },
   secretaria: {
@@ -90,6 +94,7 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
       { texto: 'Gerenciar paciente', icone: 'usuario-mais', rota: '/secretaria/pacientes' },
     ],
     sino: false,
+    colunaTipo: true,
     banner: BANNER_GESTAO,
   },
   admin: {
@@ -106,6 +111,7 @@ export const CONFIG_PERFIS: Record<Perfil, ConfigPerfil> = {
       { texto: 'Gerenciar secretária', icone: 'usuario-mais', rota: '/admin/secretarias' },
     ],
     sino: false,
+    colunaTipo: true,
     banner: BANNER_GESTAO,
   },
 };

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AnexoClinicoApi } from './documentos-api.service';
 
 export interface MedicamentoPrescritoApi {
   medicamento: string;
@@ -16,6 +17,7 @@ export interface PrescricaoApi {
   profissionalId: string;
   conteudo: string;
   medicamentos: MedicamentoPrescritoApi[];
+  anexos: AnexoClinicoApi[];
   criadaEm: string;
   atualizadaEm: string;
   historico: unknown[];
@@ -47,5 +49,9 @@ export class PrescricoesApiService {
 
   atualizar(id: string, dados: PrescricaoRequestApi): Observable<PrescricaoApi> {
     return this.http.put<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}`, dados);
+  }
+
+  anexar(id: string, anexos: AnexoClinicoApi[]): Observable<PrescricaoApi> {
+    return this.http.post<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}/anexos`, { anexos });
   }
 }

@@ -12,6 +12,14 @@ public class ProfissionalResponse {
     private LocalDate dataNascimento;
     private String cpf;
     private String telefone;
+    private String cep;
+    private String cidade;
+    private String endereco;
+    private String numero;
+    private String complemento;
+    private String bairro;
+    private LocalDate admissao;
+    private LocalDate encerramento;
 
     private String categoria;
     private String formacaoAcademica;
@@ -31,6 +39,14 @@ public class ProfissionalResponse {
         this.dataNascimento = profissional.getDataNascimento();
         this.cpf = profissional.getCpf();
         this.telefone = profissional.getTelefone();
+        this.cep = profissional.getCep();
+        this.cidade = profissional.getCidade();
+        this.endereco = profissional.getEndereco();
+        this.numero = profissional.getNumero();
+        this.complemento = profissional.getComplemento();
+        this.bairro = profissional.getBairro();
+        this.admissao = profissional.getAdmissao();
+        this.encerramento = profissional.getEncerramento();
 
         this.categoria = profissional.getCategoria();
         this.formacaoAcademica = profissional.getFormacaoAcademica();
@@ -65,6 +81,15 @@ public class ProfissionalResponse {
     public String getTelefone() {
         return telefone;
     }
+
+    public String getCep() { return cep; }
+    public String getCidade() { return cidade; }
+    public String getEndereco() { return endereco; }
+    public String getNumero() { return numero; }
+    public String getComplemento() { return complemento; }
+    public String getBairro() { return bairro; }
+    public LocalDate getAdmissao() { return admissao; }
+    public LocalDate getEncerramento() { return encerramento; }
 
     public String getCategoria() {
         return categoria;

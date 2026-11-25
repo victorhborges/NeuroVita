@@ -15,6 +15,7 @@ public class DocumentoClinico {
     private String profissionalId;
     private String secao;
     private String titulo;
+    private String grupo;
     private LocalDate dataSessao;
     private String tipoAtendimento;
     private String conteudo;
@@ -34,6 +35,8 @@ public class DocumentoClinico {
     public void setSecao(String secao) { this.secao = secao; }
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
+    public String getGrupo() { return grupo; }
+    public void setGrupo(String grupo) { this.grupo = grupo; }
     public LocalDate getDataSessao() { return dataSessao; }
     public void setDataSessao(LocalDate dataSessao) { this.dataSessao = dataSessao; }
     public String getTipoAtendimento() { return tipoAtendimento; }

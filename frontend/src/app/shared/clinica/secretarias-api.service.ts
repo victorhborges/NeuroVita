@@ -11,8 +11,16 @@ export interface SecretariaApi {
   dataNascimento?: string;
   cpf?: string;
   endereco?: string;
+  cep?: string;
+  cidade?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
   cargo?: string;
   admissao?: string;
+  encerramento?: string;
+  cbo?: string;
+  cargaHoraria?: string;
   ativo?: boolean;
 }
 

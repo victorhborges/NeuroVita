@@ -5,11 +5,11 @@
       <app-icone nome="busca" />
     </label>
     @if (edita()) {
-      <a class="botao-escuro botao-com-icone" [routerLink]="base() + '/novo'"><app-icone nome="usuario-mais" /> Novo Paciente</a>
+      <a class="botao-escuro" [routerLink]="base() + '/novo'">+ Novo Paciente</a>
     }
   </app-titulo-pagina>
 
-  <section class="pac-cards pac-cards-2 pac-cards-gestao" aria-label="Resumo dos pacientes">
+  <section class="pac-cards pac-cards-2" aria-label="Resumo dos pacientes">
     @for (card of cards(); track card.rotulo) {
       <div class="cartao pac-card">
         <span class="pac-card-icone"><app-icone [nome]="card.icone" /></span>
@@ -24,7 +24,7 @@
   <section class="cartao tabela" aria-label="Lista de pacientes">
     <div class="tabela-cab tabela-linha-ges" [class.tabela-linha-leitura]="!edita()" [class.tabela-linha-ges-sec]="edita()" role="row">
       @if (edita()) {
-        <span>Paciente</span><span class="centro">Última consulta</span><span class="centro">Telefone</span><span class="centro">Status</span><span class="centro">Ações</span>
+        <span>Paciente</span><span class="centro">Última consulta</span><span class="centro">Telefone</span><span class="centro">Status</span><span class="centro">Editar</span>
       } @else {
         <span>Paciente</span><span>Data de nascimento</span><span>Telefone</span><span>Profissional responsável</span><span class="centro">Status</span>
       }
@@ -40,17 +40,17 @@
         </div>
         @if (edita()) {
           <span class="pac-data centro"><app-icone nome="calendario" /> {{ item.ultima }}</span>
-          <span class="pac-texto centro">{{ item.p.telefone || '—' }}</span>
+          <span class="pac-texto centro">{{ item.p.telefone }}</span>
         } @else {
           <span class="pac-data"><app-icone nome="calendario" /> {{ item.nascimento }}</span>
-          <span class="pac-texto">{{ item.p.telefone || '—' }}</span>
+          <span class="pac-texto">{{ item.p.telefone }}</span>
           <span class="pac-texto">{{ item.profissional }}</span>
         }
         <span class="centro"><span class="status" [class.status-acompanhamento]="item.ativo" [class.status-aguardando]="!item.ativo && edita()" [class.status-inativo]="!item.ativo && !edita()">{{ item.ativo ? 'Ativo' : 'Inativo' }}</span></span>
         @if (edita()) {
           <span class="acoes-linha centro">
             <a class="acao-editar" [routerLink]="[base(), item.p.id, 'editar']" [attr.aria-label]="'Editar ' + item.p.nome" title="Editar"><app-icone nome="editar" /></a>
-            <button type="button" class="acao-excluir" [attr.aria-label]="'Inativar ' + item.p.nome" title="Inativar" (click)="excluindo.set(item.p)"><app-icone nome="lixeira" /></button>
+            <button type="button" class="acao-excluir" [attr.aria-label]="'Excluir ' + item.p.nome" title="Excluir" (click)="excluindo.set(item.p)"><app-icone nome="lixeira" /></button>
           </span>
         }
       </div>
@@ -60,8 +60,8 @@
   </section>
 </div>
 
-<app-dialogo [aberto]="!!excluindo()" titulo="Inativar paciente?" textoConfirmar="Inativar" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
+<app-dialogo [aberto]="!!excluindo()" titulo="Excluir paciente?" textoConfirmar="Excluir" (cancelar)="excluindo.set(null)" (confirmar)="confirmarExclusao()">
   <p class="dialogo-texto">
-    <strong>{{ excluindo()?.nome }}</strong> não poderá receber novas consultas. O prontuário, os vínculos e o histórico serão preservados.
+    O cadastro de <strong>{{ excluindo()?.nome }}</strong>, o prontuário e as consultas marcadas serão removidos. Essa ação não pode ser desfeita.
   </p>
 </app-dialogo>

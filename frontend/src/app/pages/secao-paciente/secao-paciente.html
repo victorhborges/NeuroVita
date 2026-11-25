@@ -1,132 +1,147 @@
 @if (!paciente() || !secaoValida()) {
-<div class="pg">
-    <app-titulo-pagina titulo="Página não encontrada" subtitulo="Esse paciente ou essa seção não existe."
-        [voltarPara]="raiz() + '/pacientes'" />
-</div>
-} @else if (cfg().modo === 'leitura') {
-<app-documento-leitura [id]="id()" [secao]="cfg().id" [perfil]="perfil()" />
+  <div class="pg">
+    <app-titulo-pagina titulo="Página não encontrada" subtitulo="Esse paciente ou essa seção não existe." [voltarPara]="raiz() + '/pacientes'" />
+  </div>
 } @else {
-<div class="pg">
-    <app-titulo-pagina [titulo]="cfg().rotulo" subtitulo="Histórico e informações do paciente"
-        [voltarPara]="raiz() + '/pacientes/' + id()">
-        @if (cfg().id === 'laudos') {
-        <div class="novo-menu" #menuCaixa>
-            <button type="button" class="botao-escuro" aria-haspopup="menu" [attr.aria-expanded]="menuNovo()"
-                (click)="menuNovo.set(!menuNovo())">{{ cfg().botaoNovo }}</button>
-            @if (menuNovo()) {
-            <div class="novo-menu-caixa" role="menu">
-                <p class="novo-menu-titulo">Novos laudos</p>
-                <button type="button" role="menuitem" class="novo-opcao" (click)="criarEmBranco()">
-                    <span class="novo-opcao-icone novo-opcao-verde"><app-icone nome="prancheta" /></span>
-                    <span><strong>Criar laudos em branco</strong><small>Abre o editor vazio para o profissional escrever
-                            manualmente</small></span>
-                </button>
-                <button type="button" role="menuitem" class="novo-opcao" (click)="escolherArquivo()">
-                    <span class="novo-opcao-icone novo-opcao-azul"><app-icone nome="nuvem-upload" /></span>
-                    <span><strong>Usar o modelo padrão</strong><small>Faça Upload dos seus arquivos</small></span>
-                </button>
-            </div>
-            }
-        </div>
-        } @else {
-        <a class="botao-escuro" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, 'novo']">{{ cfg().botaoNovo }}</a>
-        }
+  <div class="pg">
+    <app-titulo-pagina [titulo]="cfg().galeria.titulo" [subtitulo]="cfg().galeria.subtitulo" [voltarPara]="raiz() + '/pacientes/' + id()">
+      <label class="gal-seletor">
+        <select aria-label="Selecionar documento" (change)="selecionarDocumento($any($event.target).value)">
+          <option value="" [selected]="!filtroDoc()">{{ filtroDoc() ? 'Mostrar todos os documentos' : 'Selecionar documento' }}</option>
+          @for (c of documentos(); track c.doc.id) {
+            <option [value]="c.doc.id" [selected]="c.doc.id === filtroDoc()">{{ c.doc.titulo }} · {{ c.dataBR }}</option>
+          }
+        </select>
+        <app-icone nome="seta-baixo" />
+      </label>
     </app-titulo-pagina>
 
-    <app-faixa-paciente [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()" />
+    <app-faixa-paciente
+      [paciente]="paciente()!" [secao]="cfg().id" [perfil]="perfil()"
+      [botaoAdicionar]="!ehPrescricoes()" [textoNovo]="ehPrescricoes() ? cfg().botaoNovo : undefined"
+      (enviar)="escolherArquivo()" (escrever)="escreverNoEditor()" (novo)="escreverNoEditor()"
+    />
 
-    <div class="doc-grade">
-        <section class="cartao doc-principal">
-            <h2 class="doc-titulo">{{ cfg().tituloCartao }}</h2>
+    <input #arquivo type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" class="oculto" aria-label="Adicionar documentos" (change)="aoEscolherArquivos($event)" />
 
-            @if (cfg().filtros === 'data-busca') {
-            <div class="doc-filtros">
-                <label class="campo-mini">{{ cfg().id === 'exames' ? 'Data da solicitação' : 'Data da sessão' }}
-                    <input type="date" [max]="hoje" [value]="dataFiltro()"
-                        (input)="dataFiltro.set($any($event.target).value)" />
-                </label>
-                <label class="campo-busca-mini">
-                    <input type="search" [placeholder]="'Buscar ' + cfg().rotulo.toLowerCase() + '...'"
-                        [attr.aria-label]="'Buscar ' + cfg().rotulo.toLowerCase()" [value]="busca()"
-                        (input)="busca.set($any($event.target).value)" />
-                    <app-icone nome="busca" />
-                </label>
+    @if (ehPrescricoes()) {
+      <section class="med-bloco" aria-label="Medicamentos em uso">
+        <h2 class="gal-grupo-titulo">Medicamentos em uso</h2>
+        <div class="cartao tabela">
+          <div class="tabela-cab med-linha med-uso" role="row">
+            <span>Medicamento</span><span>Frequência</span><span>Início</span><span>Observações</span><span class="centro">Ações</span>
+          </div>
+          @for (m of emUso(); track m.medicamento) {
+            <div class="tabela-linha med-linha med-uso">
+              <span class="med-nome">{{ m.medicamento }}</span>
+              <span>{{ m.frequenciaCompleta }}</span>
+              <span class="med-data">{{ m.inicioBR }}</span>
+              <span>{{ m.observacoes }}</span>
+              <span class="centro">
+                <button type="button" class="med-olho" [attr.aria-label]="'Ver detalhes de ' + m.medicamento" title="Ver detalhes" (click)="medEscolhido.set(m.medicamento)"><app-icone nome="olho" /></button>
+              </span>
             </div>
-            } @else {
-            <div class="doc-campos cartao">
-                <label class="campo-mini">Data da sessão
-                    <input type="date" [max]="hoje" [value]="dataFiltro()"
-                        (input)="dataFiltro.set($any($event.target).value)" />
-                </label>
-                <label class="campo-mini">Tipo de atendimento
-                    <select [value]="tipoFiltro()" (change)="tipoFiltro.set($any($event.target).value)">
-                        <option value="">Todos</option>
-                        <option value="Presencial">Presencial</option>
-                        <option value="Online">Online</option>
-                    </select>
-                </label>
-                <div class="campo-mini">Anexar arquivos
-                    <button type="button" class="botao-upload" (click)="escolherArquivo()">Fazer Upload de
-                        arquivos</button>
-                </div>
-            </div>
-            }
+          } @empty {
+            <p class="tabela-vazio">Nenhum medicamento em uso registrado.</p>
+          }
+        </div>
+      </section>
 
-            <input #arquivo type="file" multiple class="oculto" aria-label="Enviar arquivos"
-                (change)="aoEnviar($event)" />
-
-            <ul class="gal-grade">
-                @for (item of itens(); track item.doc.id) {
-                <li class="gal-item">
-                    @if (item.arquivo; as arquivo) {
-                    <a class="gal-miniatura" [href]="arquivo.url" target="_blank" rel="noopener"
-                        [attr.aria-label]="'Abrir ' + item.doc.titulo">
-                        @if (item.imagem) { <img [src]="arquivo.url" [alt]="item.doc.titulo" loading="lazy" /> }
-                        @else { <app-icone nome="baixar" class="gal-nuvem" /> }
-                    </a>
-                    } @else {
-                    <a class="gal-miniatura gal-miniatura-texto"
-                        [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]"
-                        [attr.aria-label]="'Abrir ' + item.doc.titulo">
-                        <span>{{ item.miniatura || item.doc.titulo }}</span>
-                    </a>
-                    }
-                    <div class="gal-rodape">
-                        <div class="gal-dados">
-                            <a class="gal-nome" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]"
-                                [attr.title]="item.doc.titulo">{{ item.doc.titulo }}</a>
-                            <span class="gal-data">{{ item.dataBR }}</span>
-                        </div>
-                        <span class="doc-item-acoes">
-                            <button type="button" [attr.aria-label]="'Compartilhar ' + item.doc.titulo"
-                                title="Compartilhar" (click)="compartilhar(item.doc)"><app-icone
-                                    nome="compartilhar" /></button>
-                            <button type="button" [attr.aria-label]="'Baixar ' + item.doc.titulo" title="Baixar"
-                                (click)="baixar(item.doc)"><app-icone nome="baixar" /></button>
-                        </span>
-                    </div>
-                </li>
-                } @empty {
-                <li class="tabela-vazio">{{ cfg().vazioLista }}</li>
-                }
-            </ul>
+      @if (detalhe(); as d) {
+        <section class="med-bloco" aria-label="Detalhes do medicamento">
+          <h2 class="gal-grupo-titulo">Detalhes do medicamento</h2>
+          <div class="med-detalhe">
+            <h3 class="med-detalhe-nome"><app-icone nome="link" /> {{ d.medicamento }}</h3>
+            <p class="med-detalhe-campos">
+              <span><strong>Dosagem:</strong> {{ d.dosagem }}</span>
+              <span><strong>Frequência:</strong> {{ d.frequencia }}</span>
+              <span><strong>Início:</strong> {{ d.inicio }}</span>
+              <span><strong>Próxima reavaliação:</strong> {{ d.reavaliacao }}</span>
+            </p>
+            <p><strong>Observação:</strong> {{ d.observacao }}</p>
+          </div>
         </section>
+      }
 
-        <aside class="doc-lateral">
-            <section class="cartao doc-dados">
-                <h2 class="doc-lateral-titulo"><app-icone nome="usuario" /> Dados do Paciente</h2>
-                <ul>
-                    @for (d of dados(); track d.rotulo) {
-                    <li><app-icone [nome]="d.icone" /><span><strong>{{ d.rotulo }}</strong><small>{{ d.valor
-                                }}</small></span></li>
-                    }
-                </ul>
-            </section>
-            <div class="doc-info">
-                <p class="doc-info-titulo"><app-icone nome="relogio" /> Informações importantes</p>
-                <p class="doc-info-texto">{{ cfg().informacao }}</p>
+      <section class="med-bloco" aria-label="Histórico de prescrições">
+        <h2 class="gal-grupo-titulo">Histórico de Prescrições</h2>
+        <div class="cartao tabela">
+          <div class="tabela-cab med-linha med-hist" role="row">
+            <span>Data da Prescrição</span><span>Medicamentos</span><span>Observações</span><span class="centro">Status</span><span class="centro">Ações</span>
+          </div>
+          @for (h of historico(); track $index) {
+            <div class="tabela-linha med-linha med-hist">
+              <span class="med-data">{{ h.data }}</span>
+              <span>{{ h.medicamentos }}</span>
+              <span>{{ h.observacoes }}</span>
+              <span class="centro"><span class="status" [class.status-acompanhamento]="h.ativa" [class.status-inativo]="!h.ativa">{{ h.ativa ? 'Ativo' : 'Finalizado' }}</span></span>
+              <span class="centro">
+                @if (h.docId; as docId) {
+                  <a class="med-olho" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, docId]" aria-label="Ver prescrição" title="Ver prescrição"><app-icone nome="olho" /></a>
+                }
+              </span>
             </div>
-        </aside>
+          } @empty {
+            <p class="tabela-vazio">{{ cfg().vazioLista }} Use "{{ cfg().botaoNovo }}" para escrever uma prescrição.</p>
+          }
+        </div>
+      </section>
+    } @else {
+    <section class="cartao gal-cartao" aria-label="Documentos do paciente">
+      @for (grupo of galeria(); track grupo.nome) {
+        <section class="gal-grupo" [attr.aria-label]="grupo.nome">
+          <h2 class="gal-grupo-titulo">{{ grupo.nome }}</h2>
+          @if (cfg().galeria.subtituloGrupos; as legenda) { <p class="gal-rotulo">{{ legenda }}</p> }
+          <ul class="gal-grade">
+            @for (item of grupo.itens; track item.doc.id) {
+              <li class="gal-item">
+                @if (item.doc.arquivo; as arq) {
+                  <a class="gal-miniatura" [href]="arq.url" target="_blank" rel="noopener" [attr.aria-label]="'Abrir ' + item.doc.titulo">
+                    @if (item.imagem) { <img [src]="arq.url" [alt]="item.doc.titulo" loading="lazy" /> } @else { <app-icone nome="nuvem-baixar" class="gal-nuvem" /> }
+                  </a>
+                } @else {
+                  <a class="gal-miniatura gal-miniatura-texto" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]" [attr.aria-label]="'Abrir ' + item.doc.titulo">
+                    <span>{{ item.miniatura }}</span>
+                  </a>
+                }
+                <div class="gal-rodape">
+                  <div class="gal-dados">
+                    @if (item.doc.arquivo; as arq) {
+                      <a class="gal-nome" [href]="arq.url" target="_blank" rel="noopener" [attr.title]="item.doc.titulo">{{ item.doc.titulo }}</a>
+                    } @else {
+                      <a class="gal-nome" [routerLink]="[raiz(), 'pacientes', id(), cfg().id, item.doc.id]" [attr.title]="item.doc.titulo">{{ item.doc.titulo }}</a>
+                    }
+                    <span class="gal-data">{{ item.dataBR }}</span>
+                  </div>
+                  <button type="button" class="gal-baixar" [attr.aria-label]="'Baixar ' + item.doc.titulo" title="Baixar" (click)="baixar(item.doc)"><app-icone nome="baixar" /></button>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      } @empty {
+        <p class="tabela-vazio">{{ cfg().vazioLista }} Use "+ Adicionar documentos" para enviar arquivos ou escrever no editor.</p>
+      }
+    </section>
+    }
+  </div>
+
+  <app-dialogo [aberto]="pendentes().length > 0" titulo="Em qual grupo adicionar?" textoConfirmar="Adicionar" (cancelar)="pendentes.set([])" (confirmar)="confirmarEnvio()">
+    <div class="form-dialogo">
+      <p class="dialogo-texto">{{ pendentes().length === 1 ? pendentes()[0].name : pendentes().length + ' arquivos selecionados' }}</p>
+      <label>Grupo
+        <select [value]="grupoEscolhido()" (change)="grupoEscolhido.set($any($event.target).value)">
+          @for (g of gruposParaEscolher(); track g) {
+            <option [value]="g" [selected]="g === grupoEscolhido()">{{ g }}</option>
+          }
+          <option [value]="NOVO" [selected]="grupoEscolhido() === NOVO">Novo grupo...</option>
+        </select>
+      </label>
+      @if (grupoEscolhido() === NOVO) {
+        <label>Nome do novo grupo
+          <input type="text" autocomplete="off" [value]="grupoNovo()" (input)="grupoNovo.set($any($event.target).value)" />
+        </label>
+      }
     </div>
-</div>
+  </app-dialogo>
 }

@@ -31,7 +31,7 @@ export interface ExameRequestApi {
 }
 
 export interface ExameResultadoRequestApi {
-  dataRealizacao: string;
+  dataRealizacao?: string;
   resultado?: string;
   observacoes?: string;
   anexos?: AnexoExameApi[];

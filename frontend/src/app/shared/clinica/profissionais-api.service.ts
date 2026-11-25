@@ -10,6 +10,14 @@ export interface ProfissionalApi {
     dataNascimento?: string;
     cpf: string;
     telefone: string;
+    cep?: string;
+    cidade?: string;
+    endereco?: string;
+    numero?: string;
+    complemento?: string;
+    bairro?: string;
+    admissao?: string;
+    encerramento?: string;
     categoria: string;
     formacaoAcademica: string;
     numeroRegistro: string;

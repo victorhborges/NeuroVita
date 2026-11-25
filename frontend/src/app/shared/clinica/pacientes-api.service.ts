@@ -15,6 +15,8 @@ export interface PacienteApi {
     numero?: string;
     complemento?: string;
     bairro?: string;
+    dataInicioAcompanhamento?: string | null;
+    dataEncerramentoAcompanhamento?: string | null;
     ativo?: boolean;
     responsaveis: {
         responsavelId: string;

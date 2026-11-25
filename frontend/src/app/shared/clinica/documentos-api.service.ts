@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface AnexoClinicoApi { nome: string; conteudoBase64: string; tipoMime: string; }
 export interface DocumentoClinicoApi {
   id: string; pacienteId: string; profissionalId: string; secao: string; titulo: string;
-  dataSessao: string; tipoAtendimento: string; conteudo: string; atualizadoEm: string; anexos: AnexoClinicoApi[];
+  grupo?: string | null; dataSessao: string; tipoAtendimento: string; conteudo: string; atualizadoEm: string; anexos: AnexoClinicoApi[];
 }
 export type DocumentoClinicoRequestApi = Omit<DocumentoClinicoApi, 'id' | 'profissionalId' | 'atualizadoEm'>;
 

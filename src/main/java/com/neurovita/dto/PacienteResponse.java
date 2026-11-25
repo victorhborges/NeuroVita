@@ -21,6 +21,8 @@ public class PacienteResponse {
     private String numero;
     private String complemento;
     private String bairro;
+    private LocalDate dataInicioAcompanhamento;
+    private LocalDate dataEncerramentoAcompanhamento;
     private Boolean ativo;
 
     private List<VinculoResponsavelResponse> responsaveis;
@@ -54,6 +56,8 @@ public class PacienteResponse {
         this.numero = paciente.getNumero();
         this.complemento = paciente.getComplemento();
         this.bairro = paciente.getBairro();
+        this.dataInicioAcompanhamento = paciente.getDataInicioAcompanhamento();
+        this.dataEncerramentoAcompanhamento = paciente.getDataEncerramentoAcompanhamento();
         this.ativo = paciente.getAtivo();
 
         this.responsaveis = vinculos != null ? vinculos.stream()
@@ -100,6 +104,8 @@ public class PacienteResponse {
     public String getNumero() { return numero; }
     public String getComplemento() { return complemento; }
     public String getBairro() { return bairro; }
+    public LocalDate getDataInicioAcompanhamento() { return dataInicioAcompanhamento; }
+    public LocalDate getDataEncerramentoAcompanhamento() { return dataEncerramentoAcompanhamento; }
     public Boolean getAtivo() { return ativo; }
 
     public List<VinculoResponsavelResponse> getResponsaveis() {

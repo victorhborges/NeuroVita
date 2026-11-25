@@ -22,6 +22,15 @@ export interface ConfigSecao {
   camposNoEditor: boolean;
   /** O editor mostra a lista da lateral? */
   listaNoEditor: boolean;
+  tituloEditor?: string;
+  galeria: {
+    titulo: string;
+    subtitulo: string;
+    atalho: string;
+    descricao: string;
+    gruposPadrao: string[];
+    subtituloGrupos?: string;
+  };
 }
 
 export const SECOES: Record<Secao, ConfigSecao> = {
@@ -41,6 +50,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Evoluções do paciente',
+      subtitulo: 'Histórico de evolução clínica.',
+      atalho: 'Evoluções',
+      descricao: 'Registros do acompanhamento clínico.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   laudos: {
     id: 'laudos',
@@ -58,6 +74,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-busca',
     camposNoEditor: false,
     listaNoEditor: false,
+    galeria: {
+      titulo: 'Laudos do paciente',
+      subtitulo: 'Laudos e documentos clínicos.',
+      atalho: 'Laudos',
+      descricao: 'Documentos clínicos elaborados para o paciente.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   encaminhamentos: {
     id: 'encaminhamentos',
@@ -75,6 +98,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Encaminhamentos do paciente',
+      subtitulo: 'Encaminhamentos e documentos relacionados.',
+      atalho: 'Encaminhamentos',
+      descricao: 'Registros de encaminhamentos clínicos.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   avaliacoes: {
     id: 'avaliacoes',
@@ -92,6 +122,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Avaliações psicológicas do paciente',
+      subtitulo: 'Avaliações e documentos relacionados.',
+      atalho: 'Avaliações Psicológicas',
+      descricao: 'Registros das avaliações psicológicas.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   atestados: {
     id: 'atestados',
@@ -109,6 +146,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Atestados do paciente',
+      subtitulo: 'Atestados e documentos relacionados.',
+      atalho: 'Atestados',
+      descricao: 'Atestados emitidos para o paciente.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   medicamentos: {
     id: 'medicamentos',
@@ -126,6 +170,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Medicamentos e prescrições do paciente',
+      subtitulo: 'Histórico de prescrições.',
+      atalho: 'Medicamentos e prescrições',
+      descricao: 'Medicamentos e prescrições registrados.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   atestadosMedicos: {
     id: 'atestadosMedicos',
@@ -143,6 +194,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Atestados médicos do paciente',
+      subtitulo: 'Atestados médicos e documentos relacionados.',
+      atalho: 'Atestados Médicos',
+      descricao: 'Atestados médicos emitidos para o paciente.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
   exames: {
     id: 'exames',
@@ -160,6 +218,13 @@ export const SECOES: Record<Secao, ConfigSecao> = {
     filtros: 'data-tipo-anexo',
     camposNoEditor: true,
     listaNoEditor: true,
+    galeria: {
+      titulo: 'Solicitações de exames do paciente',
+      subtitulo: 'Solicitações e resultados de exames.',
+      atalho: 'Solicitar Exames',
+      descricao: 'Exames solicitados e resultados registrados.',
+      gruposPadrao: ['Arquivos'],
+    },
   },
 };
 

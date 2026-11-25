@@ -26,6 +26,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.neurovita.dto.EvolucaoRequest;
+import com.neurovita.dto.AnexosClinicosRequest;
+import com.neurovita.model.DocumentoClinico.AnexoClinico;
 import com.neurovita.model.Evolucao;
 import com.neurovita.model.Usuario;
 import com.neurovita.model.VinculoProfissionalPaciente;
@@ -106,6 +108,48 @@ class EvolucaoServiceTest {
     }
 
     @Test
+    void autorAcrescentaAnexoSemAlterarConteudoDaEvolucao() {
+        prepararAcessoProfissional();
+        Authentication auth = autenticacao("ROLE_PROFISSIONAL");
+        Evolucao existente = new Evolucao();
+        existente.setId("evo-1");
+        existente.setPacienteId("pac-1");
+        existente.setProfissionalId("prof-1");
+        existente.setConteudo("Registro imutável");
+        when(evolucoes.findById("evo-1")).thenReturn(Optional.of(existente));
+        when(evolucoes.save(any(Evolucao.class))).thenAnswer(chamada -> chamada.getArgument(0));
+        AnexoClinico anexo = new AnexoClinico();
+        anexo.setNome("laudo.pdf");
+        anexo.setConteudoBase64("cGRm");
+        anexo.setTipoMime("application/pdf");
+        AnexosClinicosRequest request = new AnexosClinicosRequest();
+        request.setAnexos(List.of(anexo));
+
+        var resposta = service.anexar("evo-1", request, auth);
+
+        assertEquals("Registro imutável", resposta.conteudo());
+        assertEquals("laudo.pdf", resposta.anexos().get(0).getNome());
+        verify(evolucoes).save(existente);
+    }
+
+    @Test
+    void profissionalVinculadoMasNaoAutorNaoPodeAnexarEmEvolucao() {
+        prepararAcessoProfissional();
+        Evolucao existente = new Evolucao();
+        existente.setId("evo-1");
+        existente.setPacienteId("pac-1");
+        existente.setProfissionalId("prof-2");
+        when(evolucoes.findById("evo-1")).thenReturn(Optional.of(existente));
+        AnexosClinicosRequest request = new AnexosClinicosRequest();
+        request.setAnexos(List.of(anexoTeste()));
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.anexar("evo-1", request, autenticacao("ROLE_PROFISSIONAL")));
+
+        verify(evolucoes, never()).save(any(Evolucao.class));
+    }
+
+    @Test
     void rejeitaItemNuloEmObjetivosTrabalhados() {
         prepararAcessoProfissional();
 
@@ -179,5 +223,13 @@ class EvolucaoServiceTest {
         return new UsernamePasswordAuthenticationToken(
                 "prof@neurovita.test", "token",
                 List.of(new SimpleGrantedAuthority(role)));
+    }
+
+    private AnexoClinico anexoTeste() {
+        AnexoClinico anexo = new AnexoClinico();
+        anexo.setNome("laudo.pdf");
+        anexo.setConteudoBase64("cGRm");
+        anexo.setTipoMime("application/pdf");
+        return anexo;
     }
 }

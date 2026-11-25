@@ -44,6 +44,8 @@ public class PacienteRequest {
     private String numero;
     private String complemento;
     private String bairro;
+    private LocalDate dataInicioAcompanhamento;
+    private LocalDate dataEncerramentoAcompanhamento;
     private Boolean ativo;
 
     @Valid
@@ -110,6 +112,10 @@ public class PacienteRequest {
     public void setComplemento(String complemento) { this.complemento = complemento; }
     public String getBairro() { return bairro; }
     public void setBairro(String bairro) { this.bairro = bairro; }
+    public LocalDate getDataInicioAcompanhamento() { return dataInicioAcompanhamento; }
+    public void setDataInicioAcompanhamento(LocalDate dataInicioAcompanhamento) { this.dataInicioAcompanhamento = dataInicioAcompanhamento; }
+    public LocalDate getDataEncerramentoAcompanhamento() { return dataEncerramentoAcompanhamento; }
+    public void setDataEncerramentoAcompanhamento(LocalDate dataEncerramentoAcompanhamento) { this.dataEncerramentoAcompanhamento = dataEncerramentoAcompanhamento; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 

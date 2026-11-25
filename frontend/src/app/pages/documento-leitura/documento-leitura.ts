@@ -1,11 +1,11 @@
-import { Component, computed, ElementRef, effect, inject, input, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Aviso } from '../../shared/aviso/aviso';
 import { anexoDe, baixarAnexo } from '../../shared/clinica/arquivos';
 import { Clinica } from '../../shared/clinica/clinica';
 import { SECOES, secaoDoPerfil } from '../../shared/clinica/secoes';
-import { Documento, Secao } from '../../shared/clinica/modelos';
+import { Secao } from '../../shared/clinica/modelos';
 import { FaixaPaciente } from '../../shared/faixa-paciente/faixa-paciente';
 import { HtmlSeguro } from '../../shared/html-seguro';
 import { Icone } from '../../shared/icone/icone';
@@ -35,8 +35,6 @@ export class DocumentoLeitura {
 
   private readonly arquivoCampo = viewChild<ElementRef<HTMLInputElement>>('arquivo');
 
-  constructor() { effect(() => this.clinica.carregarDocumentos(this.id())); }
-
   protected readonly paciente = computed(() => this.clinica.paciente(this.id()));
   protected readonly secaoValida = computed<Secao | null>(() => secaoDoPerfil(this.secao(), this.perfil()));
   protected readonly cfg = computed(() => SECOES[this.secaoValida() ?? 'evolucoes']);
@@ -45,8 +43,9 @@ export class DocumentoLeitura {
     this.clinica.documentosDe(this.id(), this.secaoValida() ?? undefined).map((d) => ({
       doc: d,
       dataBR: formatarData(d.dataSessao),
-      sub: d.subtitulo || (d.secao === 'evolucoes'
-        ? `Sessão ${(d.tipoAtendimento ?? '').toLowerCase()}` : d.titulo),
+      sub: d.secao === 'evolucoes'
+        ? `Sessão ${d.tipoAtendimento?.toLowerCase() ?? 'sem modalidade informada'}`
+        : d.titulo,
     })),
   );
 
@@ -56,18 +55,21 @@ export class DocumentoLeitura {
     return alvo ? lista.find((i) => i.doc.id === alvo)?.doc : lista[0]?.doc;
   });
 
-  protected readonly voltarPara = computed(() =>
-    this.cfg().id === 'evolucoes' ? `${this.raiz()}/pacientes/${this.id()}` : `${this.raiz()}/pacientes/${this.id()}/${this.cfg().id}`,
-  );
+  protected readonly voltarPara = computed(() => `${this.raiz()}/pacientes/${this.id()}/${this.cfg().id}`);
 
   protected readonly formatar = formatarData;
 
-  protected podeAnexar(doc: Documento): boolean {
-    return doc.origem !== 'evolucao' && doc.origem !== 'prescricao' && doc.origem !== 'exame';
+  constructor() {
+    effect(() => {
+      const pacienteId = this.id();
+      if (!pacienteId) return;
+      this.clinica.carregarDocumentos(pacienteId);
+      this.clinica.carregarDiagnosticos(pacienteId);
+    });
   }
 
   protected escolherArquivo(): void {
-    this.arquivoCampo()?.nativeElement.click();
+    if (this.selecionado()) this.arquivoCampo()?.nativeElement.click();
   }
 
   protected async anexar(evento: Event): Promise<void> {
@@ -77,11 +79,11 @@ export class DocumentoLeitura {
     campo.value = '';
     if (!doc || !arquivos.length) return;
     try {
-      await this.clinica.salvarDocumento({ ...doc, anexos: [...doc.anexos, ...arquivos.map(anexoDe)] });
+      await this.clinica.anexarAnexos(doc, arquivos.map(anexoDe));
       this.aviso.mostrar('Arquivo anexado com sucesso.');
     } catch (erro) {
-      console.error('Falha ao anexar arquivo ao documento:', erro);
-      this.aviso.mostrar('Não foi possível anexar o arquivo. Tente novamente.');
+      console.error('Falha ao anexar arquivo:', erro);
+      this.aviso.mostrar('Não foi possível anexar o arquivo.');
     }
   }
 
