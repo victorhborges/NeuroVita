@@ -4,54 +4,54 @@ import { Observable } from 'rxjs';
 import { AnexoClinicoApi } from './documentos-api.service';
 
 export interface MedicamentoPrescritoApi {
-  medicamento: string;
-  dosagem?: string | null;
-  posologia?: string | null;
-  frequencia?: string | null;
-  duracao?: string | null;
+    medicamento: string;
+    dosagem?: string | null;
+    posologia?: string | null;
+    frequencia?: string | null;
+    duracao?: string | null;
 }
 
 export interface PrescricaoApi {
-  id: string;
-  pacienteId: string;
-  profissionalId: string;
-  conteudo: string;
-  medicamentos: MedicamentoPrescritoApi[];
-  anexos: AnexoClinicoApi[];
-  criadaEm: string;
-  atualizadaEm: string;
-  historico: unknown[];
+    id: string;
+    pacienteId: string;
+    profissionalId: string;
+    conteudo: string;
+    medicamentos: MedicamentoPrescritoApi[];
+    anexos: AnexoClinicoApi[];
+    criadaEm: string | null;
+    atualizadaEm: string | null;
+    historico: unknown[];
 }
 
 export interface PrescricaoRequestApi {
-  pacienteId: string;
-  profissionalId?: string;
-  conteudo: string;
-  medicamentos?: MedicamentoPrescritoApi[];
+    pacienteId: string;
+    profissionalId?: string;
+    conteudo: string;
+    medicamentos?: MedicamentoPrescritoApi[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class PrescricoesApiService {
-  private readonly http = inject(HttpClient);
-  private readonly api = '/api/prescricoes';
+    private readonly http = inject(HttpClient);
+    private readonly api = '/api/prescricoes';
 
-  listarPorPaciente(pacienteId: string): Observable<PrescricaoApi[]> {
-    return this.http.get<PrescricaoApi[]>(`${this.api}/paciente/${encodeURIComponent(pacienteId)}`);
-  }
+    listarPorPaciente(pacienteId: string): Observable<PrescricaoApi[]> {
+        return this.http.get<PrescricaoApi[]>(`${this.api}/paciente/${encodeURIComponent(pacienteId)}`);
+    }
 
-  buscar(id: string): Observable<PrescricaoApi> {
-    return this.http.get<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}`);
-  }
+    buscar(id: string): Observable<PrescricaoApi> {
+        return this.http.get<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}`);
+    }
 
-  criar(dados: PrescricaoRequestApi): Observable<PrescricaoApi> {
-    return this.http.post<PrescricaoApi>(this.api, dados);
-  }
+    criar(dados: PrescricaoRequestApi): Observable<PrescricaoApi> {
+        return this.http.post<PrescricaoApi>(this.api, dados);
+    }
 
-  atualizar(id: string, dados: PrescricaoRequestApi): Observable<PrescricaoApi> {
-    return this.http.put<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}`, dados);
-  }
+    atualizar(id: string, dados: PrescricaoRequestApi): Observable<PrescricaoApi> {
+        return this.http.put<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}`, dados);
+    }
 
-  anexar(id: string, anexos: AnexoClinicoApi[]): Observable<PrescricaoApi> {
-    return this.http.post<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}/anexos`, { anexos });
-  }
+    anexar(id: string, anexos: AnexoClinicoApi[]): Observable<PrescricaoApi> {
+        return this.http.post<PrescricaoApi>(`${this.api}/${encodeURIComponent(id)}/anexos`, { anexos });
+    }
 }

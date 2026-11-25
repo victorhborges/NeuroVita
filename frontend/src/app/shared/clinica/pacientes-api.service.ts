@@ -6,7 +6,7 @@ export interface PacienteApi {
     id: string;
     nome: string;
     dataNascimento: string;
-    email: string;
+    email: string | null;
     cpf: string;
     telefone: string;
     endereco?: string;
@@ -52,8 +52,14 @@ export class PacientesApiService {
         return this.http.get<PacienteApi>(`${this.api}/${id}`);
     }
 
-    criar(dados: PacienteRequestApi): Observable<{ paciente: PacienteApi; senhaProvisoria: string }> {
-        return this.http.post<{ paciente: PacienteApi; senhaProvisoria: string }>(this.api, dados);
+    criar(dados: PacienteRequestApi): Observable<{
+        paciente: PacienteApi;
+        senhaProvisoria: string | null;
+    }> {
+        return this.http.post<{
+            paciente: PacienteApi;
+            senhaProvisoria: string | null;
+        }>(this.api, dados);
     }
 
     atualizar(id: string, dados: PacienteRequestApi): Observable<PacienteApi> {

@@ -5,14 +5,21 @@ import { Observable } from 'rxjs';
 export interface ResponsavelApi {
     id: string;
     nome: string;
-    cpf: string;
-    email: string;
-    telefone: string;
-    dataNascimento?: string;
-    endereco?: string;
+    cpf: string | null;
+    email: string | null;
+    telefone: string | null;
+    dataNascimento?: string | null;
+    endereco?: string | null;
 }
 
-export type ResponsavelRequestApi = Omit<ResponsavelApi, 'id'>;
+export interface ResponsavelRequestApi {
+    nome: string;
+    cpf?: string | null;
+    email?: string | null;
+    telefone?: string | null;
+    dataNascimento?: string | null;
+    endereco?: string | null;
+}
 
 @Injectable({
     providedIn: 'root',
