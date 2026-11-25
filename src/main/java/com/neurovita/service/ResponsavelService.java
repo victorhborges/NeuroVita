@@ -70,6 +70,28 @@ public class ResponsavelService {
         return new ResponsavelResponse(buscarResponsavel(id));
     }
 
+    /**
+     * Busca um responsável pelo CPF informado.
+     * Disponível somente para administradores e secretarias.
+     */
+    public ResponsavelResponse buscarPorCpf(String cpfInformado) {
+        exigirAdministradorOuSecretaria();
+
+        String cpf = normalizarCpf(cpfInformado);
+
+        if (cpf == null || cpf.length() != 11) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe um CPF válido para realizar a consulta.");
+        }
+
+        Responsavel responsavel = responsavelRepository.findByCpf(cpf)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Nenhum responsável encontrado com este CPF."));
+
+        return new ResponsavelResponse(responsavel);
+    }
+
     public ResponsavelResponse atualizar(
             String id,
             ResponsavelRequest request) {
@@ -97,7 +119,7 @@ public class ResponsavelService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Não é possível excluir um responsável "
-                    + "que ainda esteja vinculado a pacientes.");
+                            + "que ainda esteja vinculado a pacientes.");
         }
 
         responsavelRepository.delete(responsavel);
@@ -105,9 +127,8 @@ public class ResponsavelService {
 
     private Responsavel buscarResponsavel(String id) {
         return responsavelRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Responsável não encontrado."));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Responsável não encontrado."));
     }
 
     private void preencherResponsavel(
@@ -118,16 +139,26 @@ public class ResponsavelService {
             boolean atualizacaoParcial) {
 
         responsavel.setNome(request.getNome().trim());
-        if (!atualizacaoParcial || request.getCpf() != null)
+
+        if (!atualizacaoParcial || request.getCpf() != null) {
             responsavel.setCpf(cpf);
-        if (!atualizacaoParcial || request.getEmail() != null)
+        }
+
+        if (!atualizacaoParcial || request.getEmail() != null) {
             responsavel.setEmail(email);
-        if (!atualizacaoParcial || request.getTelefone() != null)
+        }
+
+        if (!atualizacaoParcial || request.getTelefone() != null) {
             responsavel.setTelefone(normalizarTexto(request.getTelefone()));
-        if (!atualizacaoParcial || request.getDataNascimento() != null)
+        }
+
+        if (!atualizacaoParcial || request.getDataNascimento() != null) {
             responsavel.setDataNascimento(request.getDataNascimento());
-        if (!atualizacaoParcial || request.getEndereco() != null)
+        }
+
+        if (!atualizacaoParcial || request.getEndereco() != null) {
             responsavel.setEndereco(normalizarTexto(request.getEndereco()));
+        }
     }
 
     private void validarDadosUnicos(
@@ -142,7 +173,7 @@ public class ResponsavelService {
                         throw new ResponseStatusException(
                                 HttpStatus.CONFLICT,
                                 "Este CPF já está cadastrado para "
-                                + "outro responsável.");
+                                        + "outro responsável.");
                     });
         }
 
@@ -153,7 +184,7 @@ public class ResponsavelService {
                         throw new ResponseStatusException(
                                 HttpStatus.CONFLICT,
                                 "Este e-mail já está cadastrado para "
-                                + "outro responsável.");
+                                        + "outro responsável.");
                     });
         }
     }
@@ -183,54 +214,68 @@ public class ResponsavelService {
     }
 
     private void exigirAdministradorOuSecretaria() {
-        Authentication autenticacao =
-                SecurityContextHolder.getContext().getAuthentication();
+        Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
 
         if (autenticacao == null
                 || !autenticacao.isAuthenticated()
                 || autenticacao.getAuthorities().stream()
-                        .noneMatch(a ->
-                                a.getAuthority().equals("ROLE_ADMINISTRADOR")
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
                                 || a.getAuthority().equals("ROLE_SECRETARIA"))) {
 
             throw new AccessDeniedException(
                     "Somente administradores ou secretarias podem "
-                    + "gerenciar responsáveis.");
+                            + "gerenciar responsáveis.");
         }
     }
 
     private void validarAcessoLeitura(String responsavelId) {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
+
         if (autenticacao == null || !autenticacao.isAuthenticated()) {
             throw new AccessDeniedException("Usuário não autenticado");
         }
+
         boolean autorizadoGestor = autenticacao.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR")
                         || a.getAuthority().equals("ROLE_SECRETARIA"));
-        if (autorizadoGestor) return;
+
+        if (autorizadoGestor) {
+            return;
+        }
 
         boolean profissional = autenticacao.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_PROFISSIONAL"));
+
         if (!profissional) {
-            throw new AccessDeniedException("Perfil sem permissão para consultar responsável.");
+            throw new AccessDeniedException(
+                    "Perfil sem permissão para consultar responsável.");
         }
 
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(autenticacao.getName())
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(autenticacao.getName())
                 .orElseThrow(() -> new AccessDeniedException("Usuário não encontrado."));
-        if (usuario.getEntidadeId() == null || usuario.getEntidadeId().isBlank()) {
-            throw new AccessDeniedException("Usuário sem vínculo profissional.");
+
+        if (usuario.getEntidadeId() == null
+                || usuario.getEntidadeId().isBlank()) {
+            throw new AccessDeniedException(
+                    "Usuário sem vínculo profissional.");
         }
+
         String profissionalId = usuario.getEntidadeId();
+
         boolean possuiPacienteVinculadoAtivo = vinculoRepository.findByResponsavelId(responsavelId)
                 .stream()
                 .anyMatch(vinculo -> vinculo.getPacienteId() != null
                         && vinculoProfissionalRepository
-                        .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
-                                vinculo.getPacienteId(), profissionalId)
-                        .isPresent());
+                                .findFirstByPacienteIdAndProfissionalIdAndEncerradoEmIsNull(
+                                        vinculo.getPacienteId(),
+                                        profissionalId)
+                                .isPresent());
+
         if (!possuiPacienteVinculadoAtivo) {
             throw new AccessDeniedException(
-                    "A consulta do responsável requer vínculo profissional ativo com o paciente.");
+                    "A consulta do responsável requer vínculo "
+                            + "profissional ativo com o paciente.");
         }
     }
 }

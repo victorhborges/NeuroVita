@@ -5,6 +5,7 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,23 +24,17 @@ public class PacienteRequest {
     @Email(message = "Informe um e-mail válido.")
     private String email;
 
-    @Pattern(
-        regexp = "^[0-9.\\- ]{11,14}$",
-        message = "O CPF deve conter 11 dígitos, podendo incluir pontos e hífen."
-    )
+    @Pattern(regexp = "^[0-9.\\- ]{11,14}$", message = "O CPF deve conter 11 dígitos, podendo incluir pontos e hífen.")
     private String cpf;
 
-    @Pattern(
-        regexp = "^[0-9()+.\\- ]{10,20}$",
-        message = "Informe um telefone válido."
-    )
+    @Pattern(regexp = "^[0-9()+.\\- ]{10,20}$", message = "Informe um telefone válido.")
     private String telefone;
+
     private String endereco;
-    @Pattern(
-        regexp = "^[0-9.\\- ]{8,10}$",
-        message = "O CEP deve conter 8 dígitos, podendo incluir hífen."
-    )
+
+    @Pattern(regexp = "^[0-9.\\- ]{8,10}$", message = "O CEP deve conter 8 dígitos, podendo incluir hífen.")
     private String cep;
+
     private String cidade;
     private String numero;
     private String complemento;
@@ -60,12 +55,37 @@ public class PacienteRequest {
     public PacienteRequest() {
     }
 
+    @AssertTrue(message = "Informe um telefone válido.")
+    public boolean isTelefoneValido() {
+        if (telefone == null || telefone.isBlank()) {
+            return true;
+        }
+
+        String numeros = telefone.replaceAll("\\D", "");
+
+        if (numeros.length() != 10 && numeros.length() != 11) {
+            return false;
+        }
+
+        if (numeros.matches("^(\\d)\\1+$")) {
+            return false;
+        }
+
+        if (numeros.startsWith("0")) {
+            return false;
+        }
+
+        String assinante = numeros.substring(2);
+
+        return !assinante.matches("^0+$");
+    }
+
     public String getNome() {
         return nome;
     }
 
     public void setNome(String nome) {
-        this.nome = nome;
+        this.nome = normalizarVazio(nome);
     }
 
     public LocalDate getDataNascimento() {
@@ -81,7 +101,7 @@ public class PacienteRequest {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = normalizarVazio(email);
     }
 
     public String getCpf() {
@@ -89,7 +109,7 @@ public class PacienteRequest {
     }
 
     public void setCpf(String cpf) {
-        this.cpf = cpf;
+        this.cpf = normalizarVazio(cpf);
     }
 
     public String getTelefone() {
@@ -97,34 +117,86 @@ public class PacienteRequest {
     }
 
     public void setTelefone(String telefone) {
-        this.telefone = telefone;
+        this.telefone = normalizarVazio(telefone);
     }
 
-    public String getEndereco() { return endereco; }
-    public void setEndereco(String endereco) { this.endereco = endereco; }
-    public String getCep() { return cep; }
-    public void setCep(String cep) { this.cep = cep; }
-    public String getCidade() { return cidade; }
-    public void setCidade(String cidade) { this.cidade = cidade; }
-    public String getNumero() { return numero; }
-    public void setNumero(String numero) { this.numero = numero; }
-    public String getComplemento() { return complemento; }
-    public void setComplemento(String complemento) { this.complemento = complemento; }
-    public String getBairro() { return bairro; }
-    public void setBairro(String bairro) { this.bairro = bairro; }
-    public LocalDate getDataInicioAcompanhamento() { return dataInicioAcompanhamento; }
-    public void setDataInicioAcompanhamento(LocalDate dataInicioAcompanhamento) { this.dataInicioAcompanhamento = dataInicioAcompanhamento; }
-    public LocalDate getDataEncerramentoAcompanhamento() { return dataEncerramentoAcompanhamento; }
-    public void setDataEncerramentoAcompanhamento(LocalDate dataEncerramentoAcompanhamento) { this.dataEncerramentoAcompanhamento = dataEncerramentoAcompanhamento; }
-    public Boolean getAtivo() { return ativo; }
-    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public String getEndereco() {
+        return endereco;
+    }
+
+    public void setEndereco(String endereco) {
+        this.endereco = normalizarVazio(endereco);
+    }
+
+    public String getCep() {
+        return cep;
+    }
+
+    public void setCep(String cep) {
+        this.cep = normalizarVazio(cep);
+    }
+
+    public String getCidade() {
+        return cidade;
+    }
+
+    public void setCidade(String cidade) {
+        this.cidade = normalizarVazio(cidade);
+    }
+
+    public String getNumero() {
+        return numero;
+    }
+
+    public void setNumero(String numero) {
+        this.numero = normalizarVazio(numero);
+    }
+
+    public String getComplemento() {
+        return complemento;
+    }
+
+    public void setComplemento(String complemento) {
+        this.complemento = normalizarVazio(complemento);
+    }
+
+    public String getBairro() {
+        return bairro;
+    }
+
+    public void setBairro(String bairro) {
+        this.bairro = normalizarVazio(bairro);
+    }
+
+    public LocalDate getDataInicioAcompanhamento() {
+        return dataInicioAcompanhamento;
+    }
+
+    public void setDataInicioAcompanhamento(LocalDate dataInicioAcompanhamento) {
+        this.dataInicioAcompanhamento = dataInicioAcompanhamento;
+    }
+
+    public LocalDate getDataEncerramentoAcompanhamento() {
+        return dataEncerramentoAcompanhamento;
+    }
+
+    public void setDataEncerramentoAcompanhamento(LocalDate dataEncerramentoAcompanhamento) {
+        this.dataEncerramentoAcompanhamento = dataEncerramentoAcompanhamento;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
+    }
 
     public List<VinculoResponsavelRequest> getResponsaveis() {
         return responsaveis;
     }
 
-    public void setResponsaveis(
-            List<VinculoResponsavelRequest> responsaveis) {
+    public void setResponsaveis(List<VinculoResponsavelRequest> responsaveis) {
         this.responsaveis = responsaveis;
     }
 
@@ -141,7 +213,7 @@ public class PacienteRequest {
     }
 
     public void setPlanoSaude(String planoSaude) {
-        this.planoSaude = planoSaude;
+        this.planoSaude = normalizarVazio(planoSaude);
     }
 
     public String getNumeroCarteirinha() {
@@ -149,7 +221,7 @@ public class PacienteRequest {
     }
 
     public void setNumeroCarteirinha(String numeroCarteirinha) {
-        this.numeroCarteirinha = numeroCarteirinha;
+        this.numeroCarteirinha = normalizarVazio(numeroCarteirinha);
     }
 
     public LocalDate getValidadePlano() {
@@ -158,5 +230,9 @@ public class PacienteRequest {
 
     public void setValidadePlano(LocalDate validadePlano) {
         this.validadePlano = validadePlano;
+    }
+
+    private String normalizarVazio(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 }

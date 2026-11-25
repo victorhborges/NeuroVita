@@ -36,11 +36,22 @@ export class ResponsaveisApiService {
         return this.http.get<ResponsavelApi>(`${this.api}/${id}`);
     }
 
+    buscarPorCpf(cpf: string): Observable<ResponsavelApi> {
+        const cpfLimpo = cpf.replace(/\D/g, '');
+
+        return this.http.get<ResponsavelApi>(
+            `${this.api}/cpf/${encodeURIComponent(cpfLimpo)}`
+        );
+    }
+
     criar(dados: ResponsavelRequestApi): Observable<ResponsavelApi> {
         return this.http.post<ResponsavelApi>(this.api, dados);
     }
 
-    atualizar(id: string, dados: ResponsavelRequestApi): Observable<ResponsavelApi> {
+    atualizar(
+        id: string,
+        dados: ResponsavelRequestApi
+    ): Observable<ResponsavelApi> {
         return this.http.put<ResponsavelApi>(`${this.api}/${id}`, dados);
     }
 

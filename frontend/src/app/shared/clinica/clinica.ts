@@ -1,6 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { catchError, firstValueFrom, forkJoin, map, of, Subject, takeUntil } from 'rxjs';
 
+import { HttpErrorResponse } from '@angular/common/http';
+
 import { diaDaSemana, paraISO } from '../util';
 import {
     Agendamento, Anexo, Consulta, DadosPaciente, DadosProfissional, DadosSecretaria, Documento, Paciente, Profissional,
@@ -804,6 +806,7 @@ export class Clinica {
     }
 
     /** Cria (sem `id`) ou atualiza (com `id`) um paciente a partir do formulário de cadastro. */
+
     async salvarPaciente(dados: DadosPaciente, id?: string): Promise<Paciente> {
         const lista = this._pacientes();
         const atual = id
@@ -835,31 +838,96 @@ export class Clinica {
         const responsaveisSalvos: ResponsavelApi[] = [];
         const responsaveisCriadosNestaOperacao: string[] = [];
 
+        type ContatoResponsavel = (typeof informadosValidos)[number];
+
+        const obterOuCriarResponsavel = async (
+            contato: ContatoResponsavel,
+            atualizarExistente: boolean,
+        ): Promise<{ responsavel: ResponsavelApi; criado: boolean }> => {
+            const request = {
+                nome: contato.nome.trim(),
+                cpf: contato.cpf?.trim() || null,
+                email: contato.email?.trim() || null,
+                telefone: contato.telefone?.trim() || null,
+                dataNascimento: contato.nascimento || null,
+                endereco: contato.endereco?.trim() || dados.endereco || null,
+            };
+
+            if (contato.id) {
+                if (atualizarExistente) {
+                    const atualizado = await firstValueFrom(
+                        this.responsaveisApi.atualizar(contato.id, request),
+                    );
+
+                    return { responsavel: atualizado, criado: false };
+                }
+
+                const existente = await firstValueFrom(
+                    this.responsaveisApi.buscarPorId(contato.id),
+                );
+
+                return { responsavel: existente, criado: false };
+            }
+
+            const cpf = contato.cpf?.replace(/\D/g, '') ?? '';
+
+            if (cpf.length === 11) {
+                try {
+                    const existente = await firstValueFrom(
+                        this.responsaveisApi.buscarPorCpf(cpf),
+                    );
+
+                    return { responsavel: existente, criado: false };
+                } catch (erro) {
+                    if (
+                        !(erro instanceof HttpErrorResponse)
+                        || erro.status !== 404
+                    ) {
+                        throw erro;
+                    }
+                }
+            }
+
+            try {
+                const criado = await firstValueFrom(
+                    this.responsaveisApi.criar(request),
+                );
+
+                return { responsavel: criado, criado: true };
+            } catch (erro) {
+                // Se outro cadastro criou o responsável simultaneamente,
+                // tenta localizar o registro antes de retornar o conflito.
+                if (
+                    cpf.length === 11
+                    && erro instanceof HttpErrorResponse
+                    && erro.status === 409
+                ) {
+                    const existente = await firstValueFrom(
+                        this.responsaveisApi.buscarPorCpf(cpf),
+                    );
+
+                    return { responsavel: existente, criado: false };
+                }
+
+                throw erro;
+            }
+        };
+
         if (atual) {
             try {
                 for (const contato of informadosValidos) {
-                    const request = {
-                        nome: contato.nome.trim(),
-                        cpf: contato.cpf || '',
-                        email: contato.email || '',
-                        telefone: contato.telefone || '',
-                        dataNascimento: contato.nascimento || null,
-                        endereco: contato.endereco || dados.endereco || null,
-                    };
+                    const resultado = await obterOuCriarResponsavel(
+                        contato,
+                        true,
+                    );
 
-                    const salvo = contato.id
-                        ? await firstValueFrom(
-                            this.responsaveisApi.atualizar(contato.id, request),
-                        )
-                        : await firstValueFrom(
-                            this.responsaveisApi.criar(request),
+                    if (resultado.criado) {
+                        responsaveisCriadosNestaOperacao.push(
+                            resultado.responsavel.id,
                         );
-
-                    if (!contato.id) {
-                        responsaveisCriadosNestaOperacao.push(salvo.id);
                     }
 
-                    responsaveisSalvos.push(salvo);
+                    responsaveisSalvos.push(resultado.responsavel);
                 }
             } catch (erro) {
                 await this.limparResponsaveisCriados(
@@ -909,19 +977,18 @@ export class Clinica {
 
         try {
             for (const contato of informadosValidos) {
-                const salvo = await firstValueFrom(
-                    this.responsaveisApi.criar({
-                        nome: contato.nome.trim(),
-                        cpf: contato.cpf || '',
-                        email: contato.email || '',
-                        telefone: contato.telefone || '',
-                        dataNascimento: contato.nascimento || null,
-                        endereco: contato.endereco || dados.endereco || null,
-                    }),
+                const resultado = await obterOuCriarResponsavel(
+                    contato,
+                    false,
                 );
 
-                responsaveisCriadosNestaOperacao.push(salvo.id);
-                responsaveisSalvos.push(salvo);
+                if (resultado.criado) {
+                    responsaveisCriadosNestaOperacao.push(
+                        resultado.responsavel.id,
+                    );
+                }
+
+                responsaveisSalvos.push(resultado.responsavel);
             }
         } catch (erro) {
             await this.limparResponsaveisCriados(
@@ -967,6 +1034,7 @@ export class Clinica {
 
         return novo;
     }
+
 
     private async limparResponsaveisCriados(ids: string[]): Promise<void> {
         for (const id of ids) {
