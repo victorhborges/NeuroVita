@@ -157,7 +157,7 @@ public class PacienteRequest {
     }
 
     public void setComplemento(String complemento) {
-        this.complemento = normalizarVazio(complemento);
+        this.complemento = complemento == null ? null : complemento.trim();
     }
 
     public String getBairro() {

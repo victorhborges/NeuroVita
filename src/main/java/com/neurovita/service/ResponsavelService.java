@@ -2,6 +2,7 @@ package com.neurovita.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -71,8 +72,8 @@ public class ResponsavelService {
     }
 
     /**
-     * Busca um responsável pelo CPF informado.
-     * Disponível somente para administradores e secretarias.
+     * Busca um responsável pelo CPF.
+     * Se houver mais de um registro, não escolhe arbitrariamente.
      */
     public ResponsavelResponse buscarPorCpf(String cpfInformado) {
         exigirAdministradorOuSecretaria();
@@ -85,11 +86,22 @@ public class ResponsavelService {
                     "Informe um CPF válido para realizar a consulta.");
         }
 
-        Responsavel responsavel = responsavelRepository.findByCpf(cpf)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Nenhum responsável encontrado com este CPF."));
+        List<Responsavel> encontrados = responsavelRepository.findAllByCpf(cpf);
 
-        return new ResponsavelResponse(responsavel);
+        if (encontrados.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "Nenhum responsável encontrado com este CPF.");
+        }
+
+        if (encontrados.size() > 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Existem cadastros duplicados para este CPF. "
+                            + "Solicite a regularização dos registros antes "
+                            + "de vincular este responsável.");
+        }
+
+        return new ResponsavelResponse(encontrados.get(0));
     }
 
     public ResponsavelResponse atualizar(
@@ -167,25 +179,34 @@ public class ResponsavelService {
             String idAtual) {
 
         if (cpf != null) {
-            responsavelRepository.findByCpf(cpf)
-                    .filter(r -> !r.getId().equals(idAtual))
-                    .ifPresent(r -> {
-                        throw new ResponseStatusException(
-                                HttpStatus.CONFLICT,
-                                "Este CPF já está cadastrado para "
-                                        + "outro responsável.");
-                    });
+            List<Responsavel> encontrados = responsavelRepository.findAllByCpf(cpf);
+
+            boolean existeOutro = encontrados.stream()
+                    .anyMatch(r -> !Objects.equals(r.getId(), idAtual));
+
+            if (existeOutro) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        encontrados.size() > 1
+                                ? "Existem cadastros duplicados para este CPF. "
+                                        + "Solicite a regularização dos registros."
+                                : "Este CPF já está cadastrado para outro responsável.");
+            }
         }
 
         if (email != null) {
-            responsavelRepository.findByEmailIgnoreCase(email)
-                    .filter(r -> !r.getId().equals(idAtual))
-                    .ifPresent(r -> {
-                        throw new ResponseStatusException(
-                                HttpStatus.CONFLICT,
-                                "Este e-mail já está cadastrado para "
-                                        + "outro responsável.");
-                    });
+            List<Responsavel> encontrados = responsavelRepository.findAllByEmailIgnoreCase(email);
+
+            boolean existeOutro = encontrados.stream()
+                    .anyMatch(r -> !Objects.equals(r.getId(), idAtual));
+
+            if (existeOutro) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        encontrados.size() > 1
+                                ? "Existem cadastros duplicados para este e-mail."
+                                : "Este e-mail já está cadastrado para outro responsável.");
+            }
         }
     }
 

@@ -895,18 +895,24 @@ export class Clinica {
 
                 return { responsavel: criado, criado: true };
             } catch (erro) {
-                // Se outro cadastro criou o responsável simultaneamente,
-                // tenta localizar o registro antes de retornar o conflito.
                 if (
                     cpf.length === 11
                     && erro instanceof HttpErrorResponse
                     && erro.status === 409
                 ) {
-                    const existente = await firstValueFrom(
-                        this.responsaveisApi.buscarPorCpf(cpf),
-                    );
+                    try {
+                        const existente = await firstValueFrom(
+                            this.responsaveisApi.buscarPorCpf(cpf),
+                        );
 
-                    return { responsavel: existente, criado: false };
+                        return {
+                            responsavel: existente,
+                            criado: false,
+                        };
+                    } catch {
+                        // Preserva o conflito original quando não for
+                        // possível localizar um responsável único.
+                    }
                 }
 
                 throw erro;
