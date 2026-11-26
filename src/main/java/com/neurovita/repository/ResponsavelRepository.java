@@ -1,6 +1,6 @@
 package com.neurovita.repository;
 
-import java.util.Optional;
+import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -9,7 +9,7 @@ import com.neurovita.model.Responsavel;
 public interface ResponsavelRepository
         extends MongoRepository<Responsavel, String> {
 
-    Optional<Responsavel> findByCpf(String cpf);
+    List<Responsavel> findAllByCpf(String cpf);
 
-    Optional<Responsavel> findByEmailIgnoreCase(String email);
+    List<Responsavel> findAllByEmailIgnoreCase(String email);
 }

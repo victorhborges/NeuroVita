@@ -1,4 +1,3 @@
-
 package com.neurovita.service;
 
 import java.nio.charset.StandardCharsets;
@@ -21,11 +20,9 @@ public class JwtService {
 
     private static final int TAMANHO_MINIMO_CHAVE_BYTES = 32;
 
-    private static final long EXPIRACAO_NORMAL =
-            1000L * 60 * 60;
+    private static final long EXPIRACAO_NORMAL = 1000L * 60 * 60;
 
-    private static final long EXPIRACAO_PRIMEIRO_ACESSO =
-            1000L * 60 * 10;
+    private static final long EXPIRACAO_PRIMEIRO_ACESSO = 1000L * 60 * 10;
 
     private final String chaveSecreta;
 
@@ -39,8 +36,7 @@ public class JwtService {
                     "A variável de ambiente JWT_SECRET não foi configurada.");
         }
 
-        byte[] chaveBytes =
-                chaveSecreta.getBytes(StandardCharsets.UTF_8);
+        byte[] chaveBytes = chaveSecreta.getBytes(StandardCharsets.UTF_8);
 
         if (chaveBytes.length < TAMANHO_MINIMO_CHAVE_BYTES) {
             throw new IllegalStateException(
@@ -64,8 +60,7 @@ public class JwtService {
                 ? EXPIRACAO_PRIMEIRO_ACESSO
                 : EXPIRACAO_NORMAL;
 
-        Date dataExpiracao =
-                new Date(agora.getTime() + duracao);
+        Date dataExpiracao = new Date(agora.getTime() + duracao);
 
         return Jwts.builder()
                 .subject(usuario.getEmail().trim())

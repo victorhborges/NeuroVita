@@ -42,9 +42,20 @@ public class ResponsavelController {
         return ResponseEntity.ok(responsavelService.listarTodos());
     }
 
+    @GetMapping("/cpf/{cpf}")
+    @Operation(summary = "Buscar responsável pelo CPF", description = "Consulta um responsável existente pelo CPF. "
+            + "Disponível para administradores e secretarias.")
+    public ResponseEntity<ResponsavelResponse> buscarPorCpf(
+            @PathVariable String cpf) {
+
+        return ResponseEntity.ok(
+                responsavelService.buscarPorCpf(cpf));
+    }
+
     @GetMapping("/{id}")
-    @Operation(summary = "Consultar dados de um responsável",
-            description = "Administradores e secretarias podem consultar cadastros. Profissionais só podem consultar o responsável quando possuem vínculo ativo com ao menos um paciente relacionado.")
+    @Operation(summary = "Consultar dados de um responsável", description = "Administradores e secretarias podem consultar cadastros. "
+            + "Profissionais só podem consultar o responsável quando "
+            + "possuem vínculo ativo com ao menos um paciente relacionado.")
     public ResponseEntity<ResponsavelResponse> buscarPorId(
             @PathVariable String id) {
 
@@ -67,6 +78,3 @@ public class ResponsavelController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
