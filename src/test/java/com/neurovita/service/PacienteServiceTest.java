@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,16 +46,22 @@ class PacienteServiceTest {
 
     @Mock
     private PacienteRepository pacienteRepository;
+
     @Mock
     private ConsultaRepository consultaRepository;
+
     @Mock
     private UsuarioRepository usuarioRepository;
+
     @Mock
     private ResponsavelRepository responsavelRepository;
+
     @Mock
     private VinculoResponsavelRepository vinculoRepository;
+
     @Mock
     private VinculoProfissionalPacienteRepository vinculoProfissionalRepository;
+
     @Mock
     private PasswordEncoder passwordEncoder;
 
@@ -82,14 +89,6 @@ class PacienteServiceTest {
         paciente.setDataNascimento(LocalDate.of(1990, 1, 1));
         paciente.setAtivo(true);
         return paciente;
-    }
-
-    private Usuario usuario(String entidadeId) {
-        Usuario usuario = new Usuario();
-        usuario.setPerfil("PACIENTE");
-        usuario.setEntidadeId(entidadeId);
-        usuario.setAtivo(true);
-        return usuario;
     }
 
     @Test
@@ -136,8 +135,10 @@ class PacienteServiceTest {
     @Test
     void aoRemoverResponsavelApagaSomenteOVinculoDoPaciente() {
         Paciente paciente = paciente("pac-1");
+
         Responsavel responsavelMantido = new Responsavel();
         responsavelMantido.setId("resp-2");
+
         VinculoResponsavel antigo = new VinculoResponsavel();
         antigo.setPacienteId("pac-1");
         antigo.setResponsavelId("resp-1");
@@ -147,19 +148,26 @@ class PacienteServiceTest {
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
         request.setAtivo(true);
+
         VinculoResponsavelRequest vinculoNovo = new VinculoResponsavelRequest();
         vinculoNovo.setResponsavelId("resp-2");
         vinculoNovo.setGrauParentesco("Pai");
         request.setResponsaveis(List.of(vinculoNovo));
 
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(paciente)).thenAnswer(invocation -> invocation.getArgument(0));
-        when(responsavelRepository.findById("resp-2")).thenReturn(Optional.of(responsavelMantido));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(paciente))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(responsavelRepository.findById("resp-2"))
+                .thenReturn(Optional.of(responsavelMantido));
+
         when(vinculoRepository.findByPacienteId("pac-1"))
                 .thenReturn(List.of(antigo), List.of(antigo));
+
         when(vinculoRepository.save(any(VinculoResponsavel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
 
         pacienteService.atualizar("pac-1", request);
 
@@ -169,44 +177,49 @@ class PacienteServiceTest {
     }
 
     @Test
-    void inativarPacienteRevogaAContaEPreservaCadastro() {
+    void inativarPacientePreservaCadastro() {
         Paciente paciente = paciente("pac-1");
-        Usuario usuario = usuario("pac-1");
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(usuario)).thenAnswer(invocation -> invocation.getArgument(0));
-        when(pacienteRepository.save(paciente)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(paciente))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         pacienteService.deletar("pac-1");
 
         assertFalse(paciente.getAtivo());
-        assertFalse(usuario.isAtivo());
+
+        verify(pacienteRepository).save(paciente);
         verify(pacienteRepository, never()).delete(any(Paciente.class));
         verify(vinculoRepository, never()).deleteAll(any());
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
     @Test
     void reverteEstadoQuandoFalhaAInativacaoDoPaciente() {
         Paciente paciente = paciente("pac-1");
-        Usuario usuario = usuario("pac-1");
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(usuario)).thenAnswer(invocation -> invocation.getArgument(0));
-        when(pacienteRepository.save(paciente))
-                .thenThrow(new IllegalStateException("falha simulada"))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(IllegalStateException.class, () -> pacienteService.deletar("pac-1"));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(paciente))
+                .thenThrow(new IllegalStateException("falha simulada"));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> pacienteService.deletar("pac-1"));
 
         assertTrue(paciente.getAtivo());
-        assertTrue(usuario.isAtivo());
-        verify(usuarioRepository, org.mockito.Mockito.times(2)).save(usuario);
-        verify(pacienteRepository, org.mockito.Mockito.times(2)).save(paciente);
+
+        verify(pacienteRepository).save(paciente);
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
     @Test
     void naoExigeNumeroNemValidadeDoPlanoQuandoPacienteInformaQuePossuiPlano() {
         Paciente paciente = paciente("pac-1");
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
@@ -214,10 +227,11 @@ class PacienteServiceTest {
         request.setPossuiPlanoSaude(true);
         request.setPlanoSaude("Plano Teste");
 
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
         when(pacienteRepository.save(any(Paciente.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
 
         var response = pacienteService.atualizar("pac-1", request);
 
@@ -239,6 +253,7 @@ class PacienteServiceTest {
         assertEquals(
                 org.springframework.http.HttpStatus.BAD_REQUEST,
                 exception.getStatusCode());
+
         verify(pacienteRepository, never()).save(any(Paciente.class));
     }
 
@@ -250,14 +265,17 @@ class PacienteServiceTest {
         paciente.setNumero("12");
         paciente.setComplemento("Bloco A");
         paciente.setBairro("Asa Sul");
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
         request.setAtivo(true);
 
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = pacienteService.atualizar("pac-1", request);
 
@@ -276,15 +294,18 @@ class PacienteServiceTest {
         paciente.setNumero("12");
         paciente.setComplemento("Bloco A");
         paciente.setBairro("Asa Sul");
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
         request.setNumero("15");
         request.setComplemento("");
 
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = pacienteService.atualizar("pac-1", request);
 
@@ -302,13 +323,16 @@ class PacienteServiceTest {
         paciente.setCpf("123.456.789-00");
         paciente.setTelefone("61999999999");
         paciente.setEndereco("Endereço salvo");
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Atualizado");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
 
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = pacienteService.atualizar("pac-1", request);
 
@@ -316,6 +340,7 @@ class PacienteServiceTest {
         assertEquals("123.456.789-00", response.getCpf());
         assertEquals("61999999999", response.getTelefone());
         assertEquals("Endereço salvo", response.getEndereco());
+
         verify(vinculoRepository, never()).save(any(VinculoResponsavel.class));
         verify(vinculoRepository, never()).deleteAll(any());
     }
@@ -323,19 +348,25 @@ class PacienteServiceTest {
     @Test
     void listaVaziaRemoveExplicitamenteVinculosDePacienteAdulto() {
         Paciente paciente = paciente("pac-1");
+
         VinculoResponsavel vinculo = new VinculoResponsavel();
         vinculo.setPacienteId("pac-1");
         vinculo.setResponsavelId("resp-1");
         vinculo.setGrauParentesco("Mãe");
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Teste");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
         request.setResponsaveis(List.of());
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
+
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         when(vinculoRepository.findByPacienteId("pac-1"))
                 .thenReturn(List.of(vinculo), List.of());
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.empty());
 
         pacienteService.atualizar("pac-1", request);
 
@@ -343,55 +374,39 @@ class PacienteServiceTest {
     }
 
     @Test
-    void atualizacaoSemCampoAtivoNaoInativaContaDoPaciente() {
+    void atualizacaoSemCampoAtivoPreservaPacienteAtivo() {
         Paciente paciente = paciente("pac-1");
-        Usuario usuario = usuario("pac-1");
-        usuario.setAtivo(false);
+
         PacienteRequest request = new PacienteRequest();
         request.setNome("Paciente Atualizado");
         request.setDataNascimento(LocalDate.of(1990, 1, 1));
-        when(pacienteRepository.findById("pac-1")).thenReturn(Optional.of(paciente));
-        when(pacienteRepository.save(any(Paciente.class))).thenAnswer(i -> i.getArgument(0));
-        when(usuarioRepository.findByEntidadeId("pac-1")).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+
+        when(pacienteRepository.findById("pac-1"))
+                .thenReturn(Optional.of(paciente));
+
+        when(pacienteRepository.save(any(Paciente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         pacienteService.atualizar("pac-1", request);
 
         assertTrue(paciente.getAtivo());
-        assertFalse(usuario.isAtivo());
-        verify(usuarioRepository).save(usuario);
+        verify(pacienteRepository).save(paciente);
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 
     @Test
-    void pacientePodeConsultarSomenteSeuProprioCadastro() {
+    void pacienteNaoPodeConsultarCadastro() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
                         "paciente@neurovita.com",
                         "token",
                         List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
-        Paciente paciente = paciente("pac-1");
-        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
-                .thenReturn(Optional.of(usuario("pac-1")));
-        when(pacienteRepository.findById("pac-1"))
-                .thenReturn(Optional.of(paciente));
-
-        assertEquals("pac-1", pacienteService.buscarPorId("pac-1").getId());
-    }
-
-    @Test
-    void pacienteNaoPodeConsultarCadastroDeOutroPaciente() {
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        "paciente@neurovita.com",
-                        "token",
-                        List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"))));
-        when(usuarioRepository.findByEmailIgnoreCase("paciente@neurovita.com"))
-                .thenReturn(Optional.of(usuario("pac-1")));
 
         assertThrows(
                 AccessDeniedException.class,
-                () -> pacienteService.buscarPorId("pac-2"));
-        verify(pacienteRepository, never()).findById("pac-2");
+                () -> pacienteService.buscarPorId("pac-1"));
+
+        verify(pacienteRepository, never()).findById("pac-1");
     }
 
     @Test
@@ -400,8 +415,10 @@ class PacienteServiceTest {
         request.setNome("Paciente Menor");
         request.setDataNascimento(LocalDate.now().minusYears(10));
 
-        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+        assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
                 () -> pacienteService.salvar(request));
+
         verify(pacienteRepository, never()).save(any(Paciente.class));
     }
 
@@ -414,27 +431,36 @@ class PacienteServiceTest {
         request.setNumero("12");
         request.setBairro("Asa Sul");
         request.setResponsaveis(new java.util.ArrayList<>());
+
         for (String id : List.of("resp-1", "resp-2")) {
             Responsavel responsavel = new Responsavel();
             responsavel.setId(id);
-            when(responsavelRepository.findById(id)).thenReturn(Optional.of(responsavel));
+
+            when(responsavelRepository.findById(id))
+                    .thenReturn(Optional.of(responsavel));
+
             VinculoResponsavelRequest vinculo = new VinculoResponsavelRequest();
             vinculo.setResponsavelId(id);
             vinculo.setGrauParentesco("Responsável");
+
             request.getResponsaveis().add(vinculo);
         }
+
         when(pacienteRepository.save(any(Paciente.class))).thenAnswer(invocation -> {
             Paciente salvo = invocation.getArgument(0);
             salvo.setId("pac-menor");
             return salvo;
         });
-        when(vinculoRepository.findByPacienteId("pac-menor")).thenReturn(List.of());
+
+        when(vinculoRepository.findByPacienteId("pac-menor"))
+                .thenReturn(List.of());
+
         when(vinculoRepository.save(any(VinculoResponsavel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         pacienteService.salvar(request);
 
-        verify(vinculoRepository, org.mockito.Mockito.times(2))
+        verify(vinculoRepository, times(2))
                 .save(any(VinculoResponsavel.class));
     }
 
@@ -452,7 +478,9 @@ class PacienteServiceTest {
             paciente.setId("pac-1");
             return paciente;
         });
-        when(vinculoRepository.findByPacienteId("pac-1")).thenReturn(List.of());
+
+        when(vinculoRepository.findByPacienteId("pac-1"))
+                .thenReturn(List.of());
 
         var cadastro = pacienteService.salvar(request);
 
@@ -471,7 +499,10 @@ class PacienteServiceTest {
                 org.springframework.web.server.ResponseStatusException.class,
                 () -> pacienteService.salvar(request));
 
-        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, erro.getStatusCode());
+        assertEquals(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                erro.getStatusCode());
+
         verify(pacienteRepository, never()).save(any(Paciente.class));
     }
 }
